@@ -1,0 +1,31 @@
+{
+  "name": "regl-visualizer",
+  "version": "1.0.0",
+  "description": "SoundCloud frequency and waveform visualizer",
+  "main": "index.js",
+  "scripts": {
+    "start": "budo index.js -l -o",
+    "test": "standard"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gesslerpd/regl-visualizer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gesslerpd/regl-visualizer/issues"
+  },
+  "homepage": "https://github.com/gesslerpd/regl-visualizer#readme",
+  "dependencies": {
+    "regl": "^1.3.0",
+    "regl-camera": "^1.1.1",
+    "soundcloud-badge": "^1.1.0",
+    "web-audio-analyser": "^2.0.1"
+  },
+  "devDependencies": {
+    "budo": "^9.4.7",
+    "standard": "^10.0.1"
+  }
+}
