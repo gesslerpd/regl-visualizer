@@ -29,7 +29,7 @@ require('soundcloud-badge')({
     attribute vec3 xyz;
     uniform mat4 projection, view;
     void main () {
-      gl_Position = projection * view * vec4(xy,1);
+      gl_Position = projection * view * vec4(xyz,1);
     }
   `,
     frag: `
@@ -52,7 +52,7 @@ require('soundcloud-badge')({
     attribute vec3 xyz;
     uniform mat4 projection, view;
     void main () {
-      gl_Position = projection * view * vec4(xy,1);
+      gl_Position = projection * view * vec4(xyz,1);
     }
   `,
     frag: `
