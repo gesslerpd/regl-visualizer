@@ -1,7 +1,7 @@
-const regl = require('regl')()
-const analyse = require('web-audio-analyser')
-const soundcloudBadge = require('soundcloud-badge')
-const camera = require('regl-camera')(regl, {
+var regl = require('regl')()
+var analyse = require('web-audio-analyser')
+var soundcloudBadge = require('soundcloud-badge')
+var camera = require('regl-camera')(regl, {
   center: [0, 0, 0],
   theta: 0.717,
   phi: 0.717,
@@ -10,12 +10,9 @@ const camera = require('regl-camera')(regl, {
 })
 
 var audio = document.createElement('audio')
-audio.classList.add('player')
 audio.crossOrigin = 'anonymous'
 audio.controls = true
 audio.loop = true
-document.body.appendChild(audio)
-
 
 var analyzer = analyse(audio, { audible: true, stereo: false })
 
@@ -73,40 +70,55 @@ regl.frame(() => {
   })
 })
 
-// TODO add song history list and/or suggested tracks list
-// TODO add ability for other mp3 files to be played
+var html = require('choo/html')
+var choo = require('choo')
 
-var trackDiv
+var app = choo()
+app.use(playStore)
+app.route('/', mainView)
 
-var container = document.createElement('div')
-var input = document.createElement('input')
-input.id = 'uri'
-input.type = 'text'
-var btn = document.createElement('button')
-var t = document.createTextNode('Load')
-btn.appendChild(t)
-container.appendChild(input)
-container.appendChild(btn)
+var el = app.start()
+el.appendChild(audio)
+document.body.appendChild(el)
 
-container.addEventListener('click', update)
+function mainView (state, emit) {
+  return html`
+    <div class="controls" onload=${onLoad}>
+      <form onsubmit=${onSubmit}>
+        <input type="text" placeholder="SoundCloud URL">
+      </form>
+    </div>
+  `
 
-function update () {
-  soundcloudBadge({
-    client_id: '4027e272825f07badf19f66d7827a79f',
-    song: document.querySelector('#uri').value,
-    dark: false,
-    getFonts: false
-  },
-    function (err, src, data, div) {
-      document.querySelector('#uri').value = ''
-      if (err) throw err
-      audio.src = src
-      if (trackDiv) {
-        trackDiv.remove()
-        audio.play()
-      }
-      trackDiv = div
-    })
+  function onSubmit (e) {
+    const input = e.target.children[0]
+    emit('play', input.value)
+    input.value = ''
+    e.preventDefault()
+  }
+
+  function onLoad () {
+    emit('play', 'https://soundcloud.com/khamsinmusic/maelstrom')
+  }
 }
 
-document.body.appendChild(container)
+function playStore (state, emitter) {
+  state.trackDiv = undefined
+  emitter.on('play', function (uri) {
+    soundcloudBadge({
+      client_id: '4027e272825f07badf19f66d7827a79f',
+      song: uri,
+      dark: false,
+      getFonts: false
+    },
+      function (err, src, data, div) {
+        if (err) throw err
+        audio.src = src
+        if (state.trackDiv) {
+          state.trackDiv.remove()
+          audio.play()
+        }
+        state.trackDiv = div
+      })
+  })
+}
