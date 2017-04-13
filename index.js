@@ -10,7 +10,7 @@ const camera = require('regl-camera')(regl, {
 })
 
 soundcloudBadge({
-  client_id: '4027e272825f07badf19f66d7827a79f',
+  client_id: 'YOUR_SOUNDCLOUD_CLIENTID',
   song: 'https://soundcloud.com/khamsinmusic/maelstrom',
   dark: false,
   getFonts: false
