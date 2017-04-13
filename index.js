@@ -3,6 +3,9 @@ const analyse = require('web-audio-analyser')
 const soundcloudBadge = require('soundcloud-badge')
 const camera = require('regl-camera')(regl, {
   center: [0, 0, 0],
+  theta: 0.717,
+  phi: 0.717,
+  distance: 3,
   damping: 0
 })
 

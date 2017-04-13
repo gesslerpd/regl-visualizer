@@ -4,9 +4,8 @@
   "description": "SoundCloud frequency and waveform visualizer",
   "main": "index.js",
   "scripts": {
-    "start": "budo index.js -l -o",
-    "test": "standard",
-    "build": "browserify index.js -o bundle.js"
+    "start": "browserify index.js -o bundle.js && http-server -o -c4",
+    "test": "standard"
   },
   "repository": {
     "type": "git",
