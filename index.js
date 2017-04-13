@@ -75,7 +75,7 @@ var choo = require('choo')
 
 var app = choo()
 app.use(playStore)
-app.route('/', mainView)
+app.route('*', mainView)
 
 var el = app.start()
 el.appendChild(audio)
