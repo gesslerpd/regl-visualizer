@@ -2,3 +2,11 @@
   position: absolute;
   bottom: 0;
 }
+
+canvas {
+  z-index: -1;
+}
+
+button {
+  margin: 100px;
+}
