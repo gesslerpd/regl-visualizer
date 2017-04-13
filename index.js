@@ -16,6 +16,7 @@ audio.controls = true
 audio.loop = true
 document.body.appendChild(audio)
 
+
 var analyzer = analyse(audio, { audible: true, stereo: false })
 
 var drawWaveform = regl({
