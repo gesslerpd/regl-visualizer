@@ -114,9 +114,13 @@ function playStore (state, emitter) {
     },
       function (err, src, data, div) {
         if (err) throw err
+        var wasPlaying = !audio.paused
         audio.src = src
+        audio.load()
         if (state.trackDiv) {
           state.trackDiv.remove()
+        }
+        if (wasPlaying) {
           audio.play()
         }
         state.trackDiv = div
