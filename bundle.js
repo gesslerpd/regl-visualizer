@@ -71,6 +71,7 @@ regl.frame(() => {
   })
 })
 
+var CLIENT_ID = '2t9loNQH90kzJcsFCODdigxfp325aq4z'
 var html = require('choo/html')
 var choo = require('choo')
 
@@ -107,7 +108,7 @@ function playStore (state, emitter) {
   state.trackDiv = undefined
   emitter.on('play', function (uri) {
     soundcloudBadge({
-      client_id: '4027e272825f07badf19f66d7827a79f',
+      client_id: CLIENT_ID,
       song: uri,
       dark: false,
       getFonts: false
