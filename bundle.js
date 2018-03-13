@@ -71,7 +71,7 @@ regl.frame(() => {
   })
 })
 
-var CLIENT_ID = '0U89KnefZ29oWNFitwxnMmKoGkGazKaF'
+var CLIENT_ID = 'YeB1O6rbKc9vlNIbA4ghoAxzOoGLK6fZ'
 var html = require('choo/html')
 var choo = require('choo')
 
@@ -100,7 +100,7 @@ function mainView (state, emit) {
   }
 
   function onLoad () {
-    emit('play', 'https://soundcloud.com/khamsinmusic/maelstrom')
+    emit('play', 'https://soundcloud.com/fibremusic/overture')
   }
 }
 

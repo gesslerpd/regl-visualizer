@@ -99,7 +99,7 @@ function mainView (state, emit) {
   }
 
   function onLoad () {
-    emit('play', 'https://soundcloud.com/khamsinmusic/maelstrom')
+    emit('play', 'https://soundcloud.com/fibremusic/overture')
   }
 }
 
