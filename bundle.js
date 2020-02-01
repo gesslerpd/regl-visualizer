@@ -1,4 +1,4 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 var regl = require('regl')()
 var analyse = require('web-audio-analyser')
 var soundcloudBadge = require('soundcloud-badge')
@@ -71,7 +71,7 @@ regl.frame(() => {
   })
 })
 
-var CLIENT_ID = 'f0sxU3Az3dcl0lS1M9wFJ00SqawVL72nt'
+var CLIENT_ID = 'f0sxU3Az3dcl0lS1M9wFJ00SqawVL72n'
 var html = require('choo/html')
 var choo = require('choo')
 
@@ -129,9 +129,11 @@ function playStore (state, emitter) {
   })
 }
 
-},{"choo":8,"choo/html":7,"regl":40,"regl-camera":39,"soundcloud-badge":41,"web-audio-analyser":49}],2:[function(require,module,exports){
+},{"choo":10,"choo/html":9,"regl":45,"regl-camera":44,"soundcloud-badge":46,"web-audio-analyser":51}],2:[function(require,module,exports){
 (function (global){
 'use strict';
+
+var objectAssign = require('object-assign');
 
 // compare and isBuffer taken from https://github.com/feross/buffer/blob/680e9e5e488f22aac27599a57dc844a6315928dd/index.js
 // original notice:
@@ -174,6 +176,8 @@ function isBuffer(b) {
 }
 
 // based on node assert, original notice:
+// NB: The URL to the CommonJS spec is kept just for tradition.
+//     node-assert has evolved a lot since then, both in API and behavior.
 
 // http://wiki.commonjs.org/wiki/Unit_Testing/1.0
 //
@@ -614,6 +618,18 @@ assert.doesNotThrow = function(block, /*optional*/error, /*optional*/message) {
 
 assert.ifError = function(err) { if (err) throw err; };
 
+// Expose a strict only variant of assert
+function strict(value, message) {
+  if (!value) fail(value, true, message, '==', strict);
+}
+assert.strict = objectAssign(strict, assert, {
+  equal: assert.strictEqual,
+  deepEqual: assert.deepStrictEqual,
+  notEqual: assert.notStrictEqual,
+  notDeepEqual: assert.notDeepStrictEqual
+});
+assert.strict.strict = assert.strict;
+
 var objectKeys = Object.keys || function (obj) {
   var keys = [];
   for (var key in obj) {
@@ -623,12205 +639,7 @@ var objectKeys = Object.keys || function (obj) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"util/":46}],3:[function(require,module,exports){
-var document = require('global/document')
-var hyperx = require('hyperx')
-var onload = require('on-load')
-
-var SVGNS = 'http://www.w3.org/2000/svg'
-var XLINKNS = 'http://www.w3.org/1999/xlink'
-
-var BOOL_PROPS = {
-  autofocus: 1,
-  checked: 1,
-  defaultchecked: 1,
-  disabled: 1,
-  formnovalidate: 1,
-  indeterminate: 1,
-  readonly: 1,
-  required: 1,
-  selected: 1,
-  willvalidate: 1
-}
-var COMMENT_TAG = '!--'
-var SVG_TAGS = [
-  'svg',
-  'altGlyph', 'altGlyphDef', 'altGlyphItem', 'animate', 'animateColor',
-  'animateMotion', 'animateTransform', 'circle', 'clipPath', 'color-profile',
-  'cursor', 'defs', 'desc', 'ellipse', 'feBlend', 'feColorMatrix',
-  'feComponentTransfer', 'feComposite', 'feConvolveMatrix', 'feDiffuseLighting',
-  'feDisplacementMap', 'feDistantLight', 'feFlood', 'feFuncA', 'feFuncB',
-  'feFuncG', 'feFuncR', 'feGaussianBlur', 'feImage', 'feMerge', 'feMergeNode',
-  'feMorphology', 'feOffset', 'fePointLight', 'feSpecularLighting',
-  'feSpotLight', 'feTile', 'feTurbulence', 'filter', 'font', 'font-face',
-  'font-face-format', 'font-face-name', 'font-face-src', 'font-face-uri',
-  'foreignObject', 'g', 'glyph', 'glyphRef', 'hkern', 'image', 'line',
-  'linearGradient', 'marker', 'mask', 'metadata', 'missing-glyph', 'mpath',
-  'path', 'pattern', 'polygon', 'polyline', 'radialGradient', 'rect',
-  'set', 'stop', 'switch', 'symbol', 'text', 'textPath', 'title', 'tref',
-  'tspan', 'use', 'view', 'vkern'
-]
-
-function belCreateElement (tag, props, children) {
-  var el
-
-  // If an svg tag, it needs a namespace
-  if (SVG_TAGS.indexOf(tag) !== -1) {
-    props.namespace = SVGNS
-  }
-
-  // If we are using a namespace
-  var ns = false
-  if (props.namespace) {
-    ns = props.namespace
-    delete props.namespace
-  }
-
-  // Create the element
-  if (ns) {
-    el = document.createElementNS(ns, tag)
-  } else if (tag === COMMENT_TAG) {
-    return document.createComment(props.comment)
-  } else {
-    el = document.createElement(tag)
-  }
-
-  // If adding onload events
-  if (props.onload || props.onunload) {
-    var load = props.onload || function () {}
-    var unload = props.onunload || function () {}
-    onload(el, function belOnload () {
-      load(el)
-    }, function belOnunload () {
-      unload(el)
-    },
-    // We have to use non-standard `caller` to find who invokes `belCreateElement`
-    belCreateElement.caller.caller.caller)
-    delete props.onload
-    delete props.onunload
-  }
-
-  // Create the properties
-  for (var p in props) {
-    if (props.hasOwnProperty(p)) {
-      var key = p.toLowerCase()
-      var val = props[p]
-      // Normalize className
-      if (key === 'classname') {
-        key = 'class'
-        p = 'class'
-      }
-      // The for attribute gets transformed to htmlFor, but we just set as for
-      if (p === 'htmlFor') {
-        p = 'for'
-      }
-      // If a property is boolean, set itself to the key
-      if (BOOL_PROPS[key]) {
-        if (val === 'true') val = key
-        else if (val === 'false') continue
-      }
-      // If a property prefers being set directly vs setAttribute
-      if (key.slice(0, 2) === 'on') {
-        el[p] = val
-      } else {
-        if (ns) {
-          if (p === 'xlink:href') {
-            el.setAttributeNS(XLINKNS, p, val)
-          } else if (/^xmlns($|:)/i.test(p)) {
-            // skip xmlns definitions
-          } else {
-            el.setAttributeNS(null, p, val)
-          }
-        } else {
-          el.setAttribute(p, val)
-        }
-      }
-    }
-  }
-
-  function appendChild (childs) {
-    if (!Array.isArray(childs)) return
-    for (var i = 0; i < childs.length; i++) {
-      var node = childs[i]
-      if (Array.isArray(node)) {
-        appendChild(node)
-        continue
-      }
-
-      if (typeof node === 'number' ||
-        typeof node === 'boolean' ||
-        typeof node === 'function' ||
-        node instanceof Date ||
-        node instanceof RegExp) {
-        node = node.toString()
-      }
-
-      if (typeof node === 'string') {
-        if (el.lastChild && el.lastChild.nodeName === '#text') {
-          el.lastChild.nodeValue += node
-          continue
-        }
-        node = document.createTextNode(node)
-      }
-
-      if (node && node.nodeType) {
-        el.appendChild(node)
-      }
-    }
-  }
-  appendChild(children)
-
-  return el
-}
-
-module.exports = hyperx(belCreateElement, {comments: true})
-module.exports.default = module.exports
-module.exports.createElement = belCreateElement
-
-},{"global/document":4,"hyperx":18,"on-load":31}],4:[function(require,module,exports){
-(function (global){
-var topLevel = typeof global !== 'undefined' ? global :
-    typeof window !== 'undefined' ? window : {}
-var minDoc = require('min-document');
-
-if (typeof document !== 'undefined') {
-    module.exports = document;
-} else {
-    var doccy = topLevel['__GLOBAL_DOCUMENT_CACHE@4'];
-
-    if (!doccy) {
-        doccy = topLevel['__GLOBAL_DOCUMENT_CACHE@4'] = minDoc;
-    }
-
-    module.exports = doccy;
-}
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"min-document":5}],5:[function(require,module,exports){
-
-},{}],6:[function(require,module,exports){
-arguments[4][5][0].apply(exports,arguments)
-},{"dup":5}],7:[function(require,module,exports){
-module.exports = require('bel')
-
-},{"bel":3}],8:[function(require,module,exports){
-var documentReady = require('document-ready')
-var nanorouter = require('nanorouter')
-var nanomount = require('nanomount')
-var nanomorph = require('nanomorph')
-var nanoraf = require('nanoraf')
-var nanobus = require('nanobus')
-var assert = require('assert')
-
-var onHistoryChange = require('./lib/history')
-var onHref = require('./lib/href')
-
-module.exports = Framework
-
-function Framework (opts) {
-  opts = opts || {}
-
-  var routerOpts = {
-    default: opts.defaultRoute || '/404',
-    curry: true
-  }
-
-  var timingEnabled = opts.timing === undefined ? true : opts.timing
-  var hasWindow = typeof window !== 'undefined'
-  var hasPerformance = hasWindow && window.performance && window.performance.mark
-  var router = nanorouter(routerOpts)
-  var bus = nanobus()
-  var rerender = null
-  var tree = null
-  var state = {}
-
-  return {
-    toString: toString,
-    use: register,
-    mount: mount,
-    route: route,
-    start: start
-  }
-
-  function route (route, handler) {
-    router.on(route, function (params) {
-      return function () {
-        state.params = params
-        return handler(state, emit)
-      }
-    })
-  }
-
-  function register (cb) {
-    cb(state, bus)
-  }
-
-  function start () {
-    tree = router(createLocation())
-    rerender = nanoraf(function () {
-      if (hasPerformance && timingEnabled) {
-        window.performance.mark('choo:renderStart')
-      }
-      var newTree = router(createLocation())
-      tree = nanomorph(tree, newTree)
-      if (hasPerformance && timingEnabled) {
-        window.performance.mark('choo:renderEnd')
-        window.performance.measure('choo:render', 'choo:renderStart', 'choo:renderEnd')
-      }
-    })
-
-    bus.on('render', rerender)
-
-    if (opts.history !== false) {
-      onHistoryChange(function (href) {
-        bus.emit('pushState')
-      })
-
-      bus.on('pushState', function (href) {
-        if (href) window.history.pushState({}, null, href)
-        bus.emit('render')
-        setTimeout(function () {
-          scrollIntoView()
-        }, 0)
-      })
-
-      if (opts.href !== false) {
-        onHref(function (location) {
-          var href = location.href
-          var currHref = window.location.href
-          if (href === currHref) return
-          bus.emit('pushState', href)
-        })
-      }
-    }
-
-    documentReady(function () {
-      bus.emit('DOMContentLoaded')
-    })
-
-    return tree
-  }
-
-  function emit (eventName, data) {
-    bus.emit(eventName, data)
-  }
-
-  function mount (selector) {
-    var newTree = start()
-    documentReady(function () {
-      var root = document.querySelector(selector)
-      assert.ok(root, 'could not query selector: ' + selector)
-      nanomount(root, newTree)
-      tree = root
-    })
-  }
-
-  function toString (location, _state) {
-    state = _state || {}
-    var html = router(location)
-    assert.equal()
-    return html.toString()
-  }
-}
-
-function scrollIntoView () {
-  var hash = window.location.hash
-  if (hash) {
-    try {
-      var el = document.querySelector(hash)
-      if (el) el.scrollIntoView(true)
-    } catch (e) {}
-  }
-}
-
-function createLocation () {
-  var pathname = window.location.pathname.replace(/\/$/, '')
-  var hash = window.location.hash.replace(/^#/, '/')
-  return pathname + hash
-}
-
-},{"./lib/history":9,"./lib/href":10,"assert":2,"document-ready":11,"nanobus":24,"nanomorph":25,"nanomount":28,"nanoraf":29,"nanorouter":30}],9:[function(require,module,exports){
-var assert = require('assert')
-
-module.exports = history
-
-// listen to html5 pushstate events
-// and update router accordingly
-// fn(str) -> null
-function history (cb) {
-  assert.equal(typeof cb, 'function', 'sheet-router/history: cb must be a function')
-  window.onpopstate = function () {
-    cb({
-      pathname: document.location.pathname,
-      search: document.location.search,
-      href: document.location.href,
-      hash: document.location.hash
-    })
-  }
-}
-
-},{"assert":2}],10:[function(require,module,exports){
-var assert = require('assert')
-
-module.exports = href
-
-var noRoutingAttrName = 'data-no-routing'
-
-// handle a click if is anchor tag with an href
-// and url lives on the same domain. Replaces
-// trailing '#' so empty links work as expected.
-// (fn(str), obj?) -> undefined
-function href (cb, root) {
-  assert.equal(typeof cb, 'function', 'sheet-router/href: cb must be a function')
-
-  window.onclick = function (e) {
-    if ((e.button && e.button !== 0) || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return
-
-    var node = (function traverse (node) {
-      if (!node || node === root) return
-      if (node.localName !== 'a') return traverse(node.parentNode)
-      if (node.href === undefined) return traverse(node.parentNode)
-      if (window.location.host !== node.host) return traverse(node.parentNode)
-      return node
-    })(e.target)
-
-    if (!node) return
-
-    var isRoutingDisabled = node.hasAttribute(noRoutingAttrName)
-    if (isRoutingDisabled) return
-
-    e.preventDefault()
-    cb(node)
-  }
-}
-
-},{"assert":2}],11:[function(require,module,exports){
-'use strict'
-
-var assert = require('assert')
-
-module.exports = ready
-
-function ready (callback) {
-  assert.notEqual(typeof document, 'undefined', 'document-ready only runs in the browser')
-  var state = document.readyState
-  if (state === 'complete' || state === 'interactive') {
-    return setTimeout(callback, 0)
-  }
-
-  document.addEventListener('DOMContentLoaded', function onLoad () {
-    callback()
-  })
-}
-
-},{"assert":2}],12:[function(require,module,exports){
-module.exports = identity;
-
-/**
- * Set a mat4 to the identity matrix
- *
- * @param {mat4} out the receiving matrix
- * @returns {mat4} out
- */
-function identity(out) {
-    out[0] = 1;
-    out[1] = 0;
-    out[2] = 0;
-    out[3] = 0;
-    out[4] = 0;
-    out[5] = 1;
-    out[6] = 0;
-    out[7] = 0;
-    out[8] = 0;
-    out[9] = 0;
-    out[10] = 1;
-    out[11] = 0;
-    out[12] = 0;
-    out[13] = 0;
-    out[14] = 0;
-    out[15] = 1;
-    return out;
-};
-},{}],13:[function(require,module,exports){
-var identity = require('./identity');
-
-module.exports = lookAt;
-
-/**
- * Generates a look-at matrix with the given eye position, focal point, and up axis
- *
- * @param {mat4} out mat4 frustum matrix will be written into
- * @param {vec3} eye Position of the viewer
- * @param {vec3} center Point the viewer is looking at
- * @param {vec3} up vec3 pointing up
- * @returns {mat4} out
- */
-function lookAt(out, eye, center, up) {
-    var x0, x1, x2, y0, y1, y2, z0, z1, z2, len,
-        eyex = eye[0],
-        eyey = eye[1],
-        eyez = eye[2],
-        upx = up[0],
-        upy = up[1],
-        upz = up[2],
-        centerx = center[0],
-        centery = center[1],
-        centerz = center[2];
-
-    if (Math.abs(eyex - centerx) < 0.000001 &&
-        Math.abs(eyey - centery) < 0.000001 &&
-        Math.abs(eyez - centerz) < 0.000001) {
-        return identity(out);
-    }
-
-    z0 = eyex - centerx;
-    z1 = eyey - centery;
-    z2 = eyez - centerz;
-
-    len = 1 / Math.sqrt(z0 * z0 + z1 * z1 + z2 * z2);
-    z0 *= len;
-    z1 *= len;
-    z2 *= len;
-
-    x0 = upy * z2 - upz * z1;
-    x1 = upz * z0 - upx * z2;
-    x2 = upx * z1 - upy * z0;
-    len = Math.sqrt(x0 * x0 + x1 * x1 + x2 * x2);
-    if (!len) {
-        x0 = 0;
-        x1 = 0;
-        x2 = 0;
-    } else {
-        len = 1 / len;
-        x0 *= len;
-        x1 *= len;
-        x2 *= len;
-    }
-
-    y0 = z1 * x2 - z2 * x1;
-    y1 = z2 * x0 - z0 * x2;
-    y2 = z0 * x1 - z1 * x0;
-
-    len = Math.sqrt(y0 * y0 + y1 * y1 + y2 * y2);
-    if (!len) {
-        y0 = 0;
-        y1 = 0;
-        y2 = 0;
-    } else {
-        len = 1 / len;
-        y0 *= len;
-        y1 *= len;
-        y2 *= len;
-    }
-
-    out[0] = x0;
-    out[1] = y0;
-    out[2] = z0;
-    out[3] = 0;
-    out[4] = x1;
-    out[5] = y1;
-    out[6] = z1;
-    out[7] = 0;
-    out[8] = x2;
-    out[9] = y2;
-    out[10] = z2;
-    out[11] = 0;
-    out[12] = -(x0 * eyex + x1 * eyey + x2 * eyez);
-    out[13] = -(y0 * eyex + y1 * eyey + y2 * eyez);
-    out[14] = -(z0 * eyex + z1 * eyey + z2 * eyez);
-    out[15] = 1;
-
-    return out;
-};
-},{"./identity":12}],14:[function(require,module,exports){
-module.exports = perspective;
-
-/**
- * Generates a perspective projection matrix with the given bounds
- *
- * @param {mat4} out mat4 frustum matrix will be written into
- * @param {number} fovy Vertical field of view in radians
- * @param {number} aspect Aspect ratio. typically viewport width/height
- * @param {number} near Near bound of the frustum
- * @param {number} far Far bound of the frustum
- * @returns {mat4} out
- */
-function perspective(out, fovy, aspect, near, far) {
-    var f = 1.0 / Math.tan(fovy / 2),
-        nf = 1 / (near - far);
-    out[0] = f / aspect;
-    out[1] = 0;
-    out[2] = 0;
-    out[3] = 0;
-    out[4] = 0;
-    out[5] = f;
-    out[6] = 0;
-    out[7] = 0;
-    out[8] = 0;
-    out[9] = 0;
-    out[10] = (far + near) * nf;
-    out[11] = -1;
-    out[12] = 0;
-    out[13] = 0;
-    out[14] = (2 * far * near) * nf;
-    out[15] = 0;
-    return out;
-};
-},{}],15:[function(require,module,exports){
-(function (global){
-if (typeof window !== "undefined") {
-    module.exports = window
-} else if (typeof global !== "undefined") {
-    module.exports = global
-} else {
-    module.exports = {}
-}
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],16:[function(require,module,exports){
-module.exports = asString
-module.exports.add = append
-
-function asString(fonts) {
-  var href = getHref(fonts)
-  return '<link href="' + href + '" rel="stylesheet" type="text/css">'
-}
-
-function asElement(fonts) {
-  var href = getHref(fonts)
-  var link = document.createElement('link')
-  link.setAttribute('href', href)
-  link.setAttribute('rel', 'stylesheet')
-  link.setAttribute('type', 'text/css')
-  return link
-}
-
-function getHref(fonts) {
-  var family = Object.keys(fonts).map(function(name) {
-    var details = fonts[name]
-    name = name.replace(/\s+/, '+')
-    return typeof details === 'boolean'
-      ? name
-      : name + ':' + makeArray(details).join(',')
-  }).join('|')
-
-  return 'http://fonts.googleapis.com/css?family=' + family
-}
-
-function append(fonts) {
-  var link = asElement(fonts)
-  document.head.appendChild(link)
-  return link
-}
-
-function makeArray(arr) {
-  return Array.isArray(arr) ? arr : [arr]
-}
-
-},{}],17:[function(require,module,exports){
-module.exports = attributeToProperty
-
-var transform = {
-  'class': 'className',
-  'for': 'htmlFor',
-  'http-equiv': 'httpEquiv'
-}
-
-function attributeToProperty (h) {
-  return function (tagName, attrs, children) {
-    for (var attr in attrs) {
-      if (attr in transform) {
-        attrs[transform[attr]] = attrs[attr]
-        delete attrs[attr]
-      }
-    }
-    return h(tagName, attrs, children)
-  }
-}
-
-},{}],18:[function(require,module,exports){
-var attrToProp = require('hyperscript-attribute-to-property')
-
-var VAR = 0, TEXT = 1, OPEN = 2, CLOSE = 3, ATTR = 4
-var ATTR_KEY = 5, ATTR_KEY_W = 6
-var ATTR_VALUE_W = 7, ATTR_VALUE = 8
-var ATTR_VALUE_SQ = 9, ATTR_VALUE_DQ = 10
-var ATTR_EQ = 11, ATTR_BREAK = 12
-var COMMENT = 13
-
-module.exports = function (h, opts) {
-  if (!opts) opts = {}
-  var concat = opts.concat || function (a, b) {
-    return String(a) + String(b)
-  }
-  if (opts.attrToProp !== false) {
-    h = attrToProp(h)
-  }
-
-  return function (strings) {
-    var state = TEXT, reg = ''
-    var arglen = arguments.length
-    var parts = []
-
-    for (var i = 0; i < strings.length; i++) {
-      if (i < arglen - 1) {
-        var arg = arguments[i+1]
-        var p = parse(strings[i])
-        var xstate = state
-        if (xstate === ATTR_VALUE_DQ) xstate = ATTR_VALUE
-        if (xstate === ATTR_VALUE_SQ) xstate = ATTR_VALUE
-        if (xstate === ATTR_VALUE_W) xstate = ATTR_VALUE
-        if (xstate === ATTR) xstate = ATTR_KEY
-        p.push([ VAR, xstate, arg ])
-        parts.push.apply(parts, p)
-      } else parts.push.apply(parts, parse(strings[i]))
-    }
-
-    var tree = [null,{},[]]
-    var stack = [[tree,-1]]
-    for (var i = 0; i < parts.length; i++) {
-      var cur = stack[stack.length-1][0]
-      var p = parts[i], s = p[0]
-      if (s === OPEN && /^\//.test(p[1])) {
-        var ix = stack[stack.length-1][1]
-        if (stack.length > 1) {
-          stack.pop()
-          stack[stack.length-1][0][2][ix] = h(
-            cur[0], cur[1], cur[2].length ? cur[2] : undefined
-          )
-        }
-      } else if (s === OPEN) {
-        var c = [p[1],{},[]]
-        cur[2].push(c)
-        stack.push([c,cur[2].length-1])
-      } else if (s === ATTR_KEY || (s === VAR && p[1] === ATTR_KEY)) {
-        var key = ''
-        var copyKey
-        for (; i < parts.length; i++) {
-          if (parts[i][0] === ATTR_KEY) {
-            key = concat(key, parts[i][1])
-          } else if (parts[i][0] === VAR && parts[i][1] === ATTR_KEY) {
-            if (typeof parts[i][2] === 'object' && !key) {
-              for (copyKey in parts[i][2]) {
-                if (parts[i][2].hasOwnProperty(copyKey) && !cur[1][copyKey]) {
-                  cur[1][copyKey] = parts[i][2][copyKey]
-                }
-              }
-            } else {
-              key = concat(key, parts[i][2])
-            }
-          } else break
-        }
-        if (parts[i][0] === ATTR_EQ) i++
-        var j = i
-        for (; i < parts.length; i++) {
-          if (parts[i][0] === ATTR_VALUE || parts[i][0] === ATTR_KEY) {
-            if (!cur[1][key]) cur[1][key] = strfn(parts[i][1])
-            else cur[1][key] = concat(cur[1][key], parts[i][1])
-          } else if (parts[i][0] === VAR
-          && (parts[i][1] === ATTR_VALUE || parts[i][1] === ATTR_KEY)) {
-            if (!cur[1][key]) cur[1][key] = strfn(parts[i][2])
-            else cur[1][key] = concat(cur[1][key], parts[i][2])
-          } else {
-            if (key.length && !cur[1][key] && i === j
-            && (parts[i][0] === CLOSE || parts[i][0] === ATTR_BREAK)) {
-              // https://html.spec.whatwg.org/multipage/infrastructure.html#boolean-attributes
-              // empty string is falsy, not well behaved value in browser
-              cur[1][key] = key.toLowerCase()
-            }
-            break
-          }
-        }
-      } else if (s === ATTR_KEY) {
-        cur[1][p[1]] = true
-      } else if (s === VAR && p[1] === ATTR_KEY) {
-        cur[1][p[2]] = true
-      } else if (s === CLOSE) {
-        if (selfClosing(cur[0]) && stack.length) {
-          var ix = stack[stack.length-1][1]
-          stack.pop()
-          stack[stack.length-1][0][2][ix] = h(
-            cur[0], cur[1], cur[2].length ? cur[2] : undefined
-          )
-        }
-      } else if (s === VAR && p[1] === TEXT) {
-        if (p[2] === undefined || p[2] === null) p[2] = ''
-        else if (!p[2]) p[2] = concat('', p[2])
-        if (Array.isArray(p[2][0])) {
-          cur[2].push.apply(cur[2], p[2])
-        } else {
-          cur[2].push(p[2])
-        }
-      } else if (s === TEXT) {
-        cur[2].push(p[1])
-      } else if (s === ATTR_EQ || s === ATTR_BREAK) {
-        // no-op
-      } else {
-        throw new Error('unhandled: ' + s)
-      }
-    }
-
-    if (tree[2].length > 1 && /^\s*$/.test(tree[2][0])) {
-      tree[2].shift()
-    }
-
-    if (tree[2].length > 2
-    || (tree[2].length === 2 && /\S/.test(tree[2][1]))) {
-      throw new Error(
-        'multiple root elements must be wrapped in an enclosing tag'
-      )
-    }
-    if (Array.isArray(tree[2][0]) && typeof tree[2][0][0] === 'string'
-    && Array.isArray(tree[2][0][2])) {
-      tree[2][0] = h(tree[2][0][0], tree[2][0][1], tree[2][0][2])
-    }
-    return tree[2][0]
-
-    function parse (str) {
-      var res = []
-      if (state === ATTR_VALUE_W) state = ATTR
-      for (var i = 0; i < str.length; i++) {
-        var c = str.charAt(i)
-        if (state === TEXT && c === '<') {
-          if (reg.length) res.push([TEXT, reg])
-          reg = ''
-          state = OPEN
-        } else if (c === '>' && !quot(state) && state !== COMMENT) {
-          if (state === OPEN) {
-            res.push([OPEN,reg])
-          } else if (state === ATTR_KEY) {
-            res.push([ATTR_KEY,reg])
-          } else if (state === ATTR_VALUE && reg.length) {
-            res.push([ATTR_VALUE,reg])
-          }
-          res.push([CLOSE])
-          reg = ''
-          state = TEXT
-        } else if (state === COMMENT && /-$/.test(reg) && c === '-') {
-          if (opts.comments) {
-            res.push([ATTR_VALUE,reg.substr(0, reg.length - 1)],[CLOSE])
-          }
-          reg = ''
-          state = TEXT
-        } else if (state === OPEN && /^!--$/.test(reg)) {
-          if (opts.comments) {
-            res.push([OPEN, reg],[ATTR_KEY,'comment'],[ATTR_EQ])
-          }
-          reg = c
-          state = COMMENT
-        } else if (state === TEXT || state === COMMENT) {
-          reg += c
-        } else if (state === OPEN && /\s/.test(c)) {
-          res.push([OPEN, reg])
-          reg = ''
-          state = ATTR
-        } else if (state === OPEN) {
-          reg += c
-        } else if (state === ATTR && /[^\s"'=/]/.test(c)) {
-          state = ATTR_KEY
-          reg = c
-        } else if (state === ATTR && /\s/.test(c)) {
-          if (reg.length) res.push([ATTR_KEY,reg])
-          res.push([ATTR_BREAK])
-        } else if (state === ATTR_KEY && /\s/.test(c)) {
-          res.push([ATTR_KEY,reg])
-          reg = ''
-          state = ATTR_KEY_W
-        } else if (state === ATTR_KEY && c === '=') {
-          res.push([ATTR_KEY,reg],[ATTR_EQ])
-          reg = ''
-          state = ATTR_VALUE_W
-        } else if (state === ATTR_KEY) {
-          reg += c
-        } else if ((state === ATTR_KEY_W || state === ATTR) && c === '=') {
-          res.push([ATTR_EQ])
-          state = ATTR_VALUE_W
-        } else if ((state === ATTR_KEY_W || state === ATTR) && !/\s/.test(c)) {
-          res.push([ATTR_BREAK])
-          if (/[\w-]/.test(c)) {
-            reg += c
-            state = ATTR_KEY
-          } else state = ATTR
-        } else if (state === ATTR_VALUE_W && c === '"') {
-          state = ATTR_VALUE_DQ
-        } else if (state === ATTR_VALUE_W && c === "'") {
-          state = ATTR_VALUE_SQ
-        } else if (state === ATTR_VALUE_DQ && c === '"') {
-          res.push([ATTR_VALUE,reg],[ATTR_BREAK])
-          reg = ''
-          state = ATTR
-        } else if (state === ATTR_VALUE_SQ && c === "'") {
-          res.push([ATTR_VALUE,reg],[ATTR_BREAK])
-          reg = ''
-          state = ATTR
-        } else if (state === ATTR_VALUE_W && !/\s/.test(c)) {
-          state = ATTR_VALUE
-          i--
-        } else if (state === ATTR_VALUE && /\s/.test(c)) {
-          res.push([ATTR_VALUE,reg],[ATTR_BREAK])
-          reg = ''
-          state = ATTR
-        } else if (state === ATTR_VALUE || state === ATTR_VALUE_SQ
-        || state === ATTR_VALUE_DQ) {
-          reg += c
-        }
-      }
-      if (state === TEXT && reg.length) {
-        res.push([TEXT,reg])
-        reg = ''
-      } else if (state === ATTR_VALUE && reg.length) {
-        res.push([ATTR_VALUE,reg])
-        reg = ''
-      } else if (state === ATTR_VALUE_DQ && reg.length) {
-        res.push([ATTR_VALUE,reg])
-        reg = ''
-      } else if (state === ATTR_VALUE_SQ && reg.length) {
-        res.push([ATTR_VALUE,reg])
-        reg = ''
-      } else if (state === ATTR_KEY) {
-        res.push([ATTR_KEY,reg])
-        reg = ''
-      }
-      return res
-    }
-  }
-
-  function strfn (x) {
-    if (typeof x === 'function') return x
-    else if (typeof x === 'string') return x
-    else if (x && typeof x === 'object') return x
-    else return concat('', x)
-  }
-}
-
-function quot (state) {
-  return state === ATTR_VALUE_SQ || state === ATTR_VALUE_DQ
-}
-
-var hasOwn = Object.prototype.hasOwnProperty
-function has (obj, key) { return hasOwn.call(obj, key) }
-
-var closeRE = RegExp('^(' + [
-  'area', 'base', 'basefont', 'bgsound', 'br', 'col', 'command', 'embed',
-  'frame', 'hr', 'img', 'input', 'isindex', 'keygen', 'link', 'meta', 'param',
-  'source', 'track', 'wbr', '!--',
-  // SVG TAGS
-  'animate', 'animateTransform', 'circle', 'cursor', 'desc', 'ellipse',
-  'feBlend', 'feColorMatrix', 'feComposite',
-  'feConvolveMatrix', 'feDiffuseLighting', 'feDisplacementMap',
-  'feDistantLight', 'feFlood', 'feFuncA', 'feFuncB', 'feFuncG', 'feFuncR',
-  'feGaussianBlur', 'feImage', 'feMergeNode', 'feMorphology',
-  'feOffset', 'fePointLight', 'feSpecularLighting', 'feSpotLight', 'feTile',
-  'feTurbulence', 'font-face-format', 'font-face-name', 'font-face-uri',
-  'glyph', 'glyphRef', 'hkern', 'image', 'line', 'missing-glyph', 'mpath',
-  'path', 'polygon', 'polyline', 'rect', 'set', 'stop', 'tref', 'use', 'view',
-  'vkern'
-].join('|') + ')(?:[\.#][a-zA-Z0-9\u007F-\uFFFF_:-]+)*$')
-function selfClosing (tag) { return closeRE.test(tag) }
-
-},{"hyperscript-attribute-to-property":17}],19:[function(require,module,exports){
-var inserted = [];
-
-module.exports = function (css) {
-    if (inserted.indexOf(css) >= 0) return;
-    inserted.push(css);
-    
-    var elem = document.createElement('style');
-    var text = document.createTextNode(css);
-    elem.appendChild(text);
-    
-    if (document.head.childNodes.length) {
-        document.head.insertBefore(elem, document.head.childNodes[0]);
-    }
-    else {
-        document.head.appendChild(elem);
-    }
-};
-
-},{}],20:[function(require,module,exports){
-
-/**
- * Expose `render()`.`
- */
-
-exports = module.exports = render;
-
-/**
- * Expose `compile()`.
- */
-
-exports.compile = compile;
-
-/**
- * Render the given mustache `str` with `obj`.
- *
- * @param {String} str
- * @param {Object} obj
- * @return {String}
- * @api public
- */
-
-function render(str, obj) {
-  obj = obj || {};
-  var fn = compile(str);
-  return fn(obj);
-}
-
-/**
- * Compile the given `str` to a `Function`.
- *
- * @param {String} str
- * @return {Function}
- * @api public
- */
-
-function compile(str) {
-  var js = [];
-  var toks = parse(str);
-  var tok;
-
-  for (var i = 0; i < toks.length; ++i) {
-    tok = toks[i];
-    if (i % 2 == 0) {
-      js.push('"' + tok.replace(/"/g, '\\"') + '"');
-    } else {
-      switch (tok[0]) {
-        case '/':
-          tok = tok.slice(1);
-          js.push(') + ');
-          break;
-        case '^':
-          tok = tok.slice(1);
-          assertProperty(tok);
-          js.push(' + section(obj, "' + tok + '", true, ');
-          break;
-        case '#':
-          tok = tok.slice(1);
-          assertProperty(tok);
-          js.push(' + section(obj, "' + tok + '", false, ');
-          break;
-        case '!':
-          tok = tok.slice(1);
-          assertProperty(tok);
-          js.push(' + obj.' + tok + ' + ');
-          break;
-        default:
-          assertProperty(tok);
-          js.push(' + escape(obj.' + tok + ') + ');
-      }
-    }
-  }
-
-  js = '\n'
-    + indent(escape.toString()) + ';\n\n'
-    + indent(section.toString()) + ';\n\n'
-    + '  return ' + js.join('').replace(/\n/g, '\\n');
-
-  return new Function('obj', js);
-}
-
-/**
- * Assert that `prop` is a valid property.
- *
- * @param {String} prop
- * @api private
- */
-
-function assertProperty(prop) {
-  if (!prop.match(/^[\w.]+$/)) throw new Error('invalid property "' + prop + '"');
-}
-
-/**
- * Parse `str`.
- *
- * @param {String} str
- * @return {Array}
- * @api private
- */
-
-function parse(str) {
-  return str.split(/\{\{|\}\}/);
-}
-
-/**
- * Indent `str`.
- *
- * @param {String} str
- * @return {String}
- * @api private
- */
-
-function indent(str) {
-  return str.replace(/^/gm, '  ');
-}
-
-/**
- * Section handler.
- *
- * @param {Object} context obj
- * @param {String} prop
- * @param {String} str
- * @param {Boolean} negate
- * @api private
- */
-
-function section(obj, prop, negate, str) {
-  var val = obj[prop];
-  if ('function' == typeof val) return val.call(obj, str);
-  if (negate) val = !val;
-  if (val) return str;
-  return '';
-}
-
-/**
- * Escape the given `html`.
- *
- * @param {String} html
- * @return {String}
- * @api private
- */
-
-function escape(html) {
-  return String(html)
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
-
-},{}],21:[function(require,module,exports){
-'use strict'
-
-module.exports = mouseListen
-
-var mouse = require('mouse-event')
-
-function mouseListen (element, callback) {
-  if (!callback) {
-    callback = element
-    element = window
-  }
-
-  var buttonState = 0
-  var x = 0
-  var y = 0
-  var mods = {
-    shift: false,
-    alt: false,
-    control: false,
-    meta: false
-  }
-  var attached = false
-
-  function updateMods (ev) {
-    var changed = false
-    if ('altKey' in ev) {
-      changed = changed || ev.altKey !== mods.alt
-      mods.alt = !!ev.altKey
-    }
-    if ('shiftKey' in ev) {
-      changed = changed || ev.shiftKey !== mods.shift
-      mods.shift = !!ev.shiftKey
-    }
-    if ('ctrlKey' in ev) {
-      changed = changed || ev.ctrlKey !== mods.control
-      mods.control = !!ev.ctrlKey
-    }
-    if ('metaKey' in ev) {
-      changed = changed || ev.metaKey !== mods.meta
-      mods.meta = !!ev.metaKey
-    }
-    return changed
-  }
-
-  function handleEvent (nextButtons, ev) {
-    var nextX = mouse.x(ev)
-    var nextY = mouse.y(ev)
-    if ('buttons' in ev) {
-      nextButtons = ev.buttons | 0
-    }
-    if (nextButtons !== buttonState ||
-      nextX !== x ||
-      nextY !== y ||
-      updateMods(ev)) {
-      buttonState = nextButtons | 0
-      x = nextX || 0
-      y = nextY || 0
-      callback && callback(buttonState, x, y, mods)
-    }
-  }
-
-  function clearState (ev) {
-    handleEvent(0, ev)
-  }
-
-  function handleBlur () {
-    if (buttonState ||
-      x ||
-      y ||
-      mods.shift ||
-      mods.alt ||
-      mods.meta ||
-      mods.control) {
-      x = y = 0
-      buttonState = 0
-      mods.shift = mods.alt = mods.control = mods.meta = false
-      callback && callback(0, 0, 0, mods)
-    }
-  }
-
-  function handleMods (ev) {
-    if (updateMods(ev)) {
-      callback && callback(buttonState, x, y, mods)
-    }
-  }
-
-  function handleMouseMove (ev) {
-    if (mouse.buttons(ev) === 0) {
-      handleEvent(0, ev)
-    } else {
-      handleEvent(buttonState, ev)
-    }
-  }
-
-  function handleMouseDown (ev) {
-    handleEvent(buttonState | mouse.buttons(ev), ev)
-  }
-
-  function handleMouseUp (ev) {
-    handleEvent(buttonState & ~mouse.buttons(ev), ev)
-  }
-
-  function attachListeners () {
-    if (attached) {
-      return
-    }
-    attached = true
-
-    element.addEventListener('mousemove', handleMouseMove)
-
-    element.addEventListener('mousedown', handleMouseDown)
-
-    element.addEventListener('mouseup', handleMouseUp)
-
-    element.addEventListener('mouseleave', clearState)
-    element.addEventListener('mouseenter', clearState)
-    element.addEventListener('mouseout', clearState)
-    element.addEventListener('mouseover', clearState)
-
-    element.addEventListener('blur', handleBlur)
-
-    element.addEventListener('keyup', handleMods)
-    element.addEventListener('keydown', handleMods)
-    element.addEventListener('keypress', handleMods)
-
-    if (element !== window) {
-      window.addEventListener('blur', handleBlur)
-
-      window.addEventListener('keyup', handleMods)
-      window.addEventListener('keydown', handleMods)
-      window.addEventListener('keypress', handleMods)
-    }
-  }
-
-  function detachListeners () {
-    if (!attached) {
-      return
-    }
-    attached = false
-
-    element.removeEventListener('mousemove', handleMouseMove)
-
-    element.removeEventListener('mousedown', handleMouseDown)
-
-    element.removeEventListener('mouseup', handleMouseUp)
-
-    element.removeEventListener('mouseleave', clearState)
-    element.removeEventListener('mouseenter', clearState)
-    element.removeEventListener('mouseout', clearState)
-    element.removeEventListener('mouseover', clearState)
-
-    element.removeEventListener('blur', handleBlur)
-
-    element.removeEventListener('keyup', handleMods)
-    element.removeEventListener('keydown', handleMods)
-    element.removeEventListener('keypress', handleMods)
-
-    if (element !== window) {
-      window.removeEventListener('blur', handleBlur)
-
-      window.removeEventListener('keyup', handleMods)
-      window.removeEventListener('keydown', handleMods)
-      window.removeEventListener('keypress', handleMods)
-    }
-  }
-
-  // Attach listeners
-  attachListeners()
-
-  var result = {
-    element: element
-  }
-
-  Object.defineProperties(result, {
-    enabled: {
-      get: function () { return attached },
-      set: function (f) {
-        if (f) {
-          attachListeners()
-        } else {
-          detachListeners()
-        }
-      },
-      enumerable: true
-    },
-    buttons: {
-      get: function () { return buttonState },
-      enumerable: true
-    },
-    x: {
-      get: function () { return x },
-      enumerable: true
-    },
-    y: {
-      get: function () { return y },
-      enumerable: true
-    },
-    mods: {
-      get: function () { return mods },
-      enumerable: true
-    }
-  })
-
-  return result
-}
-
-},{"mouse-event":22}],22:[function(require,module,exports){
-'use strict'
-
-function mouseButtons(ev) {
-  if(typeof ev === 'object') {
-    if('buttons' in ev) {
-      return ev.buttons
-    } else if('which' in ev) {
-      var b = ev.which
-      if(b === 2) {
-        return 4
-      } else if(b === 3) {
-        return 2
-      } else if(b > 0) {
-        return 1<<(b-1)
-      }
-    } else if('button' in ev) {
-      var b = ev.button
-      if(b === 1) {
-        return 4
-      } else if(b === 2) {
-        return 2
-      } else if(b >= 0) {
-        return 1<<b
-      }
-    }
-  }
-  return 0
-}
-exports.buttons = mouseButtons
-
-function mouseElement(ev) {
-  return ev.target || ev.srcElement || window
-}
-exports.element = mouseElement
-
-function mouseRelativeX(ev) {
-  if(typeof ev === 'object') {
-    if('offsetX' in ev) {
-      return ev.offsetX
-    }
-    var target = mouseElement(ev)
-    var bounds = target.getBoundingClientRect()
-    return ev.clientX - bounds.left
-  }
-  return 0
-}
-exports.x = mouseRelativeX
-
-function mouseRelativeY(ev) {
-  if(typeof ev === 'object') {
-    if('offsetY' in ev) {
-      return ev.offsetY
-    }
-    var target = mouseElement(ev)
-    var bounds = target.getBoundingClientRect()
-    return ev.clientY - bounds.top
-  }
-  return 0
-}
-exports.y = mouseRelativeY
-
-},{}],23:[function(require,module,exports){
-'use strict'
-
-var toPX = require('to-px')
-
-module.exports = mouseWheelListen
-
-function mouseWheelListen(element, callback, noScroll) {
-  if(typeof element === 'function') {
-    noScroll = !!callback
-    callback = element
-    element = window
-  }
-  var lineHeight = toPX('ex', element)
-  var listener = function(ev) {
-    if(noScroll) {
-      ev.preventDefault()
-    }
-    var dx = ev.deltaX || 0
-    var dy = ev.deltaY || 0
-    var dz = ev.deltaZ || 0
-    var mode = ev.deltaMode
-    var scale = 1
-    switch(mode) {
-      case 1:
-        scale = lineHeight
-      break
-      case 2:
-        scale = window.innerHeight
-      break
-    }
-    dx *= scale
-    dy *= scale
-    dz *= scale
-    if(dx || dy || dz) {
-      return callback(dx, dy, dz, ev)
-    }
-  }
-  element.addEventListener('wheel', listener)
-  return listener
-}
-
-},{"to-px":43}],24:[function(require,module,exports){
-var assert = require('assert')
-
-module.exports = Nanobus
-
-function Nanobus () {
-  if (!(this instanceof Nanobus)) return new Nanobus()
-  this._starListeners = []
-  this._listeners = {}
-}
-
-Nanobus.prototype.emit = function (eventName, data) {
-  assert.equal(typeof eventName, 'string', 'nanobus.emit: eventName should be type string')
-
-  var listeners = this._listeners[eventName]
-  if (listeners && listeners.length) this._emit(listeners, data)
-
-  if (this._starListeners.length) {
-    this._emit(this._starListeners, eventName, data)
-  }
-
-  return this
-}
-
-Nanobus.prototype.on = Nanobus.prototype.addListener = function (eventName, listener) {
-  assert.equal(typeof eventName, 'string', 'nanobus.on: eventName should be type string')
-  assert.equal(typeof listener, 'function', 'nanobus.on: listener should be type function')
-
-  if (eventName === '*') {
-    this._starListeners.push(listener)
-  } else {
-    if (!this._listeners[eventName]) this._listeners[eventName] = []
-    this._listeners[eventName].push(listener)
-  }
-  return this
-}
-
-Nanobus.prototype.once = function (eventName, listener) {
-  assert.equal(typeof eventName, 'string', 'nanobus.once: eventName should be type string')
-  assert.equal(typeof listener, 'function', 'nanobus.once: listener should be type function')
-
-  this.on(eventName, once)
-  var self = this
-  function once () {
-    listener.apply(self, arguments)
-    self.removeListener(eventName, once)
-  }
-  return this
-}
-
-Nanobus.prototype.removeListener = function (eventName, listener) {
-  assert.equal(typeof eventName, 'string', 'nanobus.removeListener: eventName should be type string')
-  assert.equal(typeof listener, 'function', 'nanobus.removeListener: listener should be type function')
-
-  if (eventName === '*') {
-    if (remove(this._starListeners, listener)) return this
-  } else {
-    if (remove(this._listeners[eventName], listener)) return this
-  }
-
-  function remove (arr, listener) {
-    if (!arr) return
-    var index = arr.indexOf(listener)
-    if (index !== -1) {
-      arr.splice(index, 1)
-      return true
-    }
-  }
-}
-
-Nanobus.prototype.removeAllListeners = function (eventName) {
-  if (eventName) {
-    if (eventName === '*') {
-      this._starListeners = []
-    } else {
-      this._listeners[eventName] = []
-    }
-  } else {
-    this._starListeners = []
-    this._listeners = {}
-  }
-  return this
-}
-
-Nanobus.prototype.listeners = function (eventName) {
-  var listeners = this._listeners[eventName]
-  var ret = []
-  if (listeners) {
-    var ilength = listeners.length
-    for (var i = 0; i < ilength; i++) ret.push(listeners[i])
-  }
-  return ret
-}
-
-Nanobus.prototype._emit = function (arr, eventName, data) {
-  if (!data) {
-    data = eventName
-    eventName = null
-  }
-  var length = arr.length
-  for (var i = 0; i < length; i++) {
-    var listener = arr[i]
-    if (eventName) listener(eventName, data)
-    else listener(data)
-  }
-}
-
-},{"assert":2}],25:[function(require,module,exports){
-var assert = require('assert')
-var morph = require('./lib/morph')
-var rootLabelRegex = /^data-onloadid/
-
-var ELEMENT_NODE = 1
-
-module.exports = nanomorph
-
-// morph one tree into another tree
-// (obj, obj) -> obj
-// no parent
-//   -> same: diff and walk children
-//   -> not same: replace and return
-// old node doesn't exist
-//   -> insert new node
-// new node doesn't exist
-//   -> delete old node
-// nodes are not the same
-//   -> diff nodes and apply patch to old node
-// nodes are the same
-//   -> walk all child nodes and append to old node
-function nanomorph (oldTree, newTree) {
-  assert.equal(typeof oldTree, 'object', 'nanomorph: oldTree should be an object')
-  assert.equal(typeof newTree, 'object', 'nanomorph: newTree should be an object')
-
-  persistStatefulRoot(newTree, oldTree)
-  var tree = walk(newTree, oldTree)
-  return tree
-}
-
-// walk and morph a dom tree
-// (obj, obj) -> obj
-function walk (newNode, oldNode) {
-  if (!oldNode) {
-    return newNode
-  } else if (!newNode) {
-    return null
-  } else if (newNode.isSameNode && newNode.isSameNode(oldNode)) {
-    return oldNode
-  } else if (newNode.tagName !== oldNode.tagName) {
-    return newNode
-  } else {
-    morph(newNode, oldNode)
-    updateChildren(newNode, oldNode)
-    return oldNode
-  }
-}
-
-// update the children of elements
-// (obj, obj) -> null
-function updateChildren (newNode, oldNode) {
-  if (!newNode.childNodes || !oldNode.childNodes) return
-
-  var newLength = newNode.childNodes.length
-  var oldLength = oldNode.childNodes.length
-  var length = Math.max(oldLength, newLength)
-
-  var iNew = 0
-  var iOld = 0
-  for (var i = 0; i < length; i++, iNew++, iOld++) {
-    var newChildNode = newNode.childNodes[iNew]
-    var oldChildNode = oldNode.childNodes[iOld]
-    var retChildNode = walk(newChildNode, oldChildNode)
-    if (!retChildNode) {
-      if (oldChildNode) {
-        oldNode.removeChild(oldChildNode)
-        iOld--
-      }
-    } else if (!oldChildNode) {
-      if (retChildNode) {
-        oldNode.appendChild(retChildNode)
-        iNew--
-      }
-    } else if (retChildNode !== oldChildNode) {
-      oldNode.replaceChild(retChildNode, oldChildNode)
-      iNew--
-    }
-  }
-}
-
-function persistStatefulRoot (newNode, oldNode) {
-  if (!newNode || !oldNode || oldNode.nodeType !== ELEMENT_NODE || newNode.nodeType !== ELEMENT_NODE) return
-  var oldAttrs = oldNode.attributes
-  var attr, name
-  for (var i = 0, len = oldAttrs.length; i < len; i++) {
-    attr = oldAttrs[i]
-    name = attr.name
-    if (rootLabelRegex.test(name)) {
-      newNode.setAttribute(name, attr.value)
-      break
-    }
-  }
-}
-
-},{"./lib/morph":27,"assert":2}],26:[function(require,module,exports){
-module.exports = [
-  // attribute events (can be set with attributes)
-  'onclick',
-  'ondblclick',
-  'onmousedown',
-  'onmouseup',
-  'onmouseover',
-  'onmousemove',
-  'onmouseout',
-  'ondragstart',
-  'ondrag',
-  'ondragenter',
-  'ondragleave',
-  'ondragover',
-  'ondrop',
-  'ondragend',
-  'onkeydown',
-  'onkeypress',
-  'onkeyup',
-  'onunload',
-  'onabort',
-  'onerror',
-  'onresize',
-  'onscroll',
-  'onselect',
-  'onchange',
-  'onsubmit',
-  'onreset',
-  'onfocus',
-  'onblur',
-  'oninput',
-  // other common events
-  'oncontextmenu',
-  'onfocusin',
-  'onfocusout'
-]
-
-},{}],27:[function(require,module,exports){
-var events = require('./events')
-var eventsLength = events.length
-
-var ELEMENT_NODE = 1
-var TEXT_NODE = 3
-var COMMENT_NODE = 8
-
-module.exports = morph
-
-// diff elements and apply the resulting patch to the old node
-// (obj, obj) -> null
-function morph (newNode, oldNode) {
-  var nodeType = newNode.nodeType
-  var nodeName = newNode.nodeName
-
-  if (nodeType === ELEMENT_NODE) {
-    copyAttrs(newNode, oldNode)
-  }
-
-  if (nodeType === TEXT_NODE || nodeType === COMMENT_NODE) {
-    oldNode.nodeValue = newNode.nodeValue
-  }
-
-  // Some DOM nodes are weird
-  // https://github.com/patrick-steele-idem/morphdom/blob/master/src/specialElHandlers.js
-  if (nodeName === 'INPUT') updateInput(newNode, oldNode)
-  else if (nodeName === 'OPTION') updateOption(newNode, oldNode)
-  else if (nodeName === 'TEXTAREA') updateTextarea(newNode, oldNode)
-  else if (nodeName === 'SELECT') updateSelect(newNode, oldNode)
-
-  copyEvents(newNode, oldNode)
-}
-
-function copyAttrs (newNode, oldNode) {
-  var oldAttrs = oldNode.attributes
-  var newAttrs = newNode.attributes
-  var attrNamespaceURI = null
-  var attrValue = null
-  var fromValue = null
-  var attrName = null
-  var attr = null
-
-  for (var i = newAttrs.length - 1; i >= 0; --i) {
-    attr = newAttrs[i]
-    attrName = attr.name
-    attrNamespaceURI = attr.namespaceURI
-    attrValue = attr.value
-
-    if (attrNamespaceURI) {
-      attrName = attr.localName || attrName
-      fromValue = oldNode.getAttributeNS(attrNamespaceURI, attrName)
-
-      if (fromValue !== attrValue) {
-        oldNode.setAttributeNS(attrNamespaceURI, attrName, attrValue)
-      }
-    } else {
-      fromValue = oldNode.getAttribute(attrName)
-
-      if (fromValue !== attrValue) {
-        // apparently values are always cast to strings, ah well
-        if (attrValue === 'null' || attrValue === 'undefined') {
-          oldNode.removeAttribute(attrName)
-        } else {
-          oldNode.setAttribute(attrName, attrValue)
-        }
-      }
-    }
-  }
-
-  // Remove any extra attributes found on the original DOM element that
-  // weren't found on the target element.
-  for (var j = oldAttrs.length - 1; j >= 0; --j) {
-    attr = oldAttrs[j]
-    if (attr.specified !== false) {
-      attrName = attr.name
-      attrNamespaceURI = attr.namespaceURI
-
-      if (attrNamespaceURI) {
-        attrName = attr.localName || attrName
-        if (!newNode.hasAttributeNS(attrNamespaceURI, attrName)) {
-          oldNode.removeAttributeNS(attrNamespaceURI, attrName)
-        }
-      } else {
-        if (!newNode.hasAttributeNS(null, attrName)) {
-          oldNode.removeAttribute(attrName)
-        }
-      }
-    }
-  }
-}
-
-function copyEvents (newNode, oldNode) {
-  for (var i = 0; i < eventsLength; i++) {
-    var ev = events[i]
-    if (newNode[ev]) {           // if new element has a whitelisted attribute
-      oldNode[ev] = newNode[ev]  // update existing element
-    } else if (oldNode[ev]) {    // if existing element has it and new one doesnt
-      oldNode[ev] = undefined    // remove it from existing element
-    }
-  }
-}
-
-function updateOption (newNode, oldNode) {
-  updateAttribute(newNode, oldNode, 'selected')
-}
-
-// The "value" attribute is special for the <input> element since it sets the
-// initial value. Changing the "value" attribute without changing the "value"
-// property will have no effect since it is only used to the set the initial
-// value. Similar for the "checked" attribute, and "disabled".
-function updateInput (newNode, oldNode) {
-  var newValue = newNode.value
-  var oldValue = oldNode.value
-
-  updateAttribute(newNode, oldNode, 'checked')
-  updateAttribute(newNode, oldNode, 'disabled')
-
-  if (!newNode.hasAttributeNS(null, 'value') || newValue === 'null') {
-    oldNode.value = ''
-    oldNode.removeAttribute('value')
-  } else if (newValue !== oldValue) {
-    oldNode.setAttribute('value', newValue)
-    oldNode.value = newValue
-  } else {
-    // this is so elements like slider move their UI thingy
-    oldNode.value = newValue
-  }
-}
-
-function updateTextarea (newNode, oldNode) {
-  var newValue = newNode.value
-  if (newValue !== oldNode.value) {
-    oldNode.value = newValue
-  }
-
-  if (oldNode.firstChild) {
-    // Needed for IE. Apparently IE sets the placeholder as the
-    // node value and vise versa. This ignores an empty update.
-    if (newValue === '' && oldNode.firstChild.nodeValue === oldNode.placeholder) {
-      return
-    }
-
-    oldNode.firstChild.nodeValue = newValue
-  }
-}
-
-function updateSelect (newNode, oldNode) {
-  if (!oldNode.hasAttributeNS(null, 'multiple')) {
-    var i = 0
-    var curChild = oldNode.firstChild
-    while (curChild) {
-      var nodeName = curChild.nodeName
-      if (nodeName && nodeName.toUpperCase() === 'OPTION') {
-        if (curChild.hasAttributeNS(null, 'selected')) break
-        i++
-      }
-      curChild = curChild.nextSibling
-    }
-
-    newNode.selectedIndex = i
-  }
-}
-
-function updateAttribute (newNode, oldNode, name) {
-  if (newNode[name] !== oldNode[name]) {
-    oldNode[name] = newNode[name]
-    if (newNode[name]) {
-      oldNode.setAttribute(name, '')
-    } else {
-      oldNode.removeAttribute(name, '')
-    }
-  }
-}
-
-},{"./events":26}],28:[function(require,module,exports){
-var nanomorph = require('nanomorph')
-var assert = require('assert')
-
-module.exports = nanomount
-
-function nanomount (target, newTree) {
-  if (target.nodeName === 'BODY') {
-    var children = target.childNodes
-    for (var i = 0; i < children.length; i++) {
-      if (children[i].nodeName === 'SCRIPT') {
-        newTree.appendChild(children[i].cloneNode(true))
-      }
-    }
-  }
-
-  var tree = nanomorph(target, newTree)
-  assert.equal(tree, target, 'nanomount: The target node ' +
-    tree.outerHTML.nodeName + ' is not the same type as the new node ' +
-    target.outerHTML.nodeName + '.')
-}
-
-},{"assert":2,"nanomorph":25}],29:[function(require,module,exports){
-'use strict'
-
-var assert = require('assert')
-
-module.exports = nanoraf
-
-// Only call RAF when needed
-// (fn, fn?) -> fn
-function nanoraf (render, raf) {
-  assert.equal(typeof render, 'function', 'nanoraf: render should be a function')
-  assert.ok(typeof raf === 'function' || typeof raf === 'undefined', 'nanoraf: raf should be a function or undefined')
-
-  if (!raf) raf = window.requestAnimationFrame
-  var redrawScheduled = false
-  var args = null
-
-  return function frame () {
-    if (args === null && !redrawScheduled) {
-      redrawScheduled = true
-
-      raf(function redraw () {
-        redrawScheduled = false
-
-        var length = args.length
-        var _args = new Array(length)
-        for (var i = 0; i < length; i++) _args[i] = args[i]
-
-        render.apply(render, _args)
-        args = null
-      })
-    }
-
-    args = arguments
-  }
-}
-
-},{"assert":2}],30:[function(require,module,exports){
-var wayfarer = require('wayfarer')
-
-var isLocalFile = (/file:\/\//.test(typeof window === 'object' &&
-  window.location && window.location.origin)) // electron support
-
-/* eslint-disable no-useless-escape */
-var electron = '^(file:\/\/|\/)(.*\.html?\/?)?'
-var protocol = '^(http(s)?(:\/\/))?(www\.)?'
-var domain = '[a-zA-Z0-9-_\.]+(:[0-9]{1,5})?(\/{1})?'
-var qs = '[\?].*$'
-/* eslint-enable no-useless-escape */
-
-var stripElectron = new RegExp(electron)
-var prefix = new RegExp(protocol + domain)
-var normalize = new RegExp('#')
-var suffix = new RegExp(qs)
-
-module.exports = Nanorouter
-
-function Nanorouter (opts) {
-  opts = opts || {}
-
-  var router = wayfarer(opts.default || '/404')
-  var curry = opts.curry || false
-  var prevCallback = null
-  var prevRoute = null
-
-  emit.on = on
-  return emit
-
-  function on (routename, listener) {
-    routename = routename.replace(/^[#/]/, '')
-    router.on(routename, listener)
-  }
-
-  function emit (route) {
-    if (!curry) {
-      return router(route)
-    } else {
-      route = pathname(route, isLocalFile)
-      if (route === prevRoute) {
-        return prevCallback()
-      } else {
-        prevRoute = route
-        prevCallback = router(route)
-        return prevCallback()
-      }
-    }
-  }
-}
-
-// replace everything in a route but the pathname and hash
-function pathname (route, isElectron) {
-  if (isElectron) route = route.replace(stripElectron, '')
-  else route = route.replace(prefix, '')
-  return route.replace(suffix, '').replace(normalize, '/')
-}
-
-
-},{"wayfarer":47}],31:[function(require,module,exports){
-/* global MutationObserver */
-var document = require('global/document')
-var window = require('global/window')
-var watch = Object.create(null)
-var KEY_ID = 'onloadid' + (new Date() % 9e6).toString(36)
-var KEY_ATTR = 'data-' + KEY_ID
-var INDEX = 0
-
-if (window && window.MutationObserver) {
-  var observer = new MutationObserver(function (mutations) {
-    if (Object.keys(watch).length < 1) return
-    for (var i = 0; i < mutations.length; i++) {
-      if (mutations[i].attributeName === KEY_ATTR) {
-        eachAttr(mutations[i], turnon, turnoff)
-        continue
-      }
-      eachMutation(mutations[i].removedNodes, turnoff)
-      eachMutation(mutations[i].addedNodes, turnon)
-    }
-  })
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeOldValue: true,
-    attributeFilter: [KEY_ATTR]
-  })
-}
-
-module.exports = function onload (el, on, off, caller) {
-  on = on || function () {}
-  off = off || function () {}
-  el.setAttribute(KEY_ATTR, 'o' + INDEX)
-  watch['o' + INDEX] = [on, off, 0, caller || onload.caller]
-  INDEX += 1
-  return el
-}
-
-function turnon (index, el) {
-  if (watch[index][0] && watch[index][2] === 0) {
-    watch[index][0](el)
-    watch[index][2] = 1
-  }
-}
-
-function turnoff (index, el) {
-  if (watch[index][1] && watch[index][2] === 1) {
-    watch[index][1](el)
-    watch[index][2] = 0
-  }
-}
-
-function eachAttr (mutation, on, off) {
-  var newValue = mutation.target.getAttribute(KEY_ATTR)
-  if (sameOrigin(mutation.oldValue, newValue)) {
-    watch[newValue] = watch[mutation.oldValue]
-    return
-  }
-  if (watch[mutation.oldValue]) {
-    off(mutation.oldValue, mutation.target)
-  }
-  if (watch[newValue]) {
-    on(newValue, mutation.target)
-  }
-}
-
-function sameOrigin (oldValue, newValue) {
-  if (!oldValue || !newValue) return false
-  return watch[oldValue][3] === watch[newValue][3]
-}
-
-function eachMutation (nodes, fn) {
-  var keys = Object.keys(watch)
-  for (var i = 0; i < nodes.length; i++) {
-    if (nodes[i] && nodes[i].getAttribute && nodes[i].getAttribute(KEY_ATTR)) {
-      var onloadid = nodes[i].getAttribute(KEY_ATTR)
-      keys.forEach(function (k) {
-        if (onloadid === k) {
-          fn(k, nodes[i])
-        }
-      })
-    }
-    if (nodes[i].childNodes.length > 0) {
-      eachMutation(nodes[i].childNodes, fn)
-    }
-  }
-}
-
-},{"global/document":32,"global/window":33}],32:[function(require,module,exports){
-arguments[4][4][0].apply(exports,arguments)
-},{"dup":4,"min-document":5}],33:[function(require,module,exports){
-(function (global){
-if (typeof window !== "undefined") {
-    module.exports = window;
-} else if (typeof global !== "undefined") {
-    module.exports = global;
-} else if (typeof self !== "undefined"){
-    module.exports = self;
-} else {
-    module.exports = {};
-}
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],34:[function(require,module,exports){
-module.exports = function parseUnit(str, out) {
-    if (!out)
-        out = [ 0, '' ]
-
-    str = String(str)
-    var num = parseFloat(str, 10)
-    out[0] = num
-    out[1] = str.match(/[\d.\-\+]*\s*(.*)/)[1] || ''
-    return out
-}
-},{}],35:[function(require,module,exports){
-// shim for using process in browser
-var process = module.exports = {};
-
-// cached from whatever global is present so that test runners that stub it
-// don't break things.  But we need to wrap it in a try catch in case it is
-// wrapped in strict mode code which doesn't define any globals.  It's inside a
-// function because try/catches deoptimize in certain engines.
-
-var cachedSetTimeout;
-var cachedClearTimeout;
-
-function defaultSetTimout() {
-    throw new Error('setTimeout has not been defined');
-}
-function defaultClearTimeout () {
-    throw new Error('clearTimeout has not been defined');
-}
-(function () {
-    try {
-        if (typeof setTimeout === 'function') {
-            cachedSetTimeout = setTimeout;
-        } else {
-            cachedSetTimeout = defaultSetTimout;
-        }
-    } catch (e) {
-        cachedSetTimeout = defaultSetTimout;
-    }
-    try {
-        if (typeof clearTimeout === 'function') {
-            cachedClearTimeout = clearTimeout;
-        } else {
-            cachedClearTimeout = defaultClearTimeout;
-        }
-    } catch (e) {
-        cachedClearTimeout = defaultClearTimeout;
-    }
-} ())
-function runTimeout(fun) {
-    if (cachedSetTimeout === setTimeout) {
-        //normal enviroments in sane situations
-        return setTimeout(fun, 0);
-    }
-    // if setTimeout wasn't available but was latter defined
-    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
-        cachedSetTimeout = setTimeout;
-        return setTimeout(fun, 0);
-    }
-    try {
-        // when when somebody has screwed with setTimeout but no I.E. maddness
-        return cachedSetTimeout(fun, 0);
-    } catch(e){
-        try {
-            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
-            return cachedSetTimeout.call(null, fun, 0);
-        } catch(e){
-            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
-            return cachedSetTimeout.call(this, fun, 0);
-        }
-    }
-
-
-}
-function runClearTimeout(marker) {
-    if (cachedClearTimeout === clearTimeout) {
-        //normal enviroments in sane situations
-        return clearTimeout(marker);
-    }
-    // if clearTimeout wasn't available but was latter defined
-    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
-        cachedClearTimeout = clearTimeout;
-        return clearTimeout(marker);
-    }
-    try {
-        // when when somebody has screwed with setTimeout but no I.E. maddness
-        return cachedClearTimeout(marker);
-    } catch (e){
-        try {
-            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
-            return cachedClearTimeout.call(null, marker);
-        } catch (e){
-            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
-            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
-            return cachedClearTimeout.call(this, marker);
-        }
-    }
-
-
-
-}
-var queue = [];
-var draining = false;
-var currentQueue;
-var queueIndex = -1;
-
-function cleanUpNextTick() {
-    if (!draining || !currentQueue) {
-        return;
-    }
-    draining = false;
-    if (currentQueue.length) {
-        queue = currentQueue.concat(queue);
-    } else {
-        queueIndex = -1;
-    }
-    if (queue.length) {
-        drainQueue();
-    }
-}
-
-function drainQueue() {
-    if (draining) {
-        return;
-    }
-    var timeout = runTimeout(cleanUpNextTick);
-    draining = true;
-
-    var len = queue.length;
-    while(len) {
-        currentQueue = queue;
-        queue = [];
-        while (++queueIndex < len) {
-            if (currentQueue) {
-                currentQueue[queueIndex].run();
-            }
-        }
-        queueIndex = -1;
-        len = queue.length;
-    }
-    currentQueue = null;
-    draining = false;
-    runClearTimeout(timeout);
-}
-
-process.nextTick = function (fun) {
-    var args = new Array(arguments.length - 1);
-    if (arguments.length > 1) {
-        for (var i = 1; i < arguments.length; i++) {
-            args[i - 1] = arguments[i];
-        }
-    }
-    queue.push(new Item(fun, args));
-    if (queue.length === 1 && !draining) {
-        runTimeout(drainQueue);
-    }
-};
-
-// v8 likes predictible objects
-function Item(fun, array) {
-    this.fun = fun;
-    this.array = array;
-}
-Item.prototype.run = function () {
-    this.fun.apply(null, this.array);
-};
-process.title = 'browser';
-process.browser = true;
-process.env = {};
-process.argv = [];
-process.version = ''; // empty string to avoid regexp issues
-process.versions = {};
-
-function noop() {}
-
-process.on = noop;
-process.addListener = noop;
-process.once = noop;
-process.off = noop;
-process.removeListener = noop;
-process.removeAllListeners = noop;
-process.emit = noop;
-
-process.binding = function (name) {
-    throw new Error('process.binding is not supported');
-};
-
-process.cwd = function () { return '/' };
-process.chdir = function (dir) {
-    throw new Error('process.chdir is not supported');
-};
-process.umask = function() { return 0; };
-
-},{}],36:[function(require,module,exports){
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-'use strict';
-
-// If obj.hasOwnProperty has been overridden, then calling
-// obj.hasOwnProperty(prop) will break.
-// See: https://github.com/joyent/node/issues/1707
-function hasOwnProperty(obj, prop) {
-  return Object.prototype.hasOwnProperty.call(obj, prop);
-}
-
-module.exports = function(qs, sep, eq, options) {
-  sep = sep || '&';
-  eq = eq || '=';
-  var obj = {};
-
-  if (typeof qs !== 'string' || qs.length === 0) {
-    return obj;
-  }
-
-  var regexp = /\+/g;
-  qs = qs.split(sep);
-
-  var maxKeys = 1000;
-  if (options && typeof options.maxKeys === 'number') {
-    maxKeys = options.maxKeys;
-  }
-
-  var len = qs.length;
-  // maxKeys <= 0 means that we should not limit keys count
-  if (maxKeys > 0 && len > maxKeys) {
-    len = maxKeys;
-  }
-
-  for (var i = 0; i < len; ++i) {
-    var x = qs[i].replace(regexp, '%20'),
-        idx = x.indexOf(eq),
-        kstr, vstr, k, v;
-
-    if (idx >= 0) {
-      kstr = x.substr(0, idx);
-      vstr = x.substr(idx + 1);
-    } else {
-      kstr = x;
-      vstr = '';
-    }
-
-    k = decodeURIComponent(kstr);
-    v = decodeURIComponent(vstr);
-
-    if (!hasOwnProperty(obj, k)) {
-      obj[k] = v;
-    } else if (isArray(obj[k])) {
-      obj[k].push(v);
-    } else {
-      obj[k] = [obj[k], v];
-    }
-  }
-
-  return obj;
-};
-
-var isArray = Array.isArray || function (xs) {
-  return Object.prototype.toString.call(xs) === '[object Array]';
-};
-
-},{}],37:[function(require,module,exports){
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-'use strict';
-
-var stringifyPrimitive = function(v) {
-  switch (typeof v) {
-    case 'string':
-      return v;
-
-    case 'boolean':
-      return v ? 'true' : 'false';
-
-    case 'number':
-      return isFinite(v) ? v : '';
-
-    default:
-      return '';
-  }
-};
-
-module.exports = function(obj, sep, eq, name) {
-  sep = sep || '&';
-  eq = eq || '=';
-  if (obj === null) {
-    obj = undefined;
-  }
-
-  if (typeof obj === 'object') {
-    return map(objectKeys(obj), function(k) {
-      var ks = encodeURIComponent(stringifyPrimitive(k)) + eq;
-      if (isArray(obj[k])) {
-        return map(obj[k], function(v) {
-          return ks + encodeURIComponent(stringifyPrimitive(v));
-        }).join(sep);
-      } else {
-        return ks + encodeURIComponent(stringifyPrimitive(obj[k]));
-      }
-    }).join(sep);
-
-  }
-
-  if (!name) return '';
-  return encodeURIComponent(stringifyPrimitive(name)) + eq +
-         encodeURIComponent(stringifyPrimitive(obj));
-};
-
-var isArray = Array.isArray || function (xs) {
-  return Object.prototype.toString.call(xs) === '[object Array]';
-};
-
-function map (xs, f) {
-  if (xs.map) return xs.map(f);
-  var res = [];
-  for (var i = 0; i < xs.length; i++) {
-    res.push(f(xs[i], i));
-  }
-  return res;
-}
-
-var objectKeys = Object.keys || function (obj) {
-  var res = [];
-  for (var key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) res.push(key);
-  }
-  return res;
-};
-
-},{}],38:[function(require,module,exports){
-'use strict';
-
-exports.decode = exports.parse = require('./decode');
-exports.encode = exports.stringify = require('./encode');
-
-},{"./decode":36,"./encode":37}],39:[function(require,module,exports){
-var mouseChange = require('mouse-change')
-var mouseWheel = require('mouse-wheel')
-var identity = require('gl-mat4/identity')
-var perspective = require('gl-mat4/perspective')
-var lookAt = require('gl-mat4/lookAt')
-
-module.exports = createCamera
-
-var isBrowser = typeof window !== 'undefined'
-
-function createCamera (regl, props_) {
-  var props = props_ || {}
-  var cameraState = {
-    view: identity(new Float32Array(16)),
-    projection: identity(new Float32Array(16)),
-    center: new Float32Array(props.center || 3),
-    theta: props.theta || 0,
-    phi: props.phi || 0,
-    distance: Math.log(props.distance || 10.0),
-    eye: new Float32Array(3),
-    up: new Float32Array(props.up || [0, 1, 0]),
-    fovy: props.fovy || Math.PI / 4.0,
-    near: typeof props.near !== 'undefined' ? props.near : 0.01,
-    far: typeof props.far !== 'undefined' ? props.far : 1000.0,
-    flipY: !!props.flipY,
-    dtheta: 0,
-    dphi: 0
-  }
-
-  var damping = typeof props.damping !== 'undefined' ? props.damping : 0.9
-
-  var right = new Float32Array([1, 0, 0])
-  var front = new Float32Array([0, 0, 1])
-
-  var minDistance = Math.log('minDistance' in props ? props.minDistance : 0.1)
-  var maxDistance = Math.log('maxDistance' in props ? props.maxDistance : 1000)
-
-  var ddistance = 0
-
-  var prevX = 0
-  var prevY = 0
-
-  if (isBrowser && props.mouse !== false) {
-    mouseChange(function (buttons, x, y) {
-      if (buttons & 1) {
-        var dx = (x - prevX) / window.innerWidth
-        var dy = (y - prevY) / window.innerHeight
-        var w = Math.max(cameraState.distance, 0.5)
-
-        cameraState.dtheta += w * dx
-        cameraState.dphi += w * dy
-      }
-      prevX = x
-      prevY = y
-    })
-    mouseWheel(function (dx, dy) {
-      ddistance += dy / window.innerHeight
-    })
-  }
-
-  function damp (x) {
-    var xd = x * damping
-    if (Math.abs(xd) < 0.1) {
-      return 0
-    }
-    return xd
-  }
-
-  function clamp (x, lo, hi) {
-    return Math.min(Math.max(x, lo), hi)
-  }
-
-  function updateCamera (props) {
-    Object.keys(props).forEach(function (prop) {
-      cameraState[prop] = props[prop]
-    })
-
-    var center = cameraState.center
-    var eye = cameraState.eye
-    var up = cameraState.up
-    var dtheta = cameraState.dtheta
-    var dphi = cameraState.dphi
-
-    cameraState.theta += dtheta
-    cameraState.phi = clamp(
-      cameraState.phi + dphi,
-      -Math.PI / 2.0,
-      Math.PI / 2.0)
-    cameraState.distance = clamp(
-      cameraState.distance + ddistance,
-      minDistance,
-      maxDistance)
-
-    cameraState.dtheta = damp(dtheta)
-    cameraState.dphi = damp(dphi)
-    ddistance = damp(ddistance)
-
-    var theta = cameraState.theta
-    var phi = cameraState.phi
-    var r = Math.exp(cameraState.distance)
-
-    var vf = r * Math.sin(theta) * Math.cos(phi)
-    var vr = r * Math.cos(theta) * Math.cos(phi)
-    var vu = r * Math.sin(phi)
-
-    for (var i = 0; i < 3; ++i) {
-      eye[i] = center[i] + vf * front[i] + vr * right[i] + vu * up[i]
-    }
-
-    lookAt(cameraState.view, eye, center, up)
-  }
-
-  var injectContext = regl({
-    context: Object.assign({}, cameraState, {
-      projection: function (context) {
-        perspective(cameraState.projection,
-          cameraState.fovy,
-          context.viewportWidth / context.viewportHeight,
-          cameraState.near,
-          cameraState.far)
-        if (cameraState.flipY) { cameraState.projection[5] *= -1 }
-        return cameraState.projection
-      }
-    }),
-    uniforms: Object.keys(cameraState).reduce(function (uniforms, name) {
-      uniforms[name] = regl.context(name)
-      return uniforms
-    }, {})
-  })
-
-  function setupCamera (props, block) {
-    if (!block) {
-      block = props
-      props = {}
-    }
-    updateCamera(props)
-    injectContext(block)
-  }
-
-  Object.keys(cameraState).forEach(function (name) {
-    setupCamera[name] = cameraState[name]
-  })
-
-  return setupCamera
-}
-
-},{"gl-mat4/identity":12,"gl-mat4/lookAt":13,"gl-mat4/perspective":14,"mouse-change":21,"mouse-wheel":23}],40:[function(require,module,exports){
-(function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-	typeof define === 'function' && define.amd ? define(factory) :
-	(global.createREGL = factory());
-}(this, (function () { 'use strict';
-
-var arrayTypes =  {
-	"[object Int8Array]": 5120,
-	"[object Int16Array]": 5122,
-	"[object Int32Array]": 5124,
-	"[object Uint8Array]": 5121,
-	"[object Uint8ClampedArray]": 5121,
-	"[object Uint16Array]": 5123,
-	"[object Uint32Array]": 5125,
-	"[object Float32Array]": 5126,
-	"[object Float64Array]": 5121,
-	"[object ArrayBuffer]": 5121
-};
-
-var isTypedArray = function (x) {
-  return Object.prototype.toString.call(x) in arrayTypes
-};
-
-var extend = function (base, opts) {
-  var keys = Object.keys(opts);
-  for (var i = 0; i < keys.length; ++i) {
-    base[keys[i]] = opts[keys[i]];
-  }
-  return base
-};
-
-// Error checking and parameter validation.
-//
-// Statements for the form `check.someProcedure(...)` get removed by
-// a browserify transform for optimized/minified bundles.
-//
-/* globals btoa */
-// only used for extracting shader names.  if btoa not present, then errors
-// will be slightly crappier
-function decodeB64 (str) {
-  if (typeof btoa !== 'undefined') {
-    return btoa(str)
-  }
-  return 'base64:' + str
-}
-
-function raise (message) {
-  var error = new Error('(regl) ' + message);
-  console.error(error);
-  throw error
-}
-
-function check (pred, message) {
-  if (!pred) {
-    raise(message);
-  }
-}
-
-function encolon (message) {
-  if (message) {
-    return ': ' + message
-  }
-  return ''
-}
-
-function checkParameter (param, possibilities, message) {
-  if (!(param in possibilities)) {
-    raise('unknown parameter (' + param + ')' + encolon(message) +
-          '. possible values: ' + Object.keys(possibilities).join());
-  }
-}
-
-function checkIsTypedArray (data, message) {
-  if (!isTypedArray(data)) {
-    raise(
-      'invalid parameter type' + encolon(message) +
-      '. must be a typed array');
-  }
-}
-
-function checkTypeOf (value, type, message) {
-  if (typeof value !== type) {
-    raise(
-      'invalid parameter type' + encolon(message) +
-      '. expected ' + type + ', got ' + (typeof value));
-  }
-}
-
-function checkNonNegativeInt (value, message) {
-  if (!((value >= 0) &&
-        ((value | 0) === value))) {
-    raise('invalid parameter type, (' + value + ')' + encolon(message) +
-          '. must be a nonnegative integer');
-  }
-}
-
-function checkOneOf (value, list, message) {
-  if (list.indexOf(value) < 0) {
-    raise('invalid value' + encolon(message) + '. must be one of: ' + list);
-  }
-}
-
-var constructorKeys = [
-  'gl',
-  'canvas',
-  'container',
-  'attributes',
-  'pixelRatio',
-  'extensions',
-  'optionalExtensions',
-  'profile',
-  'onDone'
-];
-
-function checkConstructor (obj) {
-  Object.keys(obj).forEach(function (key) {
-    if (constructorKeys.indexOf(key) < 0) {
-      raise('invalid regl constructor argument "' + key + '". must be one of ' + constructorKeys);
-    }
-  });
-}
-
-function leftPad (str, n) {
-  str = str + '';
-  while (str.length < n) {
-    str = ' ' + str;
-  }
-  return str
-}
-
-function ShaderFile () {
-  this.name = 'unknown';
-  this.lines = [];
-  this.index = {};
-  this.hasErrors = false;
-}
-
-function ShaderLine (number, line) {
-  this.number = number;
-  this.line = line;
-  this.errors = [];
-}
-
-function ShaderError (fileNumber, lineNumber, message) {
-  this.file = fileNumber;
-  this.line = lineNumber;
-  this.message = message;
-}
-
-function guessCommand () {
-  var error = new Error();
-  var stack = (error.stack || error).toString();
-  var pat = /compileProcedure.*\n\s*at.*\((.*)\)/.exec(stack);
-  if (pat) {
-    return pat[1]
-  }
-  var pat2 = /compileProcedure.*\n\s*at\s+(.*)(\n|$)/.exec(stack);
-  if (pat2) {
-    return pat2[1]
-  }
-  return 'unknown'
-}
-
-function guessCallSite () {
-  var error = new Error();
-  var stack = (error.stack || error).toString();
-  var pat = /at REGLCommand.*\n\s+at.*\((.*)\)/.exec(stack);
-  if (pat) {
-    return pat[1]
-  }
-  var pat2 = /at REGLCommand.*\n\s+at\s+(.*)\n/.exec(stack);
-  if (pat2) {
-    return pat2[1]
-  }
-  return 'unknown'
-}
-
-function parseSource (source, command) {
-  var lines = source.split('\n');
-  var lineNumber = 1;
-  var fileNumber = 0;
-  var files = {
-    unknown: new ShaderFile(),
-    0: new ShaderFile()
-  };
-  files.unknown.name = files[0].name = command || guessCommand();
-  files.unknown.lines.push(new ShaderLine(0, ''));
-  for (var i = 0; i < lines.length; ++i) {
-    var line = lines[i];
-    var parts = /^\s*\#\s*(\w+)\s+(.+)\s*$/.exec(line);
-    if (parts) {
-      switch (parts[1]) {
-        case 'line':
-          var lineNumberInfo = /(\d+)(\s+\d+)?/.exec(parts[2]);
-          if (lineNumberInfo) {
-            lineNumber = lineNumberInfo[1] | 0;
-            if (lineNumberInfo[2]) {
-              fileNumber = lineNumberInfo[2] | 0;
-              if (!(fileNumber in files)) {
-                files[fileNumber] = new ShaderFile();
-              }
-            }
-          }
-          break
-        case 'define':
-          var nameInfo = /SHADER_NAME(_B64)?\s+(.*)$/.exec(parts[2]);
-          if (nameInfo) {
-            files[fileNumber].name = (nameInfo[1]
-                ? decodeB64(nameInfo[2])
-                : nameInfo[2]);
-          }
-          break
-      }
-    }
-    files[fileNumber].lines.push(new ShaderLine(lineNumber++, line));
-  }
-  Object.keys(files).forEach(function (fileNumber) {
-    var file = files[fileNumber];
-    file.lines.forEach(function (line) {
-      file.index[line.number] = line;
-    });
-  });
-  return files
-}
-
-function parseErrorLog (errLog) {
-  var result = [];
-  errLog.split('\n').forEach(function (errMsg) {
-    if (errMsg.length < 5) {
-      return
-    }
-    var parts = /^ERROR\:\s+(\d+)\:(\d+)\:\s*(.*)$/.exec(errMsg);
-    if (parts) {
-      result.push(new ShaderError(
-        parts[1] | 0,
-        parts[2] | 0,
-        parts[3].trim()));
-    } else if (errMsg.length > 0) {
-      result.push(new ShaderError('unknown', 0, errMsg));
-    }
-  });
-  return result
-}
-
-function annotateFiles (files, errors) {
-  errors.forEach(function (error) {
-    var file = files[error.file];
-    if (file) {
-      var line = file.index[error.line];
-      if (line) {
-        line.errors.push(error);
-        file.hasErrors = true;
-        return
-      }
-    }
-    files.unknown.hasErrors = true;
-    files.unknown.lines[0].errors.push(error);
-  });
-}
-
-function checkShaderError (gl, shader, source, type, command) {
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    var errLog = gl.getShaderInfoLog(shader);
-    var typeName = type === gl.FRAGMENT_SHADER ? 'fragment' : 'vertex';
-    checkCommandType(source, 'string', typeName + ' shader source must be a string', command);
-    var files = parseSource(source, command);
-    var errors = parseErrorLog(errLog);
-    annotateFiles(files, errors);
-
-    Object.keys(files).forEach(function (fileNumber) {
-      var file = files[fileNumber];
-      if (!file.hasErrors) {
-        return
-      }
-
-      var strings = [''];
-      var styles = [''];
-
-      function push (str, style) {
-        strings.push(str);
-        styles.push(style || '');
-      }
-
-      push('file number ' + fileNumber + ': ' + file.name + '\n', 'color:red;text-decoration:underline;font-weight:bold');
-
-      file.lines.forEach(function (line) {
-        if (line.errors.length > 0) {
-          push(leftPad(line.number, 4) + '|  ', 'background-color:yellow; font-weight:bold');
-          push(line.line + '\n', 'color:red; background-color:yellow; font-weight:bold');
-
-          // try to guess token
-          var offset = 0;
-          line.errors.forEach(function (error) {
-            var message = error.message;
-            var token = /^\s*\'(.*)\'\s*\:\s*(.*)$/.exec(message);
-            if (token) {
-              var tokenPat = token[1];
-              message = token[2];
-              switch (tokenPat) {
-                case 'assign':
-                  tokenPat = '=';
-                  break
-              }
-              offset = Math.max(line.line.indexOf(tokenPat, offset), 0);
-            } else {
-              offset = 0;
-            }
-
-            push(leftPad('| ', 6));
-            push(leftPad('^^^', offset + 3) + '\n', 'font-weight:bold');
-            push(leftPad('| ', 6));
-            push(message + '\n', 'font-weight:bold');
-          });
-          push(leftPad('| ', 6) + '\n');
-        } else {
-          push(leftPad(line.number, 4) + '|  ');
-          push(line.line + '\n', 'color:red');
-        }
-      });
-      if (typeof document !== 'undefined') {
-        styles[0] = strings.join('%c');
-        console.log.apply(console, styles);
-      } else {
-        console.log(strings.join(''));
-      }
-    });
-
-    check.raise('Error compiling ' + typeName + ' shader, ' + files[0].name);
-  }
-}
-
-function checkLinkError (gl, program, fragShader, vertShader, command) {
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    var errLog = gl.getProgramInfoLog(program);
-    var fragParse = parseSource(fragShader, command);
-    var vertParse = parseSource(vertShader, command);
-
-    var header = 'Error linking program with vertex shader, "' +
-      vertParse[0].name + '", and fragment shader "' + fragParse[0].name + '"';
-
-    if (typeof document !== 'undefined') {
-      console.log('%c' + header + '\n%c' + errLog,
-        'color:red;text-decoration:underline;font-weight:bold',
-        'color:red');
-    } else {
-      console.log(header + '\n' + errLog);
-    }
-    check.raise(header);
-  }
-}
-
-function saveCommandRef (object) {
-  object._commandRef = guessCommand();
-}
-
-function saveDrawCommandInfo (opts, uniforms, attributes, stringStore) {
-  saveCommandRef(opts);
-
-  function id (str) {
-    if (str) {
-      return stringStore.id(str)
-    }
-    return 0
-  }
-  opts._fragId = id(opts.static.frag);
-  opts._vertId = id(opts.static.vert);
-
-  function addProps (dict, set) {
-    Object.keys(set).forEach(function (u) {
-      dict[stringStore.id(u)] = true;
-    });
-  }
-
-  var uniformSet = opts._uniformSet = {};
-  addProps(uniformSet, uniforms.static);
-  addProps(uniformSet, uniforms.dynamic);
-
-  var attributeSet = opts._attributeSet = {};
-  addProps(attributeSet, attributes.static);
-  addProps(attributeSet, attributes.dynamic);
-
-  opts._hasCount = (
-    'count' in opts.static ||
-    'count' in opts.dynamic ||
-    'elements' in opts.static ||
-    'elements' in opts.dynamic);
-}
-
-function commandRaise (message, command) {
-  var callSite = guessCallSite();
-  raise(message +
-    ' in command ' + (command || guessCommand()) +
-    (callSite === 'unknown' ? '' : ' called from ' + callSite));
-}
-
-function checkCommand (pred, message, command) {
-  if (!pred) {
-    commandRaise(message, command || guessCommand());
-  }
-}
-
-function checkParameterCommand (param, possibilities, message, command) {
-  if (!(param in possibilities)) {
-    commandRaise(
-      'unknown parameter (' + param + ')' + encolon(message) +
-      '. possible values: ' + Object.keys(possibilities).join(),
-      command || guessCommand());
-  }
-}
-
-function checkCommandType (value, type, message, command) {
-  if (typeof value !== type) {
-    commandRaise(
-      'invalid parameter type' + encolon(message) +
-      '. expected ' + type + ', got ' + (typeof value),
-      command || guessCommand());
-  }
-}
-
-function checkOptional (block) {
-  block();
-}
-
-function checkFramebufferFormat (attachment, texFormats, rbFormats) {
-  if (attachment.texture) {
-    checkOneOf(
-      attachment.texture._texture.internalformat,
-      texFormats,
-      'unsupported texture format for attachment');
-  } else {
-    checkOneOf(
-      attachment.renderbuffer._renderbuffer.format,
-      rbFormats,
-      'unsupported renderbuffer format for attachment');
-  }
-}
-
-var GL_CLAMP_TO_EDGE = 0x812F;
-
-var GL_NEAREST = 0x2600;
-var GL_NEAREST_MIPMAP_NEAREST = 0x2700;
-var GL_LINEAR_MIPMAP_NEAREST = 0x2701;
-var GL_NEAREST_MIPMAP_LINEAR = 0x2702;
-var GL_LINEAR_MIPMAP_LINEAR = 0x2703;
-
-var GL_BYTE = 5120;
-var GL_UNSIGNED_BYTE = 5121;
-var GL_SHORT = 5122;
-var GL_UNSIGNED_SHORT = 5123;
-var GL_INT = 5124;
-var GL_UNSIGNED_INT = 5125;
-var GL_FLOAT = 5126;
-
-var GL_UNSIGNED_SHORT_4_4_4_4 = 0x8033;
-var GL_UNSIGNED_SHORT_5_5_5_1 = 0x8034;
-var GL_UNSIGNED_SHORT_5_6_5 = 0x8363;
-var GL_UNSIGNED_INT_24_8_WEBGL = 0x84FA;
-
-var GL_HALF_FLOAT_OES = 0x8D61;
-
-var TYPE_SIZE = {};
-
-TYPE_SIZE[GL_BYTE] =
-TYPE_SIZE[GL_UNSIGNED_BYTE] = 1;
-
-TYPE_SIZE[GL_SHORT] =
-TYPE_SIZE[GL_UNSIGNED_SHORT] =
-TYPE_SIZE[GL_HALF_FLOAT_OES] =
-TYPE_SIZE[GL_UNSIGNED_SHORT_5_6_5] =
-TYPE_SIZE[GL_UNSIGNED_SHORT_4_4_4_4] =
-TYPE_SIZE[GL_UNSIGNED_SHORT_5_5_5_1] = 2;
-
-TYPE_SIZE[GL_INT] =
-TYPE_SIZE[GL_UNSIGNED_INT] =
-TYPE_SIZE[GL_FLOAT] =
-TYPE_SIZE[GL_UNSIGNED_INT_24_8_WEBGL] = 4;
-
-function pixelSize (type, channels) {
-  if (type === GL_UNSIGNED_SHORT_5_5_5_1 ||
-      type === GL_UNSIGNED_SHORT_4_4_4_4 ||
-      type === GL_UNSIGNED_SHORT_5_6_5) {
-    return 2
-  } else if (type === GL_UNSIGNED_INT_24_8_WEBGL) {
-    return 4
-  } else {
-    return TYPE_SIZE[type] * channels
-  }
-}
-
-function isPow2 (v) {
-  return !(v & (v - 1)) && (!!v)
-}
-
-function checkTexture2D (info, mipData, limits) {
-  var i;
-  var w = mipData.width;
-  var h = mipData.height;
-  var c = mipData.channels;
-
-  // Check texture shape
-  check(w > 0 && w <= limits.maxTextureSize &&
-        h > 0 && h <= limits.maxTextureSize,
-        'invalid texture shape');
-
-  // check wrap mode
-  if (info.wrapS !== GL_CLAMP_TO_EDGE || info.wrapT !== GL_CLAMP_TO_EDGE) {
-    check(isPow2(w) && isPow2(h),
-      'incompatible wrap mode for texture, both width and height must be power of 2');
-  }
-
-  if (mipData.mipmask === 1) {
-    if (w !== 1 && h !== 1) {
-      check(
-        info.minFilter !== GL_NEAREST_MIPMAP_NEAREST &&
-        info.minFilter !== GL_NEAREST_MIPMAP_LINEAR &&
-        info.minFilter !== GL_LINEAR_MIPMAP_NEAREST &&
-        info.minFilter !== GL_LINEAR_MIPMAP_LINEAR,
-        'min filter requires mipmap');
-    }
-  } else {
-    // texture must be power of 2
-    check(isPow2(w) && isPow2(h),
-      'texture must be a square power of 2 to support mipmapping');
-    check(mipData.mipmask === (w << 1) - 1,
-      'missing or incomplete mipmap data');
-  }
-
-  if (mipData.type === GL_FLOAT) {
-    if (limits.extensions.indexOf('oes_texture_float_linear') < 0) {
-      check(info.minFilter === GL_NEAREST && info.magFilter === GL_NEAREST,
-        'filter not supported, must enable oes_texture_float_linear');
-    }
-    check(!info.genMipmaps,
-      'mipmap generation not supported with float textures');
-  }
-
-  // check image complete
-  var mipimages = mipData.images;
-  for (i = 0; i < 16; ++i) {
-    if (mipimages[i]) {
-      var mw = w >> i;
-      var mh = h >> i;
-      check(mipData.mipmask & (1 << i), 'missing mipmap data');
-
-      var img = mipimages[i];
-
-      check(
-        img.width === mw &&
-        img.height === mh,
-        'invalid shape for mip images');
-
-      check(
-        img.format === mipData.format &&
-        img.internalformat === mipData.internalformat &&
-        img.type === mipData.type,
-        'incompatible type for mip image');
-
-      if (img.compressed) {
-        // TODO: check size for compressed images
-      } else if (img.data) {
-        // check(img.data.byteLength === mw * mh *
-        // Math.max(pixelSize(img.type, c), img.unpackAlignment),
-        var rowSize = Math.ceil(pixelSize(img.type, c) * mw / img.unpackAlignment) * img.unpackAlignment;
-        check(img.data.byteLength === rowSize * mh,
-          'invalid data for image, buffer size is inconsistent with image format');
-      } else if (img.element) {
-        // TODO: check element can be loaded
-      } else if (img.copy) {
-        // TODO: check compatible format and type
-      }
-    } else if (!info.genMipmaps) {
-      check((mipData.mipmask & (1 << i)) === 0, 'extra mipmap data');
-    }
-  }
-
-  if (mipData.compressed) {
-    check(!info.genMipmaps,
-      'mipmap generation for compressed images not supported');
-  }
-}
-
-function checkTextureCube (texture, info, faces, limits) {
-  var w = texture.width;
-  var h = texture.height;
-  var c = texture.channels;
-
-  // Check texture shape
-  check(
-    w > 0 && w <= limits.maxTextureSize && h > 0 && h <= limits.maxTextureSize,
-    'invalid texture shape');
-  check(
-    w === h,
-    'cube map must be square');
-  check(
-    info.wrapS === GL_CLAMP_TO_EDGE && info.wrapT === GL_CLAMP_TO_EDGE,
-    'wrap mode not supported by cube map');
-
-  for (var i = 0; i < faces.length; ++i) {
-    var face = faces[i];
-    check(
-      face.width === w && face.height === h,
-      'inconsistent cube map face shape');
-
-    if (info.genMipmaps) {
-      check(!face.compressed,
-        'can not generate mipmap for compressed textures');
-      check(face.mipmask === 1,
-        'can not specify mipmaps and generate mipmaps');
-    } else {
-      // TODO: check mip and filter mode
-    }
-
-    var mipmaps = face.images;
-    for (var j = 0; j < 16; ++j) {
-      var img = mipmaps[j];
-      if (img) {
-        var mw = w >> j;
-        var mh = h >> j;
-        check(face.mipmask & (1 << j), 'missing mipmap data');
-        check(
-          img.width === mw &&
-          img.height === mh,
-          'invalid shape for mip images');
-        check(
-          img.format === texture.format &&
-          img.internalformat === texture.internalformat &&
-          img.type === texture.type,
-          'incompatible type for mip image');
-
-        if (img.compressed) {
-          // TODO: check size for compressed images
-        } else if (img.data) {
-          check(img.data.byteLength === mw * mh *
-            Math.max(pixelSize(img.type, c), img.unpackAlignment),
-            'invalid data for image, buffer size is inconsistent with image format');
-        } else if (img.element) {
-          // TODO: check element can be loaded
-        } else if (img.copy) {
-          // TODO: check compatible format and type
-        }
-      }
-    }
-  }
-}
-
-var check$1 = extend(check, {
-  optional: checkOptional,
-  raise: raise,
-  commandRaise: commandRaise,
-  command: checkCommand,
-  parameter: checkParameter,
-  commandParameter: checkParameterCommand,
-  constructor: checkConstructor,
-  type: checkTypeOf,
-  commandType: checkCommandType,
-  isTypedArray: checkIsTypedArray,
-  nni: checkNonNegativeInt,
-  oneOf: checkOneOf,
-  shaderError: checkShaderError,
-  linkError: checkLinkError,
-  callSite: guessCallSite,
-  saveCommandRef: saveCommandRef,
-  saveDrawInfo: saveDrawCommandInfo,
-  framebufferFormat: checkFramebufferFormat,
-  guessCommand: guessCommand,
-  texture2D: checkTexture2D,
-  textureCube: checkTextureCube
-});
-
-var VARIABLE_COUNTER = 0;
-
-var DYN_FUNC = 0;
-
-function DynamicVariable (type, data) {
-  this.id = (VARIABLE_COUNTER++);
-  this.type = type;
-  this.data = data;
-}
-
-function escapeStr (str) {
-  return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
-}
-
-function splitParts (str) {
-  if (str.length === 0) {
-    return []
-  }
-
-  var firstChar = str.charAt(0);
-  var lastChar = str.charAt(str.length - 1);
-
-  if (str.length > 1 &&
-      firstChar === lastChar &&
-      (firstChar === '"' || firstChar === "'")) {
-    return ['"' + escapeStr(str.substr(1, str.length - 2)) + '"']
-  }
-
-  var parts = /\[(false|true|null|\d+|'[^']*'|"[^"]*")\]/.exec(str);
-  if (parts) {
-    return (
-      splitParts(str.substr(0, parts.index))
-      .concat(splitParts(parts[1]))
-      .concat(splitParts(str.substr(parts.index + parts[0].length)))
-    )
-  }
-
-  var subparts = str.split('.');
-  if (subparts.length === 1) {
-    return ['"' + escapeStr(str) + '"']
-  }
-
-  var result = [];
-  for (var i = 0; i < subparts.length; ++i) {
-    result = result.concat(splitParts(subparts[i]));
-  }
-  return result
-}
-
-function toAccessorString (str) {
-  return '[' + splitParts(str).join('][') + ']'
-}
-
-function defineDynamic (type, data) {
-  return new DynamicVariable(type, toAccessorString(data + ''))
-}
-
-function isDynamic (x) {
-  return (typeof x === 'function' && !x._reglType) ||
-         x instanceof DynamicVariable
-}
-
-function unbox (x, path) {
-  if (typeof x === 'function') {
-    return new DynamicVariable(DYN_FUNC, x)
-  }
-  return x
-}
-
-var dynamic = {
-  DynamicVariable: DynamicVariable,
-  define: defineDynamic,
-  isDynamic: isDynamic,
-  unbox: unbox,
-  accessor: toAccessorString
-};
-
-/* globals requestAnimationFrame, cancelAnimationFrame */
-var raf = {
-  next: typeof requestAnimationFrame === 'function'
-    ? function (cb) { return requestAnimationFrame(cb) }
-    : function (cb) { return setTimeout(cb, 16) },
-  cancel: typeof cancelAnimationFrame === 'function'
-    ? function (raf) { return cancelAnimationFrame(raf) }
-    : clearTimeout
-};
-
-/* globals performance */
-var clock = (typeof performance !== 'undefined' && performance.now)
-  ? function () { return performance.now() }
-  : function () { return +(new Date()) };
-
-function createStringStore () {
-  var stringIds = {'': 0};
-  var stringValues = [''];
-  return {
-    id: function (str) {
-      var result = stringIds[str];
-      if (result) {
-        return result
-      }
-      result = stringIds[str] = stringValues.length;
-      stringValues.push(str);
-      return result
-    },
-
-    str: function (id) {
-      return stringValues[id]
-    }
-  }
-}
-
-// Context and canvas creation helper functions
-function createCanvas (element, onDone, pixelRatio) {
-  var canvas = document.createElement('canvas');
-  extend(canvas.style, {
-    border: 0,
-    margin: 0,
-    padding: 0,
-    top: 0,
-    left: 0
-  });
-  element.appendChild(canvas);
-
-  if (element === document.body) {
-    canvas.style.position = 'absolute';
-    extend(element.style, {
-      margin: 0,
-      padding: 0
-    });
-  }
-
-  function resize () {
-    var w = window.innerWidth;
-    var h = window.innerHeight;
-    if (element !== document.body) {
-      var bounds = element.getBoundingClientRect();
-      w = bounds.right - bounds.left;
-      h = bounds.bottom - bounds.top;
-    }
-    canvas.width = pixelRatio * w;
-    canvas.height = pixelRatio * h;
-    extend(canvas.style, {
-      width: w + 'px',
-      height: h + 'px'
-    });
-  }
-
-  window.addEventListener('resize', resize, false);
-
-  function onDestroy () {
-    window.removeEventListener('resize', resize);
-    element.removeChild(canvas);
-  }
-
-  resize();
-
-  return {
-    canvas: canvas,
-    onDestroy: onDestroy
-  }
-}
-
-function createContext (canvas, contexAttributes) {
-  function get (name) {
-    try {
-      return canvas.getContext(name, contexAttributes)
-    } catch (e) {
-      return null
-    }
-  }
-  return (
-    get('webgl') ||
-    get('experimental-webgl') ||
-    get('webgl-experimental')
-  )
-}
-
-function isHTMLElement (obj) {
-  return (
-    typeof obj.nodeName === 'string' &&
-    typeof obj.appendChild === 'function' &&
-    typeof obj.getBoundingClientRect === 'function'
-  )
-}
-
-function isWebGLContext (obj) {
-  return (
-    typeof obj.drawArrays === 'function' ||
-    typeof obj.drawElements === 'function'
-  )
-}
-
-function parseExtensions (input) {
-  if (typeof input === 'string') {
-    return input.split()
-  }
-  check$1(Array.isArray(input), 'invalid extension array');
-  return input
-}
-
-function getElement (desc) {
-  if (typeof desc === 'string') {
-    check$1(typeof document !== 'undefined', 'not supported outside of DOM');
-    return document.querySelector(desc)
-  }
-  return desc
-}
-
-function parseArgs (args_) {
-  var args = args_ || {};
-  var element, container, canvas, gl;
-  var contextAttributes = {};
-  var extensions = [];
-  var optionalExtensions = [];
-  var pixelRatio = (typeof window === 'undefined' ? 1 : window.devicePixelRatio);
-  var profile = false;
-  var onDone = function (err) {
-    if (err) {
-      check$1.raise(err);
-    }
-  };
-  var onDestroy = function () {};
-  if (typeof args === 'string') {
-    check$1(
-      typeof document !== 'undefined',
-      'selector queries only supported in DOM enviroments');
-    element = document.querySelector(args);
-    check$1(element, 'invalid query string for element');
-  } else if (typeof args === 'object') {
-    if (isHTMLElement(args)) {
-      element = args;
-    } else if (isWebGLContext(args)) {
-      gl = args;
-      canvas = gl.canvas;
-    } else {
-      check$1.constructor(args);
-      if ('gl' in args) {
-        gl = args.gl;
-      } else if ('canvas' in args) {
-        canvas = getElement(args.canvas);
-      } else if ('container' in args) {
-        container = getElement(args.container);
-      }
-      if ('attributes' in args) {
-        contextAttributes = args.attributes;
-        check$1.type(contextAttributes, 'object', 'invalid context attributes');
-      }
-      if ('extensions' in args) {
-        extensions = parseExtensions(args.extensions);
-      }
-      if ('optionalExtensions' in args) {
-        optionalExtensions = parseExtensions(args.optionalExtensions);
-      }
-      if ('onDone' in args) {
-        check$1.type(
-          args.onDone, 'function',
-          'invalid or missing onDone callback');
-        onDone = args.onDone;
-      }
-      if ('profile' in args) {
-        profile = !!args.profile;
-      }
-      if ('pixelRatio' in args) {
-        pixelRatio = +args.pixelRatio;
-        check$1(pixelRatio > 0, 'invalid pixel ratio');
-      }
-    }
-  } else {
-    check$1.raise('invalid arguments to regl');
-  }
-
-  if (element) {
-    if (element.nodeName.toLowerCase() === 'canvas') {
-      canvas = element;
-    } else {
-      container = element;
-    }
-  }
-
-  if (!gl) {
-    if (!canvas) {
-      check$1(
-        typeof document !== 'undefined',
-        'must manually specify webgl context outside of DOM environments');
-      var result = createCanvas(container || document.body, onDone, pixelRatio);
-      if (!result) {
-        return null
-      }
-      canvas = result.canvas;
-      onDestroy = result.onDestroy;
-    }
-    gl = createContext(canvas, contextAttributes);
-  }
-
-  if (!gl) {
-    onDestroy();
-    onDone('webgl not supported, try upgrading your browser or graphics drivers http://get.webgl.org');
-    return null
-  }
-
-  return {
-    gl: gl,
-    canvas: canvas,
-    container: container,
-    extensions: extensions,
-    optionalExtensions: optionalExtensions,
-    pixelRatio: pixelRatio,
-    profile: profile,
-    onDone: onDone,
-    onDestroy: onDestroy
-  }
-}
-
-function createExtensionCache (gl, config) {
-  var extensions = {};
-
-  function tryLoadExtension (name_) {
-    check$1.type(name_, 'string', 'extension name must be string');
-    var name = name_.toLowerCase();
-    var ext;
-    try {
-      ext = extensions[name] = gl.getExtension(name);
-    } catch (e) {}
-    return !!ext
-  }
-
-  for (var i = 0; i < config.extensions.length; ++i) {
-    var name = config.extensions[i];
-    if (!tryLoadExtension(name)) {
-      config.onDestroy();
-      config.onDone('"' + name + '" extension is not supported by the current WebGL context, try upgrading your system or a different browser');
-      return null
-    }
-  }
-
-  config.optionalExtensions.forEach(tryLoadExtension);
-
-  return {
-    extensions: extensions,
-    restore: function () {
-      Object.keys(extensions).forEach(function (name) {
-        if (!tryLoadExtension(name)) {
-          throw new Error('(regl): error restoring extension ' + name)
-        }
-      });
-    }
-  }
-}
-
-var GL_SUBPIXEL_BITS = 0x0D50;
-var GL_RED_BITS = 0x0D52;
-var GL_GREEN_BITS = 0x0D53;
-var GL_BLUE_BITS = 0x0D54;
-var GL_ALPHA_BITS = 0x0D55;
-var GL_DEPTH_BITS = 0x0D56;
-var GL_STENCIL_BITS = 0x0D57;
-
-var GL_ALIASED_POINT_SIZE_RANGE = 0x846D;
-var GL_ALIASED_LINE_WIDTH_RANGE = 0x846E;
-
-var GL_MAX_TEXTURE_SIZE = 0x0D33;
-var GL_MAX_VIEWPORT_DIMS = 0x0D3A;
-var GL_MAX_VERTEX_ATTRIBS = 0x8869;
-var GL_MAX_VERTEX_UNIFORM_VECTORS = 0x8DFB;
-var GL_MAX_VARYING_VECTORS = 0x8DFC;
-var GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS = 0x8B4D;
-var GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS = 0x8B4C;
-var GL_MAX_TEXTURE_IMAGE_UNITS = 0x8872;
-var GL_MAX_FRAGMENT_UNIFORM_VECTORS = 0x8DFD;
-var GL_MAX_CUBE_MAP_TEXTURE_SIZE = 0x851C;
-var GL_MAX_RENDERBUFFER_SIZE = 0x84E8;
-
-var GL_VENDOR = 0x1F00;
-var GL_RENDERER = 0x1F01;
-var GL_VERSION = 0x1F02;
-var GL_SHADING_LANGUAGE_VERSION = 0x8B8C;
-
-var GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT = 0x84FF;
-
-var GL_MAX_COLOR_ATTACHMENTS_WEBGL = 0x8CDF;
-var GL_MAX_DRAW_BUFFERS_WEBGL = 0x8824;
-
-var wrapLimits = function (gl, extensions) {
-  var maxAnisotropic = 1;
-  if (extensions.ext_texture_filter_anisotropic) {
-    maxAnisotropic = gl.getParameter(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT);
-  }
-
-  var maxDrawbuffers = 1;
-  var maxColorAttachments = 1;
-  if (extensions.webgl_draw_buffers) {
-    maxDrawbuffers = gl.getParameter(GL_MAX_DRAW_BUFFERS_WEBGL);
-    maxColorAttachments = gl.getParameter(GL_MAX_COLOR_ATTACHMENTS_WEBGL);
-  }
-
-  return {
-    // drawing buffer bit depth
-    colorBits: [
-      gl.getParameter(GL_RED_BITS),
-      gl.getParameter(GL_GREEN_BITS),
-      gl.getParameter(GL_BLUE_BITS),
-      gl.getParameter(GL_ALPHA_BITS)
-    ],
-    depthBits: gl.getParameter(GL_DEPTH_BITS),
-    stencilBits: gl.getParameter(GL_STENCIL_BITS),
-    subpixelBits: gl.getParameter(GL_SUBPIXEL_BITS),
-
-    // supported extensions
-    extensions: Object.keys(extensions).filter(function (ext) {
-      return !!extensions[ext]
-    }),
-
-    // max aniso samples
-    maxAnisotropic: maxAnisotropic,
-
-    // max draw buffers
-    maxDrawbuffers: maxDrawbuffers,
-    maxColorAttachments: maxColorAttachments,
-
-    // point and line size ranges
-    pointSizeDims: gl.getParameter(GL_ALIASED_POINT_SIZE_RANGE),
-    lineWidthDims: gl.getParameter(GL_ALIASED_LINE_WIDTH_RANGE),
-    maxViewportDims: gl.getParameter(GL_MAX_VIEWPORT_DIMS),
-    maxCombinedTextureUnits: gl.getParameter(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS),
-    maxCubeMapSize: gl.getParameter(GL_MAX_CUBE_MAP_TEXTURE_SIZE),
-    maxRenderbufferSize: gl.getParameter(GL_MAX_RENDERBUFFER_SIZE),
-    maxTextureUnits: gl.getParameter(GL_MAX_TEXTURE_IMAGE_UNITS),
-    maxTextureSize: gl.getParameter(GL_MAX_TEXTURE_SIZE),
-    maxAttributes: gl.getParameter(GL_MAX_VERTEX_ATTRIBS),
-    maxVertexUniforms: gl.getParameter(GL_MAX_VERTEX_UNIFORM_VECTORS),
-    maxVertexTextureUnits: gl.getParameter(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS),
-    maxVaryingVectors: gl.getParameter(GL_MAX_VARYING_VECTORS),
-    maxFragmentUniforms: gl.getParameter(GL_MAX_FRAGMENT_UNIFORM_VECTORS),
-
-    // vendor info
-    glsl: gl.getParameter(GL_SHADING_LANGUAGE_VERSION),
-    renderer: gl.getParameter(GL_RENDERER),
-    vendor: gl.getParameter(GL_VENDOR),
-    version: gl.getParameter(GL_VERSION)
-  }
-};
-
-function isNDArrayLike (obj) {
-  return (
-    !!obj &&
-    typeof obj === 'object' &&
-    Array.isArray(obj.shape) &&
-    Array.isArray(obj.stride) &&
-    typeof obj.offset === 'number' &&
-    obj.shape.length === obj.stride.length &&
-    (Array.isArray(obj.data) ||
-      isTypedArray(obj.data)))
-}
-
-var values = function (obj) {
-  return Object.keys(obj).map(function (key) { return obj[key] })
-};
-
-function loop (n, f) {
-  var result = Array(n);
-  for (var i = 0; i < n; ++i) {
-    result[i] = f(i);
-  }
-  return result
-}
-
-var GL_BYTE$1 = 5120;
-var GL_UNSIGNED_BYTE$2 = 5121;
-var GL_SHORT$1 = 5122;
-var GL_UNSIGNED_SHORT$1 = 5123;
-var GL_INT$1 = 5124;
-var GL_UNSIGNED_INT$1 = 5125;
-var GL_FLOAT$2 = 5126;
-
-var bufferPool = loop(8, function () {
-  return []
-});
-
-function nextPow16 (v) {
-  for (var i = 16; i <= (1 << 28); i *= 16) {
-    if (v <= i) {
-      return i
-    }
-  }
-  return 0
-}
-
-function log2 (v) {
-  var r, shift;
-  r = (v > 0xFFFF) << 4;
-  v >>>= r;
-  shift = (v > 0xFF) << 3;
-  v >>>= shift; r |= shift;
-  shift = (v > 0xF) << 2;
-  v >>>= shift; r |= shift;
-  shift = (v > 0x3) << 1;
-  v >>>= shift; r |= shift;
-  return r | (v >> 1)
-}
-
-function alloc (n) {
-  var sz = nextPow16(n);
-  var bin = bufferPool[log2(sz) >> 2];
-  if (bin.length > 0) {
-    return bin.pop()
-  }
-  return new ArrayBuffer(sz)
-}
-
-function free (buf) {
-  bufferPool[log2(buf.byteLength) >> 2].push(buf);
-}
-
-function allocType (type, n) {
-  var result = null;
-  switch (type) {
-    case GL_BYTE$1:
-      result = new Int8Array(alloc(n), 0, n);
-      break
-    case GL_UNSIGNED_BYTE$2:
-      result = new Uint8Array(alloc(n), 0, n);
-      break
-    case GL_SHORT$1:
-      result = new Int16Array(alloc(2 * n), 0, n);
-      break
-    case GL_UNSIGNED_SHORT$1:
-      result = new Uint16Array(alloc(2 * n), 0, n);
-      break
-    case GL_INT$1:
-      result = new Int32Array(alloc(4 * n), 0, n);
-      break
-    case GL_UNSIGNED_INT$1:
-      result = new Uint32Array(alloc(4 * n), 0, n);
-      break
-    case GL_FLOAT$2:
-      result = new Float32Array(alloc(4 * n), 0, n);
-      break
-    default:
-      return null
-  }
-  if (result.length !== n) {
-    return result.subarray(0, n)
-  }
-  return result
-}
-
-function freeType (array) {
-  free(array.buffer);
-}
-
-var pool = {
-  alloc: alloc,
-  free: free,
-  allocType: allocType,
-  freeType: freeType
-};
-
-var flattenUtils = {
-  shape: arrayShape$1,
-  flatten: flattenArray
-};
-
-function flatten1D (array, nx, out) {
-  for (var i = 0; i < nx; ++i) {
-    out[i] = array[i];
-  }
-}
-
-function flatten2D (array, nx, ny, out) {
-  var ptr = 0;
-  for (var i = 0; i < nx; ++i) {
-    var row = array[i];
-    for (var j = 0; j < ny; ++j) {
-      out[ptr++] = row[j];
-    }
-  }
-}
-
-function flatten3D (array, nx, ny, nz, out, ptr_) {
-  var ptr = ptr_;
-  for (var i = 0; i < nx; ++i) {
-    var row = array[i];
-    for (var j = 0; j < ny; ++j) {
-      var col = row[j];
-      for (var k = 0; k < nz; ++k) {
-        out[ptr++] = col[k];
-      }
-    }
-  }
-}
-
-function flattenRec (array, shape, level, out, ptr) {
-  var stride = 1;
-  for (var i = level + 1; i < shape.length; ++i) {
-    stride *= shape[i];
-  }
-  var n = shape[level];
-  if (shape.length - level === 4) {
-    var nx = shape[level + 1];
-    var ny = shape[level + 2];
-    var nz = shape[level + 3];
-    for (i = 0; i < n; ++i) {
-      flatten3D(array[i], nx, ny, nz, out, ptr);
-      ptr += stride;
-    }
-  } else {
-    for (i = 0; i < n; ++i) {
-      flattenRec(array[i], shape, level + 1, out, ptr);
-      ptr += stride;
-    }
-  }
-}
-
-function flattenArray (array, shape, type, out_) {
-  var sz = 1;
-  if (shape.length) {
-    for (var i = 0; i < shape.length; ++i) {
-      sz *= shape[i];
-    }
-  } else {
-    sz = 0;
-  }
-  var out = out_ || pool.allocType(type, sz);
-  switch (shape.length) {
-    case 0:
-      break
-    case 1:
-      flatten1D(array, shape[0], out);
-      break
-    case 2:
-      flatten2D(array, shape[0], shape[1], out);
-      break
-    case 3:
-      flatten3D(array, shape[0], shape[1], shape[2], out, 0);
-      break
-    default:
-      flattenRec(array, shape, 0, out, 0);
-  }
-  return out
-}
-
-function arrayShape$1 (array_) {
-  var shape = [];
-  for (var array = array_; array.length; array = array[0]) {
-    shape.push(array.length);
-  }
-  return shape
-}
-
-var int8 = 5120;
-var int16 = 5122;
-var int32 = 5124;
-var uint8 = 5121;
-var uint16 = 5123;
-var uint32 = 5125;
-var float = 5126;
-var float32 = 5126;
-var glTypes = {
-	int8: int8,
-	int16: int16,
-	int32: int32,
-	uint8: uint8,
-	uint16: uint16,
-	uint32: uint32,
-	float: float,
-	float32: float32
-};
-
-var dynamic$1 = 35048;
-var stream = 35040;
-var usageTypes = {
-	dynamic: dynamic$1,
-	stream: stream,
-	"static": 35044
-};
-
-var arrayFlatten = flattenUtils.flatten;
-var arrayShape = flattenUtils.shape;
-
-var GL_STATIC_DRAW = 0x88E4;
-var GL_STREAM_DRAW = 0x88E0;
-
-var GL_UNSIGNED_BYTE$1 = 5121;
-var GL_FLOAT$1 = 5126;
-
-var DTYPES_SIZES = [];
-DTYPES_SIZES[5120] = 1; // int8
-DTYPES_SIZES[5122] = 2; // int16
-DTYPES_SIZES[5124] = 4; // int32
-DTYPES_SIZES[5121] = 1; // uint8
-DTYPES_SIZES[5123] = 2; // uint16
-DTYPES_SIZES[5125] = 4; // uint32
-DTYPES_SIZES[5126] = 4; // float32
-
-function typedArrayCode (data) {
-  return arrayTypes[Object.prototype.toString.call(data)] | 0
-}
-
-function copyArray (out, inp) {
-  for (var i = 0; i < inp.length; ++i) {
-    out[i] = inp[i];
-  }
-}
-
-function transpose (
-  result, data, shapeX, shapeY, strideX, strideY, offset) {
-  var ptr = 0;
-  for (var i = 0; i < shapeX; ++i) {
-    for (var j = 0; j < shapeY; ++j) {
-      result[ptr++] = data[strideX * i + strideY * j + offset];
-    }
-  }
-}
-
-function wrapBufferState (gl, stats, config) {
-  var bufferCount = 0;
-  var bufferSet = {};
-
-  function REGLBuffer (type) {
-    this.id = bufferCount++;
-    this.buffer = gl.createBuffer();
-    this.type = type;
-    this.usage = GL_STATIC_DRAW;
-    this.byteLength = 0;
-    this.dimension = 1;
-    this.dtype = GL_UNSIGNED_BYTE$1;
-
-    this.persistentData = null;
-
-    if (config.profile) {
-      this.stats = {size: 0};
-    }
-  }
-
-  REGLBuffer.prototype.bind = function () {
-    gl.bindBuffer(this.type, this.buffer);
-  };
-
-  REGLBuffer.prototype.destroy = function () {
-    destroy(this);
-  };
-
-  var streamPool = [];
-
-  function createStream (type, data) {
-    var buffer = streamPool.pop();
-    if (!buffer) {
-      buffer = new REGLBuffer(type);
-    }
-    buffer.bind();
-    initBufferFromData(buffer, data, GL_STREAM_DRAW, 0, 1, false);
-    return buffer
-  }
-
-  function destroyStream (stream$$1) {
-    streamPool.push(stream$$1);
-  }
-
-  function initBufferFromTypedArray (buffer, data, usage) {
-    buffer.byteLength = data.byteLength;
-    gl.bufferData(buffer.type, data, usage);
-  }
-
-  function initBufferFromData (buffer, data, usage, dtype, dimension, persist) {
-    var shape;
-    buffer.usage = usage;
-    if (Array.isArray(data)) {
-      buffer.dtype = dtype || GL_FLOAT$1;
-      if (data.length > 0) {
-        var flatData;
-        if (Array.isArray(data[0])) {
-          shape = arrayShape(data);
-          var dim = 1;
-          for (var i = 1; i < shape.length; ++i) {
-            dim *= shape[i];
-          }
-          buffer.dimension = dim;
-          flatData = arrayFlatten(data, shape, buffer.dtype);
-          initBufferFromTypedArray(buffer, flatData, usage);
-          if (persist) {
-            buffer.persistentData = flatData;
-          } else {
-            pool.freeType(flatData);
-          }
-        } else if (typeof data[0] === 'number') {
-          buffer.dimension = dimension;
-          var typedData = pool.allocType(buffer.dtype, data.length);
-          copyArray(typedData, data);
-          initBufferFromTypedArray(buffer, typedData, usage);
-          if (persist) {
-            buffer.persistentData = typedData;
-          } else {
-            pool.freeType(typedData);
-          }
-        } else if (isTypedArray(data[0])) {
-          buffer.dimension = data[0].length;
-          buffer.dtype = dtype || typedArrayCode(data[0]) || GL_FLOAT$1;
-          flatData = arrayFlatten(
-            data,
-            [data.length, data[0].length],
-            buffer.dtype);
-          initBufferFromTypedArray(buffer, flatData, usage);
-          if (persist) {
-            buffer.persistentData = flatData;
-          } else {
-            pool.freeType(flatData);
-          }
-        } else {
-          check$1.raise('invalid buffer data');
-        }
-      }
-    } else if (isTypedArray(data)) {
-      buffer.dtype = dtype || typedArrayCode(data);
-      buffer.dimension = dimension;
-      initBufferFromTypedArray(buffer, data, usage);
-      if (persist) {
-        buffer.persistentData = new Uint8Array(new Uint8Array(data.buffer));
-      }
-    } else if (isNDArrayLike(data)) {
-      shape = data.shape;
-      var stride = data.stride;
-      var offset = data.offset;
-
-      var shapeX = 0;
-      var shapeY = 0;
-      var strideX = 0;
-      var strideY = 0;
-      if (shape.length === 1) {
-        shapeX = shape[0];
-        shapeY = 1;
-        strideX = stride[0];
-        strideY = 0;
-      } else if (shape.length === 2) {
-        shapeX = shape[0];
-        shapeY = shape[1];
-        strideX = stride[0];
-        strideY = stride[1];
-      } else {
-        check$1.raise('invalid shape');
-      }
-
-      buffer.dtype = dtype || typedArrayCode(data.data) || GL_FLOAT$1;
-      buffer.dimension = shapeY;
-
-      var transposeData = pool.allocType(buffer.dtype, shapeX * shapeY);
-      transpose(transposeData,
-        data.data,
-        shapeX, shapeY,
-        strideX, strideY,
-        offset);
-      initBufferFromTypedArray(buffer, transposeData, usage);
-      if (persist) {
-        buffer.persistentData = transposeData;
-      } else {
-        pool.freeType(transposeData);
-      }
-    } else {
-      check$1.raise('invalid buffer data');
-    }
-  }
-
-  function destroy (buffer) {
-    stats.bufferCount--;
-
-    var handle = buffer.buffer;
-    check$1(handle, 'buffer must not be deleted already');
-    gl.deleteBuffer(handle);
-    buffer.buffer = null;
-    delete bufferSet[buffer.id];
-  }
-
-  function createBuffer (options, type, deferInit, persistent) {
-    stats.bufferCount++;
-
-    var buffer = new REGLBuffer(type);
-    bufferSet[buffer.id] = buffer;
-
-    function reglBuffer (options) {
-      var usage = GL_STATIC_DRAW;
-      var data = null;
-      var byteLength = 0;
-      var dtype = 0;
-      var dimension = 1;
-      if (Array.isArray(options) ||
-          isTypedArray(options) ||
-          isNDArrayLike(options)) {
-        data = options;
-      } else if (typeof options === 'number') {
-        byteLength = options | 0;
-      } else if (options) {
-        check$1.type(
-          options, 'object',
-          'buffer arguments must be an object, a number or an array');
-
-        if ('data' in options) {
-          check$1(
-            data === null ||
-            Array.isArray(data) ||
-            isTypedArray(data) ||
-            isNDArrayLike(data),
-            'invalid data for buffer');
-          data = options.data;
-        }
-
-        if ('usage' in options) {
-          check$1.parameter(options.usage, usageTypes, 'invalid buffer usage');
-          usage = usageTypes[options.usage];
-        }
-
-        if ('type' in options) {
-          check$1.parameter(options.type, glTypes, 'invalid buffer type');
-          dtype = glTypes[options.type];
-        }
-
-        if ('dimension' in options) {
-          check$1.type(options.dimension, 'number', 'invalid dimension');
-          dimension = options.dimension | 0;
-        }
-
-        if ('length' in options) {
-          check$1.nni(byteLength, 'buffer length must be a nonnegative integer');
-          byteLength = options.length | 0;
-        }
-      }
-
-      buffer.bind();
-      if (!data) {
-        gl.bufferData(buffer.type, byteLength, usage);
-        buffer.dtype = dtype || GL_UNSIGNED_BYTE$1;
-        buffer.usage = usage;
-        buffer.dimension = dimension;
-        buffer.byteLength = byteLength;
-      } else {
-        initBufferFromData(buffer, data, usage, dtype, dimension, persistent);
-      }
-
-      if (config.profile) {
-        buffer.stats.size = buffer.byteLength * DTYPES_SIZES[buffer.dtype];
-      }
-
-      return reglBuffer
-    }
-
-    function setSubData (data, offset) {
-      check$1(offset + data.byteLength <= buffer.byteLength,
-        'invalid buffer subdata call, buffer is too small. ' + ' Can\'t write data of size ' + data.byteLength + ' starting from offset ' + offset + ' to a buffer of size ' + buffer.byteLength);
-
-      gl.bufferSubData(buffer.type, offset, data);
-    }
-
-    function subdata (data, offset_) {
-      var offset = (offset_ || 0) | 0;
-      var shape;
-      buffer.bind();
-      if (Array.isArray(data)) {
-        if (data.length > 0) {
-          if (typeof data[0] === 'number') {
-            var converted = pool.allocType(buffer.dtype, data.length);
-            copyArray(converted, data);
-            setSubData(converted, offset);
-            pool.freeType(converted);
-          } else if (Array.isArray(data[0]) || isTypedArray(data[0])) {
-            shape = arrayShape(data);
-            var flatData = arrayFlatten(data, shape, buffer.dtype);
-            setSubData(flatData, offset);
-            pool.freeType(flatData);
-          } else {
-            check$1.raise('invalid buffer data');
-          }
-        }
-      } else if (isTypedArray(data)) {
-        setSubData(data, offset);
-      } else if (isNDArrayLike(data)) {
-        shape = data.shape;
-        var stride = data.stride;
-
-        var shapeX = 0;
-        var shapeY = 0;
-        var strideX = 0;
-        var strideY = 0;
-        if (shape.length === 1) {
-          shapeX = shape[0];
-          shapeY = 1;
-          strideX = stride[0];
-          strideY = 0;
-        } else if (shape.length === 2) {
-          shapeX = shape[0];
-          shapeY = shape[1];
-          strideX = stride[0];
-          strideY = stride[1];
-        } else {
-          check$1.raise('invalid shape');
-        }
-        var dtype = Array.isArray(data.data)
-          ? buffer.dtype
-          : typedArrayCode(data.data);
-
-        var transposeData = pool.allocType(dtype, shapeX * shapeY);
-        transpose(transposeData,
-          data.data,
-          shapeX, shapeY,
-          strideX, strideY,
-          data.offset);
-        setSubData(transposeData, offset);
-        pool.freeType(transposeData);
-      } else {
-        check$1.raise('invalid data for buffer subdata');
-      }
-      return reglBuffer
-    }
-
-    if (!deferInit) {
-      reglBuffer(options);
-    }
-
-    reglBuffer._reglType = 'buffer';
-    reglBuffer._buffer = buffer;
-    reglBuffer.subdata = subdata;
-    if (config.profile) {
-      reglBuffer.stats = buffer.stats;
-    }
-    reglBuffer.destroy = function () { destroy(buffer); };
-
-    return reglBuffer
-  }
-
-  function restoreBuffers () {
-    values(bufferSet).forEach(function (buffer) {
-      buffer.buffer = gl.createBuffer();
-      gl.bindBuffer(buffer.type, buffer.buffer);
-      gl.bufferData(
-        buffer.type, buffer.persistentData || buffer.byteLength, buffer.usage);
-    });
-  }
-
-  if (config.profile) {
-    stats.getTotalBufferSize = function () {
-      var total = 0;
-      // TODO: Right now, the streams are not part of the total count.
-      Object.keys(bufferSet).forEach(function (key) {
-        total += bufferSet[key].stats.size;
-      });
-      return total
-    };
-  }
-
-  return {
-    create: createBuffer,
-
-    createStream: createStream,
-    destroyStream: destroyStream,
-
-    clear: function () {
-      values(bufferSet).forEach(destroy);
-      streamPool.forEach(destroy);
-    },
-
-    getBuffer: function (wrapper) {
-      if (wrapper && wrapper._buffer instanceof REGLBuffer) {
-        return wrapper._buffer
-      }
-      return null
-    },
-
-    restore: restoreBuffers,
-
-    _initBuffer: initBufferFromData
-  }
-}
-
-var points = 0;
-var point = 0;
-var lines = 1;
-var line = 1;
-var triangles = 4;
-var triangle = 4;
-var primTypes = {
-	points: points,
-	point: point,
-	lines: lines,
-	line: line,
-	triangles: triangles,
-	triangle: triangle,
-	"line loop": 2,
-	"line strip": 3,
-	"triangle strip": 5,
-	"triangle fan": 6
-};
-
-var GL_POINTS = 0;
-var GL_LINES = 1;
-var GL_TRIANGLES = 4;
-
-var GL_BYTE$2 = 5120;
-var GL_UNSIGNED_BYTE$3 = 5121;
-var GL_SHORT$2 = 5122;
-var GL_UNSIGNED_SHORT$2 = 5123;
-var GL_INT$2 = 5124;
-var GL_UNSIGNED_INT$2 = 5125;
-
-var GL_ELEMENT_ARRAY_BUFFER = 34963;
-
-var GL_STREAM_DRAW$1 = 0x88E0;
-var GL_STATIC_DRAW$1 = 0x88E4;
-
-function wrapElementsState (gl, extensions, bufferState, stats) {
-  var elementSet = {};
-  var elementCount = 0;
-
-  var elementTypes = {
-    'uint8': GL_UNSIGNED_BYTE$3,
-    'uint16': GL_UNSIGNED_SHORT$2
-  };
-
-  if (extensions.oes_element_index_uint) {
-    elementTypes.uint32 = GL_UNSIGNED_INT$2;
-  }
-
-  function REGLElementBuffer (buffer) {
-    this.id = elementCount++;
-    elementSet[this.id] = this;
-    this.buffer = buffer;
-    this.primType = GL_TRIANGLES;
-    this.vertCount = 0;
-    this.type = 0;
-  }
-
-  REGLElementBuffer.prototype.bind = function () {
-    this.buffer.bind();
-  };
-
-  var bufferPool = [];
-
-  function createElementStream (data) {
-    var result = bufferPool.pop();
-    if (!result) {
-      result = new REGLElementBuffer(bufferState.create(
-        null,
-        GL_ELEMENT_ARRAY_BUFFER,
-        true,
-        false)._buffer);
-    }
-    initElements(result, data, GL_STREAM_DRAW$1, -1, -1, 0, 0);
-    return result
-  }
-
-  function destroyElementStream (elements) {
-    bufferPool.push(elements);
-  }
-
-  function initElements (
-    elements,
-    data,
-    usage,
-    prim,
-    count,
-    byteLength,
-    type) {
-    elements.buffer.bind();
-    if (data) {
-      var predictedType = type;
-      if (!type && (
-          !isTypedArray(data) ||
-         (isNDArrayLike(data) && !isTypedArray(data.data)))) {
-        predictedType = extensions.oes_element_index_uint
-          ? GL_UNSIGNED_INT$2
-          : GL_UNSIGNED_SHORT$2;
-      }
-      bufferState._initBuffer(
-        elements.buffer,
-        data,
-        usage,
-        predictedType,
-        3);
-    } else {
-      gl.bufferData(GL_ELEMENT_ARRAY_BUFFER, byteLength, usage);
-      elements.buffer.dtype = dtype || GL_UNSIGNED_BYTE$3;
-      elements.buffer.usage = usage;
-      elements.buffer.dimension = 3;
-      elements.buffer.byteLength = byteLength;
-    }
-
-    var dtype = type;
-    if (!type) {
-      switch (elements.buffer.dtype) {
-        case GL_UNSIGNED_BYTE$3:
-        case GL_BYTE$2:
-          dtype = GL_UNSIGNED_BYTE$3;
-          break
-
-        case GL_UNSIGNED_SHORT$2:
-        case GL_SHORT$2:
-          dtype = GL_UNSIGNED_SHORT$2;
-          break
-
-        case GL_UNSIGNED_INT$2:
-        case GL_INT$2:
-          dtype = GL_UNSIGNED_INT$2;
-          break
-
-        default:
-          check$1.raise('unsupported type for element array');
-      }
-      elements.buffer.dtype = dtype;
-    }
-    elements.type = dtype;
-
-    // Check oes_element_index_uint extension
-    check$1(
-      dtype !== GL_UNSIGNED_INT$2 ||
-      !!extensions.oes_element_index_uint,
-      '32 bit element buffers not supported, enable oes_element_index_uint first');
-
-    // try to guess default primitive type and arguments
-    var vertCount = count;
-    if (vertCount < 0) {
-      vertCount = elements.buffer.byteLength;
-      if (dtype === GL_UNSIGNED_SHORT$2) {
-        vertCount >>= 1;
-      } else if (dtype === GL_UNSIGNED_INT$2) {
-        vertCount >>= 2;
-      }
-    }
-    elements.vertCount = vertCount;
-
-    // try to guess primitive type from cell dimension
-    var primType = prim;
-    if (prim < 0) {
-      primType = GL_TRIANGLES;
-      var dimension = elements.buffer.dimension;
-      if (dimension === 1) primType = GL_POINTS;
-      if (dimension === 2) primType = GL_LINES;
-      if (dimension === 3) primType = GL_TRIANGLES;
-    }
-    elements.primType = primType;
-  }
-
-  function destroyElements (elements) {
-    stats.elementsCount--;
-
-    check$1(elements.buffer !== null, 'must not double destroy elements');
-    delete elementSet[elements.id];
-    elements.buffer.destroy();
-    elements.buffer = null;
-  }
-
-  function createElements (options, persistent) {
-    var buffer = bufferState.create(null, GL_ELEMENT_ARRAY_BUFFER, true);
-    var elements = new REGLElementBuffer(buffer._buffer);
-    stats.elementsCount++;
-
-    function reglElements (options) {
-      if (!options) {
-        buffer();
-        elements.primType = GL_TRIANGLES;
-        elements.vertCount = 0;
-        elements.type = GL_UNSIGNED_BYTE$3;
-      } else if (typeof options === 'number') {
-        buffer(options);
-        elements.primType = GL_TRIANGLES;
-        elements.vertCount = options | 0;
-        elements.type = GL_UNSIGNED_BYTE$3;
-      } else {
-        var data = null;
-        var usage = GL_STATIC_DRAW$1;
-        var primType = -1;
-        var vertCount = -1;
-        var byteLength = 0;
-        var dtype = 0;
-        if (Array.isArray(options) ||
-            isTypedArray(options) ||
-            isNDArrayLike(options)) {
-          data = options;
-        } else {
-          check$1.type(options, 'object', 'invalid arguments for elements');
-          if ('data' in options) {
-            data = options.data;
-            check$1(
-                Array.isArray(data) ||
-                isTypedArray(data) ||
-                isNDArrayLike(data),
-                'invalid data for element buffer');
-          }
-          if ('usage' in options) {
-            check$1.parameter(
-              options.usage,
-              usageTypes,
-              'invalid element buffer usage');
-            usage = usageTypes[options.usage];
-          }
-          if ('primitive' in options) {
-            check$1.parameter(
-              options.primitive,
-              primTypes,
-              'invalid element buffer primitive');
-            primType = primTypes[options.primitive];
-          }
-          if ('count' in options) {
-            check$1(
-              typeof options.count === 'number' && options.count >= 0,
-              'invalid vertex count for elements');
-            vertCount = options.count | 0;
-          }
-          if ('type' in options) {
-            check$1.parameter(
-              options.type,
-              elementTypes,
-              'invalid buffer type');
-            dtype = elementTypes[options.type];
-          }
-          if ('length' in options) {
-            byteLength = options.length | 0;
-          } else {
-            byteLength = vertCount;
-            if (dtype === GL_UNSIGNED_SHORT$2 || dtype === GL_SHORT$2) {
-              byteLength *= 2;
-            } else if (dtype === GL_UNSIGNED_INT$2 || dtype === GL_INT$2) {
-              byteLength *= 4;
-            }
-          }
-        }
-        initElements(
-          elements,
-          data,
-          usage,
-          primType,
-          vertCount,
-          byteLength,
-          dtype);
-      }
-
-      return reglElements
-    }
-
-    reglElements(options);
-
-    reglElements._reglType = 'elements';
-    reglElements._elements = elements;
-    reglElements.subdata = function (data, offset) {
-      buffer.subdata(data, offset);
-      return reglElements
-    };
-    reglElements.destroy = function () {
-      destroyElements(elements);
-    };
-
-    return reglElements
-  }
-
-  return {
-    create: createElements,
-    createStream: createElementStream,
-    destroyStream: destroyElementStream,
-    getElements: function (elements) {
-      if (typeof elements === 'function' &&
-          elements._elements instanceof REGLElementBuffer) {
-        return elements._elements
-      }
-      return null
-    },
-    clear: function () {
-      values(elementSet).forEach(destroyElements);
-    }
-  }
-}
-
-var FLOAT = new Float32Array(1);
-var INT = new Uint32Array(FLOAT.buffer);
-
-var GL_UNSIGNED_SHORT$4 = 5123;
-
-function convertToHalfFloat (array) {
-  var ushorts = pool.allocType(GL_UNSIGNED_SHORT$4, array.length);
-
-  for (var i = 0; i < array.length; ++i) {
-    if (isNaN(array[i])) {
-      ushorts[i] = 0xffff;
-    } else if (array[i] === Infinity) {
-      ushorts[i] = 0x7c00;
-    } else if (array[i] === -Infinity) {
-      ushorts[i] = 0xfc00;
-    } else {
-      FLOAT[0] = array[i];
-      var x = INT[0];
-
-      var sgn = (x >>> 31) << 15;
-      var exp = ((x << 1) >>> 24) - 127;
-      var frac = (x >> 13) & ((1 << 10) - 1);
-
-      if (exp < -24) {
-        // round non-representable denormals to 0
-        ushorts[i] = sgn;
-      } else if (exp < -14) {
-        // handle denormals
-        var s = -14 - exp;
-        ushorts[i] = sgn + ((frac + (1 << 10)) >> s);
-      } else if (exp > 15) {
-        // round overflow to +/- Infinity
-        ushorts[i] = sgn + 0x7c00;
-      } else {
-        // otherwise convert directly
-        ushorts[i] = sgn + ((exp + 15) << 10) + frac;
-      }
-    }
-  }
-
-  return ushorts
-}
-
-function isArrayLike (s) {
-  return Array.isArray(s) || isTypedArray(s)
-}
-
-var GL_COMPRESSED_TEXTURE_FORMATS = 0x86A3;
-
-var GL_TEXTURE_2D = 0x0DE1;
-var GL_TEXTURE_CUBE_MAP = 0x8513;
-var GL_TEXTURE_CUBE_MAP_POSITIVE_X = 0x8515;
-
-var GL_RGBA = 0x1908;
-var GL_ALPHA = 0x1906;
-var GL_RGB = 0x1907;
-var GL_LUMINANCE = 0x1909;
-var GL_LUMINANCE_ALPHA = 0x190A;
-
-var GL_RGBA4 = 0x8056;
-var GL_RGB5_A1 = 0x8057;
-var GL_RGB565 = 0x8D62;
-
-var GL_UNSIGNED_SHORT_4_4_4_4$1 = 0x8033;
-var GL_UNSIGNED_SHORT_5_5_5_1$1 = 0x8034;
-var GL_UNSIGNED_SHORT_5_6_5$1 = 0x8363;
-var GL_UNSIGNED_INT_24_8_WEBGL$1 = 0x84FA;
-
-var GL_DEPTH_COMPONENT = 0x1902;
-var GL_DEPTH_STENCIL = 0x84F9;
-
-var GL_SRGB_EXT = 0x8C40;
-var GL_SRGB_ALPHA_EXT = 0x8C42;
-
-var GL_HALF_FLOAT_OES$1 = 0x8D61;
-
-var GL_COMPRESSED_RGB_S3TC_DXT1_EXT = 0x83F0;
-var GL_COMPRESSED_RGBA_S3TC_DXT1_EXT = 0x83F1;
-var GL_COMPRESSED_RGBA_S3TC_DXT3_EXT = 0x83F2;
-var GL_COMPRESSED_RGBA_S3TC_DXT5_EXT = 0x83F3;
-
-var GL_COMPRESSED_RGB_ATC_WEBGL = 0x8C92;
-var GL_COMPRESSED_RGBA_ATC_EXPLICIT_ALPHA_WEBGL = 0x8C93;
-var GL_COMPRESSED_RGBA_ATC_INTERPOLATED_ALPHA_WEBGL = 0x87EE;
-
-var GL_COMPRESSED_RGB_PVRTC_4BPPV1_IMG = 0x8C00;
-var GL_COMPRESSED_RGB_PVRTC_2BPPV1_IMG = 0x8C01;
-var GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG = 0x8C02;
-var GL_COMPRESSED_RGBA_PVRTC_2BPPV1_IMG = 0x8C03;
-
-var GL_COMPRESSED_RGB_ETC1_WEBGL = 0x8D64;
-
-var GL_UNSIGNED_BYTE$4 = 0x1401;
-var GL_UNSIGNED_SHORT$3 = 0x1403;
-var GL_UNSIGNED_INT$3 = 0x1405;
-var GL_FLOAT$3 = 0x1406;
-
-var GL_TEXTURE_WRAP_S = 0x2802;
-var GL_TEXTURE_WRAP_T = 0x2803;
-
-var GL_REPEAT = 0x2901;
-var GL_CLAMP_TO_EDGE$1 = 0x812F;
-var GL_MIRRORED_REPEAT = 0x8370;
-
-var GL_TEXTURE_MAG_FILTER = 0x2800;
-var GL_TEXTURE_MIN_FILTER = 0x2801;
-
-var GL_NEAREST$1 = 0x2600;
-var GL_LINEAR = 0x2601;
-var GL_NEAREST_MIPMAP_NEAREST$1 = 0x2700;
-var GL_LINEAR_MIPMAP_NEAREST$1 = 0x2701;
-var GL_NEAREST_MIPMAP_LINEAR$1 = 0x2702;
-var GL_LINEAR_MIPMAP_LINEAR$1 = 0x2703;
-
-var GL_GENERATE_MIPMAP_HINT = 0x8192;
-var GL_DONT_CARE = 0x1100;
-var GL_FASTEST = 0x1101;
-var GL_NICEST = 0x1102;
-
-var GL_TEXTURE_MAX_ANISOTROPY_EXT = 0x84FE;
-
-var GL_UNPACK_ALIGNMENT = 0x0CF5;
-var GL_UNPACK_FLIP_Y_WEBGL = 0x9240;
-var GL_UNPACK_PREMULTIPLY_ALPHA_WEBGL = 0x9241;
-var GL_UNPACK_COLORSPACE_CONVERSION_WEBGL = 0x9243;
-
-var GL_BROWSER_DEFAULT_WEBGL = 0x9244;
-
-var GL_TEXTURE0 = 0x84C0;
-
-var MIPMAP_FILTERS = [
-  GL_NEAREST_MIPMAP_NEAREST$1,
-  GL_NEAREST_MIPMAP_LINEAR$1,
-  GL_LINEAR_MIPMAP_NEAREST$1,
-  GL_LINEAR_MIPMAP_LINEAR$1
-];
-
-var CHANNELS_FORMAT = [
-  0,
-  GL_LUMINANCE,
-  GL_LUMINANCE_ALPHA,
-  GL_RGB,
-  GL_RGBA
-];
-
-var FORMAT_CHANNELS = {};
-FORMAT_CHANNELS[GL_LUMINANCE] =
-FORMAT_CHANNELS[GL_ALPHA] =
-FORMAT_CHANNELS[GL_DEPTH_COMPONENT] = 1;
-FORMAT_CHANNELS[GL_DEPTH_STENCIL] =
-FORMAT_CHANNELS[GL_LUMINANCE_ALPHA] = 2;
-FORMAT_CHANNELS[GL_RGB] =
-FORMAT_CHANNELS[GL_SRGB_EXT] = 3;
-FORMAT_CHANNELS[GL_RGBA] =
-FORMAT_CHANNELS[GL_SRGB_ALPHA_EXT] = 4;
-
-function objectName (str) {
-  return '[object ' + str + ']'
-}
-
-var CANVAS_CLASS = objectName('HTMLCanvasElement');
-var CONTEXT2D_CLASS = objectName('CanvasRenderingContext2D');
-var IMAGE_CLASS = objectName('HTMLImageElement');
-var VIDEO_CLASS = objectName('HTMLVideoElement');
-
-var PIXEL_CLASSES = Object.keys(arrayTypes).concat([
-  CANVAS_CLASS,
-  CONTEXT2D_CLASS,
-  IMAGE_CLASS,
-  VIDEO_CLASS
-]);
-
-// for every texture type, store
-// the size in bytes.
-var TYPE_SIZES = [];
-TYPE_SIZES[GL_UNSIGNED_BYTE$4] = 1;
-TYPE_SIZES[GL_FLOAT$3] = 4;
-TYPE_SIZES[GL_HALF_FLOAT_OES$1] = 2;
-
-TYPE_SIZES[GL_UNSIGNED_SHORT$3] = 2;
-TYPE_SIZES[GL_UNSIGNED_INT$3] = 4;
-
-var FORMAT_SIZES_SPECIAL = [];
-FORMAT_SIZES_SPECIAL[GL_RGBA4] = 2;
-FORMAT_SIZES_SPECIAL[GL_RGB5_A1] = 2;
-FORMAT_SIZES_SPECIAL[GL_RGB565] = 2;
-FORMAT_SIZES_SPECIAL[GL_DEPTH_STENCIL] = 4;
-
-FORMAT_SIZES_SPECIAL[GL_COMPRESSED_RGB_S3TC_DXT1_EXT] = 0.5;
-FORMAT_SIZES_SPECIAL[GL_COMPRESSED_RGBA_S3TC_DXT1_EXT] = 0.5;
-FORMAT_SIZES_SPECIAL[GL_COMPRESSED_RGBA_S3TC_DXT3_EXT] = 1;
-FORMAT_SIZES_SPECIAL[GL_COMPRESSED_RGBA_S3TC_DXT5_EXT] = 1;
-
-FORMAT_SIZES_SPECIAL[GL_COMPRESSED_RGB_ATC_WEBGL] = 0.5;
-FORMAT_SIZES_SPECIAL[GL_COMPRESSED_RGBA_ATC_EXPLICIT_ALPHA_WEBGL] = 1;
-FORMAT_SIZES_SPECIAL[GL_COMPRESSED_RGBA_ATC_INTERPOLATED_ALPHA_WEBGL] = 1;
-
-FORMAT_SIZES_SPECIAL[GL_COMPRESSED_RGB_PVRTC_4BPPV1_IMG] = 0.5;
-FORMAT_SIZES_SPECIAL[GL_COMPRESSED_RGB_PVRTC_2BPPV1_IMG] = 0.25;
-FORMAT_SIZES_SPECIAL[GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG] = 0.5;
-FORMAT_SIZES_SPECIAL[GL_COMPRESSED_RGBA_PVRTC_2BPPV1_IMG] = 0.25;
-
-FORMAT_SIZES_SPECIAL[GL_COMPRESSED_RGB_ETC1_WEBGL] = 0.5;
-
-function isNumericArray (arr) {
-  return (
-    Array.isArray(arr) &&
-    (arr.length === 0 ||
-    typeof arr[0] === 'number'))
-}
-
-function isRectArray (arr) {
-  if (!Array.isArray(arr)) {
-    return false
-  }
-  var width = arr.length;
-  if (width === 0 || !isArrayLike(arr[0])) {
-    return false
-  }
-  return true
-}
-
-function classString (x) {
-  return Object.prototype.toString.call(x)
-}
-
-function isCanvasElement (object) {
-  return classString(object) === CANVAS_CLASS
-}
-
-function isContext2D (object) {
-  return classString(object) === CONTEXT2D_CLASS
-}
-
-function isImageElement (object) {
-  return classString(object) === IMAGE_CLASS
-}
-
-function isVideoElement (object) {
-  return classString(object) === VIDEO_CLASS
-}
-
-function isPixelData (object) {
-  if (!object) {
-    return false
-  }
-  var className = classString(object);
-  if (PIXEL_CLASSES.indexOf(className) >= 0) {
-    return true
-  }
-  return (
-    isNumericArray(object) ||
-    isRectArray(object) ||
-    isNDArrayLike(object))
-}
-
-function typedArrayCode$1 (data) {
-  return arrayTypes[Object.prototype.toString.call(data)] | 0
-}
-
-function convertData (result, data) {
-  var n = data.length;
-  switch (result.type) {
-    case GL_UNSIGNED_BYTE$4:
-    case GL_UNSIGNED_SHORT$3:
-    case GL_UNSIGNED_INT$3:
-    case GL_FLOAT$3:
-      var converted = pool.allocType(result.type, n);
-      converted.set(data);
-      result.data = converted;
-      break
-
-    case GL_HALF_FLOAT_OES$1:
-      result.data = convertToHalfFloat(data);
-      break
-
-    default:
-      check$1.raise('unsupported texture type, must specify a typed array');
-  }
-}
-
-function preConvert (image, n) {
-  return pool.allocType(
-    image.type === GL_HALF_FLOAT_OES$1
-      ? GL_FLOAT$3
-      : image.type, n)
-}
-
-function postConvert (image, data) {
-  if (image.type === GL_HALF_FLOAT_OES$1) {
-    image.data = convertToHalfFloat(data);
-    pool.freeType(data);
-  } else {
-    image.data = data;
-  }
-}
-
-function transposeData (image, array, strideX, strideY, strideC, offset) {
-  var w = image.width;
-  var h = image.height;
-  var c = image.channels;
-  var n = w * h * c;
-  var data = preConvert(image, n);
-
-  var p = 0;
-  for (var i = 0; i < h; ++i) {
-    for (var j = 0; j < w; ++j) {
-      for (var k = 0; k < c; ++k) {
-        data[p++] = array[strideX * j + strideY * i + strideC * k + offset];
-      }
-    }
-  }
-
-  postConvert(image, data);
-}
-
-function getTextureSize (format, type, width, height, isMipmap, isCube) {
-  var s;
-  if (typeof FORMAT_SIZES_SPECIAL[format] !== 'undefined') {
-    // we have a special array for dealing with weird color formats such as RGB5A1
-    s = FORMAT_SIZES_SPECIAL[format];
-  } else {
-    s = FORMAT_CHANNELS[format] * TYPE_SIZES[type];
-  }
-
-  if (isCube) {
-    s *= 6;
-  }
-
-  if (isMipmap) {
-    // compute the total size of all the mipmaps.
-    var total = 0;
-
-    var w = width;
-    while (w >= 1) {
-      // we can only use mipmaps on a square image,
-      // so we can simply use the width and ignore the height:
-      total += s * w * w;
-      w /= 2;
-    }
-    return total
-  } else {
-    return s * width * height
-  }
-}
-
-function createTextureSet (
-  gl, extensions, limits, reglPoll, contextState, stats, config) {
-  // -------------------------------------------------------
-  // Initialize constants and parameter tables here
-  // -------------------------------------------------------
-  var mipmapHint = {
-    "don't care": GL_DONT_CARE,
-    'dont care': GL_DONT_CARE,
-    'nice': GL_NICEST,
-    'fast': GL_FASTEST
-  };
-
-  var wrapModes = {
-    'repeat': GL_REPEAT,
-    'clamp': GL_CLAMP_TO_EDGE$1,
-    'mirror': GL_MIRRORED_REPEAT
-  };
-
-  var magFilters = {
-    'nearest': GL_NEAREST$1,
-    'linear': GL_LINEAR
-  };
-
-  var minFilters = extend({
-    'mipmap': GL_LINEAR_MIPMAP_LINEAR$1,
-    'nearest mipmap nearest': GL_NEAREST_MIPMAP_NEAREST$1,
-    'linear mipmap nearest': GL_LINEAR_MIPMAP_NEAREST$1,
-    'nearest mipmap linear': GL_NEAREST_MIPMAP_LINEAR$1,
-    'linear mipmap linear': GL_LINEAR_MIPMAP_LINEAR$1
-  }, magFilters);
-
-  var colorSpace = {
-    'none': 0,
-    'browser': GL_BROWSER_DEFAULT_WEBGL
-  };
-
-  var textureTypes = {
-    'uint8': GL_UNSIGNED_BYTE$4,
-    'rgba4': GL_UNSIGNED_SHORT_4_4_4_4$1,
-    'rgb565': GL_UNSIGNED_SHORT_5_6_5$1,
-    'rgb5 a1': GL_UNSIGNED_SHORT_5_5_5_1$1
-  };
-
-  var textureFormats = {
-    'alpha': GL_ALPHA,
-    'luminance': GL_LUMINANCE,
-    'luminance alpha': GL_LUMINANCE_ALPHA,
-    'rgb': GL_RGB,
-    'rgba': GL_RGBA,
-    'rgba4': GL_RGBA4,
-    'rgb5 a1': GL_RGB5_A1,
-    'rgb565': GL_RGB565
-  };
-
-  var compressedTextureFormats = {};
-
-  if (extensions.ext_srgb) {
-    textureFormats.srgb = GL_SRGB_EXT;
-    textureFormats.srgba = GL_SRGB_ALPHA_EXT;
-  }
-
-  if (extensions.oes_texture_float) {
-    textureTypes.float32 = textureTypes.float = GL_FLOAT$3;
-  }
-
-  if (extensions.oes_texture_half_float) {
-    textureTypes['float16'] = textureTypes['half float'] = GL_HALF_FLOAT_OES$1;
-  }
-
-  if (extensions.webgl_depth_texture) {
-    extend(textureFormats, {
-      'depth': GL_DEPTH_COMPONENT,
-      'depth stencil': GL_DEPTH_STENCIL
-    });
-
-    extend(textureTypes, {
-      'uint16': GL_UNSIGNED_SHORT$3,
-      'uint32': GL_UNSIGNED_INT$3,
-      'depth stencil': GL_UNSIGNED_INT_24_8_WEBGL$1
-    });
-  }
-
-  if (extensions.webgl_compressed_texture_s3tc) {
-    extend(compressedTextureFormats, {
-      'rgb s3tc dxt1': GL_COMPRESSED_RGB_S3TC_DXT1_EXT,
-      'rgba s3tc dxt1': GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
-      'rgba s3tc dxt3': GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,
-      'rgba s3tc dxt5': GL_COMPRESSED_RGBA_S3TC_DXT5_EXT
-    });
-  }
-
-  if (extensions.webgl_compressed_texture_atc) {
-    extend(compressedTextureFormats, {
-      'rgb atc': GL_COMPRESSED_RGB_ATC_WEBGL,
-      'rgba atc explicit alpha': GL_COMPRESSED_RGBA_ATC_EXPLICIT_ALPHA_WEBGL,
-      'rgba atc interpolated alpha': GL_COMPRESSED_RGBA_ATC_INTERPOLATED_ALPHA_WEBGL
-    });
-  }
-
-  if (extensions.webgl_compressed_texture_pvrtc) {
-    extend(compressedTextureFormats, {
-      'rgb pvrtc 4bppv1': GL_COMPRESSED_RGB_PVRTC_4BPPV1_IMG,
-      'rgb pvrtc 2bppv1': GL_COMPRESSED_RGB_PVRTC_2BPPV1_IMG,
-      'rgba pvrtc 4bppv1': GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG,
-      'rgba pvrtc 2bppv1': GL_COMPRESSED_RGBA_PVRTC_2BPPV1_IMG
-    });
-  }
-
-  if (extensions.webgl_compressed_texture_etc1) {
-    compressedTextureFormats['rgb etc1'] = GL_COMPRESSED_RGB_ETC1_WEBGL;
-  }
-
-  // Copy over all texture formats
-  var supportedCompressedFormats = Array.prototype.slice.call(
-    gl.getParameter(GL_COMPRESSED_TEXTURE_FORMATS));
-  Object.keys(compressedTextureFormats).forEach(function (name) {
-    var format = compressedTextureFormats[name];
-    if (supportedCompressedFormats.indexOf(format) >= 0) {
-      textureFormats[name] = format;
-    }
-  });
-
-  var supportedFormats = Object.keys(textureFormats);
-  limits.textureFormats = supportedFormats;
-
-  // associate with every format string its
-  // corresponding GL-value.
-  var textureFormatsInvert = [];
-  Object.keys(textureFormats).forEach(function (key) {
-    var val = textureFormats[key];
-    textureFormatsInvert[val] = key;
-  });
-
-  // associate with every type string its
-  // corresponding GL-value.
-  var textureTypesInvert = [];
-  Object.keys(textureTypes).forEach(function (key) {
-    var val = textureTypes[key];
-    textureTypesInvert[val] = key;
-  });
-
-  var magFiltersInvert = [];
-  Object.keys(magFilters).forEach(function (key) {
-    var val = magFilters[key];
-    magFiltersInvert[val] = key;
-  });
-
-  var minFiltersInvert = [];
-  Object.keys(minFilters).forEach(function (key) {
-    var val = minFilters[key];
-    minFiltersInvert[val] = key;
-  });
-
-  var wrapModesInvert = [];
-  Object.keys(wrapModes).forEach(function (key) {
-    var val = wrapModes[key];
-    wrapModesInvert[val] = key;
-  });
-
-  // colorFormats[] gives the format (channels) associated to an
-  // internalformat
-  var colorFormats = supportedFormats.reduce(function (color, key) {
-    var glenum = textureFormats[key];
-    if (glenum === GL_LUMINANCE ||
-        glenum === GL_ALPHA ||
-        glenum === GL_LUMINANCE ||
-        glenum === GL_LUMINANCE_ALPHA ||
-        glenum === GL_DEPTH_COMPONENT ||
-        glenum === GL_DEPTH_STENCIL) {
-      color[glenum] = glenum;
-    } else if (glenum === GL_RGB5_A1 || key.indexOf('rgba') >= 0) {
-      color[glenum] = GL_RGBA;
-    } else {
-      color[glenum] = GL_RGB;
-    }
-    return color
-  }, {});
-
-  function TexFlags () {
-    // format info
-    this.internalformat = GL_RGBA;
-    this.format = GL_RGBA;
-    this.type = GL_UNSIGNED_BYTE$4;
-    this.compressed = false;
-
-    // pixel storage
-    this.premultiplyAlpha = false;
-    this.flipY = false;
-    this.unpackAlignment = 1;
-    this.colorSpace = 0;
-
-    // shape info
-    this.width = 0;
-    this.height = 0;
-    this.channels = 0;
-  }
-
-  function copyFlags (result, other) {
-    result.internalformat = other.internalformat;
-    result.format = other.format;
-    result.type = other.type;
-    result.compressed = other.compressed;
-
-    result.premultiplyAlpha = other.premultiplyAlpha;
-    result.flipY = other.flipY;
-    result.unpackAlignment = other.unpackAlignment;
-    result.colorSpace = other.colorSpace;
-
-    result.width = other.width;
-    result.height = other.height;
-    result.channels = other.channels;
-  }
-
-  function parseFlags (flags, options) {
-    if (typeof options !== 'object' || !options) {
-      return
-    }
-
-    if ('premultiplyAlpha' in options) {
-      check$1.type(options.premultiplyAlpha, 'boolean',
-        'invalid premultiplyAlpha');
-      flags.premultiplyAlpha = options.premultiplyAlpha;
-    }
-
-    if ('flipY' in options) {
-      check$1.type(options.flipY, 'boolean',
-        'invalid texture flip');
-      flags.flipY = options.flipY;
-    }
-
-    if ('alignment' in options) {
-      check$1.oneOf(options.alignment, [1, 2, 4, 8],
-        'invalid texture unpack alignment');
-      flags.unpackAlignment = options.alignment;
-    }
-
-    if ('colorSpace' in options) {
-      check$1.parameter(options.colorSpace, colorSpace,
-        'invalid colorSpace');
-      flags.colorSpace = colorSpace[options.colorSpace];
-    }
-
-    if ('type' in options) {
-      var type = options.type;
-      check$1(extensions.oes_texture_float ||
-        !(type === 'float' || type === 'float32'),
-        'you must enable the OES_texture_float extension in order to use floating point textures.');
-      check$1(extensions.oes_texture_half_float ||
-        !(type === 'half float' || type === 'float16'),
-        'you must enable the OES_texture_half_float extension in order to use 16-bit floating point textures.');
-      check$1(extensions.webgl_depth_texture ||
-        !(type === 'uint16' || type === 'uint32' || type === 'depth stencil'),
-        'you must enable the WEBGL_depth_texture extension in order to use depth/stencil textures.');
-      check$1.parameter(type, textureTypes,
-        'invalid texture type');
-      flags.type = textureTypes[type];
-    }
-
-    var w = flags.width;
-    var h = flags.height;
-    var c = flags.channels;
-    var hasChannels = false;
-    if ('shape' in options) {
-      check$1(Array.isArray(options.shape) && options.shape.length >= 2,
-        'shape must be an array');
-      w = options.shape[0];
-      h = options.shape[1];
-      if (options.shape.length === 3) {
-        c = options.shape[2];
-        check$1(c > 0 && c <= 4, 'invalid number of channels');
-        hasChannels = true;
-      }
-      check$1(w >= 0 && w <= limits.maxTextureSize, 'invalid width');
-      check$1(h >= 0 && h <= limits.maxTextureSize, 'invalid height');
-    } else {
-      if ('radius' in options) {
-        w = h = options.radius;
-        check$1(w >= 0 && w <= limits.maxTextureSize, 'invalid radius');
-      }
-      if ('width' in options) {
-        w = options.width;
-        check$1(w >= 0 && w <= limits.maxTextureSize, 'invalid width');
-      }
-      if ('height' in options) {
-        h = options.height;
-        check$1(h >= 0 && h <= limits.maxTextureSize, 'invalid height');
-      }
-      if ('channels' in options) {
-        c = options.channels;
-        check$1(c > 0 && c <= 4, 'invalid number of channels');
-        hasChannels = true;
-      }
-    }
-    flags.width = w | 0;
-    flags.height = h | 0;
-    flags.channels = c | 0;
-
-    var hasFormat = false;
-    if ('format' in options) {
-      var formatStr = options.format;
-      check$1(extensions.webgl_depth_texture ||
-        !(formatStr === 'depth' || formatStr === 'depth stencil'),
-        'you must enable the WEBGL_depth_texture extension in order to use depth/stencil textures.');
-      check$1.parameter(formatStr, textureFormats,
-        'invalid texture format');
-      var internalformat = flags.internalformat = textureFormats[formatStr];
-      flags.format = colorFormats[internalformat];
-      if (formatStr in textureTypes) {
-        if (!('type' in options)) {
-          flags.type = textureTypes[formatStr];
-        }
-      }
-      if (formatStr in compressedTextureFormats) {
-        flags.compressed = true;
-      }
-      hasFormat = true;
-    }
-
-    // Reconcile channels and format
-    if (!hasChannels && hasFormat) {
-      flags.channels = FORMAT_CHANNELS[flags.format];
-    } else if (hasChannels && !hasFormat) {
-      if (flags.channels !== CHANNELS_FORMAT[flags.format]) {
-        flags.format = flags.internalformat = CHANNELS_FORMAT[flags.channels];
-      }
-    } else if (hasFormat && hasChannels) {
-      check$1(
-        flags.channels === FORMAT_CHANNELS[flags.format],
-        'number of channels inconsistent with specified format');
-    }
-  }
-
-  function setFlags (flags) {
-    gl.pixelStorei(GL_UNPACK_FLIP_Y_WEBGL, flags.flipY);
-    gl.pixelStorei(GL_UNPACK_PREMULTIPLY_ALPHA_WEBGL, flags.premultiplyAlpha);
-    gl.pixelStorei(GL_UNPACK_COLORSPACE_CONVERSION_WEBGL, flags.colorSpace);
-    gl.pixelStorei(GL_UNPACK_ALIGNMENT, flags.unpackAlignment);
-  }
-
-  // -------------------------------------------------------
-  // Tex image data
-  // -------------------------------------------------------
-  function TexImage () {
-    TexFlags.call(this);
-
-    this.xOffset = 0;
-    this.yOffset = 0;
-
-    // data
-    this.data = null;
-    this.needsFree = false;
-
-    // html element
-    this.element = null;
-
-    // copyTexImage info
-    this.needsCopy = false;
-  }
-
-  function parseImage (image, options) {
-    var data = null;
-    if (isPixelData(options)) {
-      data = options;
-    } else if (options) {
-      check$1.type(options, 'object', 'invalid pixel data type');
-      parseFlags(image, options);
-      if ('x' in options) {
-        image.xOffset = options.x | 0;
-      }
-      if ('y' in options) {
-        image.yOffset = options.y | 0;
-      }
-      if (isPixelData(options.data)) {
-        data = options.data;
-      }
-    }
-
-    check$1(
-      !image.compressed ||
-      data instanceof Uint8Array,
-      'compressed texture data must be stored in a uint8array');
-
-    if (options.copy) {
-      check$1(!data, 'can not specify copy and data field for the same texture');
-      var viewW = contextState.viewportWidth;
-      var viewH = contextState.viewportHeight;
-      image.width = image.width || (viewW - image.xOffset);
-      image.height = image.height || (viewH - image.yOffset);
-      image.needsCopy = true;
-      check$1(image.xOffset >= 0 && image.xOffset < viewW &&
-            image.yOffset >= 0 && image.yOffset < viewH &&
-            image.width > 0 && image.width <= viewW &&
-            image.height > 0 && image.height <= viewH,
-            'copy texture read out of bounds');
-    } else if (!data) {
-      image.width = image.width || 1;
-      image.height = image.height || 1;
-      image.channels = image.channels || 4;
-    } else if (isTypedArray(data)) {
-      image.channels = image.channels || 4;
-      image.data = data;
-      if (!('type' in options) && image.type === GL_UNSIGNED_BYTE$4) {
-        image.type = typedArrayCode$1(data);
-      }
-    } else if (isNumericArray(data)) {
-      image.channels = image.channels || 4;
-      convertData(image, data);
-      image.alignment = 1;
-      image.needsFree = true;
-    } else if (isNDArrayLike(data)) {
-      var array = data.data;
-      if (!Array.isArray(array) && image.type === GL_UNSIGNED_BYTE$4) {
-        image.type = typedArrayCode$1(array);
-      }
-      var shape = data.shape;
-      var stride = data.stride;
-      var shapeX, shapeY, shapeC, strideX, strideY, strideC;
-      if (shape.length === 3) {
-        shapeC = shape[2];
-        strideC = stride[2];
-      } else {
-        check$1(shape.length === 2, 'invalid ndarray pixel data, must be 2 or 3D');
-        shapeC = 1;
-        strideC = 1;
-      }
-      shapeX = shape[0];
-      shapeY = shape[1];
-      strideX = stride[0];
-      strideY = stride[1];
-      image.alignment = 1;
-      image.width = shapeX;
-      image.height = shapeY;
-      image.channels = shapeC;
-      image.format = image.internalformat = CHANNELS_FORMAT[shapeC];
-      image.needsFree = true;
-      transposeData(image, array, strideX, strideY, strideC, data.offset);
-    } else if (isCanvasElement(data) || isContext2D(data)) {
-      if (isCanvasElement(data)) {
-        image.element = data;
-      } else {
-        image.element = data.canvas;
-      }
-      image.width = image.element.width;
-      image.height = image.element.height;
-      image.channels = 4;
-    } else if (isImageElement(data)) {
-      image.element = data;
-      image.width = data.naturalWidth;
-      image.height = data.naturalHeight;
-      image.channels = 4;
-    } else if (isVideoElement(data)) {
-      image.element = data;
-      image.width = data.videoWidth;
-      image.height = data.videoHeight;
-      image.channels = 4;
-    } else if (isRectArray(data)) {
-      var w = image.width || data[0].length;
-      var h = image.height || data.length;
-      var c = image.channels;
-      if (isArrayLike(data[0][0])) {
-        c = c || data[0][0].length;
-      } else {
-        c = c || 1;
-      }
-      var arrayShape = flattenUtils.shape(data);
-      var n = 1;
-      for (var dd = 0; dd < arrayShape.length; ++dd) {
-        n *= arrayShape[dd];
-      }
-      var allocData = preConvert(image, n);
-      flattenUtils.flatten(data, arrayShape, '', allocData);
-      postConvert(image, allocData);
-      image.alignment = 1;
-      image.width = w;
-      image.height = h;
-      image.channels = c;
-      image.format = image.internalformat = CHANNELS_FORMAT[c];
-      image.needsFree = true;
-    }
-
-    if (image.type === GL_FLOAT$3) {
-      check$1(limits.extensions.indexOf('oes_texture_float') >= 0,
-        'oes_texture_float extension not enabled');
-    } else if (image.type === GL_HALF_FLOAT_OES$1) {
-      check$1(limits.extensions.indexOf('oes_texture_half_float') >= 0,
-        'oes_texture_half_float extension not enabled');
-    }
-
-    // do compressed texture  validation here.
-  }
-
-  function setImage (info, target, miplevel) {
-    var element = info.element;
-    var data = info.data;
-    var internalformat = info.internalformat;
-    var format = info.format;
-    var type = info.type;
-    var width = info.width;
-    var height = info.height;
-
-    setFlags(info);
-
-    if (element) {
-      gl.texImage2D(target, miplevel, format, format, type, element);
-    } else if (info.compressed) {
-      gl.compressedTexImage2D(target, miplevel, internalformat, width, height, 0, data);
-    } else if (info.needsCopy) {
-      reglPoll();
-      gl.copyTexImage2D(
-        target, miplevel, format, info.xOffset, info.yOffset, width, height, 0);
-    } else {
-      gl.texImage2D(
-        target, miplevel, format, width, height, 0, format, type, data);
-    }
-  }
-
-  function setSubImage (info, target, x, y, miplevel) {
-    var element = info.element;
-    var data = info.data;
-    var internalformat = info.internalformat;
-    var format = info.format;
-    var type = info.type;
-    var width = info.width;
-    var height = info.height;
-
-    setFlags(info);
-
-    if (element) {
-      gl.texSubImage2D(
-        target, miplevel, x, y, format, type, element);
-    } else if (info.compressed) {
-      gl.compressedTexSubImage2D(
-        target, miplevel, x, y, internalformat, width, height, data);
-    } else if (info.needsCopy) {
-      reglPoll();
-      gl.copyTexSubImage2D(
-        target, miplevel, x, y, info.xOffset, info.yOffset, width, height);
-    } else {
-      gl.texSubImage2D(
-        target, miplevel, x, y, width, height, format, type, data);
-    }
-  }
-
-  // texImage pool
-  var imagePool = [];
-
-  function allocImage () {
-    return imagePool.pop() || new TexImage()
-  }
-
-  function freeImage (image) {
-    if (image.needsFree) {
-      pool.freeType(image.data);
-    }
-    TexImage.call(image);
-    imagePool.push(image);
-  }
-
-  // -------------------------------------------------------
-  // Mip map
-  // -------------------------------------------------------
-  function MipMap () {
-    TexFlags.call(this);
-
-    this.genMipmaps = false;
-    this.mipmapHint = GL_DONT_CARE;
-    this.mipmask = 0;
-    this.images = Array(16);
-  }
-
-  function parseMipMapFromShape (mipmap, width, height) {
-    var img = mipmap.images[0] = allocImage();
-    mipmap.mipmask = 1;
-    img.width = mipmap.width = width;
-    img.height = mipmap.height = height;
-    img.channels = mipmap.channels = 4;
-  }
-
-  function parseMipMapFromObject (mipmap, options) {
-    var imgData = null;
-    if (isPixelData(options)) {
-      imgData = mipmap.images[0] = allocImage();
-      copyFlags(imgData, mipmap);
-      parseImage(imgData, options);
-      mipmap.mipmask = 1;
-    } else {
-      parseFlags(mipmap, options);
-      if (Array.isArray(options.mipmap)) {
-        var mipData = options.mipmap;
-        for (var i = 0; i < mipData.length; ++i) {
-          imgData = mipmap.images[i] = allocImage();
-          copyFlags(imgData, mipmap);
-          imgData.width >>= i;
-          imgData.height >>= i;
-          parseImage(imgData, mipData[i]);
-          mipmap.mipmask |= (1 << i);
-        }
-      } else {
-        imgData = mipmap.images[0] = allocImage();
-        copyFlags(imgData, mipmap);
-        parseImage(imgData, options);
-        mipmap.mipmask = 1;
-      }
-    }
-    copyFlags(mipmap, mipmap.images[0]);
-
-    // For textures of the compressed format WEBGL_compressed_texture_s3tc
-    // we must have that
-    //
-    // "When level equals zero width and height must be a multiple of 4.
-    // When level is greater than 0 width and height must be 0, 1, 2 or a multiple of 4. "
-    //
-    // but we do not yet support having multiple mipmap levels for compressed textures,
-    // so we only test for level zero.
-
-    if (mipmap.compressed &&
-        (mipmap.internalformat === GL_COMPRESSED_RGB_S3TC_DXT1_EXT) ||
-        (mipmap.internalformat === GL_COMPRESSED_RGBA_S3TC_DXT1_EXT) ||
-        (mipmap.internalformat === GL_COMPRESSED_RGBA_S3TC_DXT3_EXT) ||
-        (mipmap.internalformat === GL_COMPRESSED_RGBA_S3TC_DXT5_EXT)) {
-      check$1(mipmap.width % 4 === 0 &&
-            mipmap.height % 4 === 0,
-            'for compressed texture formats, mipmap level 0 must have width and height that are a multiple of 4');
-    }
-  }
-
-  function setMipMap (mipmap, target) {
-    var images = mipmap.images;
-    for (var i = 0; i < images.length; ++i) {
-      if (!images[i]) {
-        return
-      }
-      setImage(images[i], target, i);
-    }
-  }
-
-  var mipPool = [];
-
-  function allocMipMap () {
-    var result = mipPool.pop() || new MipMap();
-    TexFlags.call(result);
-    result.mipmask = 0;
-    for (var i = 0; i < 16; ++i) {
-      result.images[i] = null;
-    }
-    return result
-  }
-
-  function freeMipMap (mipmap) {
-    var images = mipmap.images;
-    for (var i = 0; i < images.length; ++i) {
-      if (images[i]) {
-        freeImage(images[i]);
-      }
-      images[i] = null;
-    }
-    mipPool.push(mipmap);
-  }
-
-  // -------------------------------------------------------
-  // Tex info
-  // -------------------------------------------------------
-  function TexInfo () {
-    this.minFilter = GL_NEAREST$1;
-    this.magFilter = GL_NEAREST$1;
-
-    this.wrapS = GL_CLAMP_TO_EDGE$1;
-    this.wrapT = GL_CLAMP_TO_EDGE$1;
-
-    this.anisotropic = 1;
-
-    this.genMipmaps = false;
-    this.mipmapHint = GL_DONT_CARE;
-  }
-
-  function parseTexInfo (info, options) {
-    if ('min' in options) {
-      var minFilter = options.min;
-      check$1.parameter(minFilter, minFilters);
-      info.minFilter = minFilters[minFilter];
-      if (MIPMAP_FILTERS.indexOf(info.minFilter) >= 0) {
-        info.genMipmaps = true;
-      }
-    }
-
-    if ('mag' in options) {
-      var magFilter = options.mag;
-      check$1.parameter(magFilter, magFilters);
-      info.magFilter = magFilters[magFilter];
-    }
-
-    var wrapS = info.wrapS;
-    var wrapT = info.wrapT;
-    if ('wrap' in options) {
-      var wrap = options.wrap;
-      if (typeof wrap === 'string') {
-        check$1.parameter(wrap, wrapModes);
-        wrapS = wrapT = wrapModes[wrap];
-      } else if (Array.isArray(wrap)) {
-        check$1.parameter(wrap[0], wrapModes);
-        check$1.parameter(wrap[1], wrapModes);
-        wrapS = wrapModes[wrap[0]];
-        wrapT = wrapModes[wrap[1]];
-      }
-    } else {
-      if ('wrapS' in options) {
-        var optWrapS = options.wrapS;
-        check$1.parameter(optWrapS, wrapModes);
-        wrapS = wrapModes[optWrapS];
-      }
-      if ('wrapT' in options) {
-        var optWrapT = options.wrapT;
-        check$1.parameter(optWrapT, wrapModes);
-        wrapT = wrapModes[optWrapT];
-      }
-    }
-    info.wrapS = wrapS;
-    info.wrapT = wrapT;
-
-    if ('anisotropic' in options) {
-      var anisotropic = options.anisotropic;
-      check$1(typeof anisotropic === 'number' &&
-         anisotropic >= 1 && anisotropic <= limits.maxAnisotropic,
-        'aniso samples must be between 1 and ');
-      info.anisotropic = options.anisotropic;
-    }
-
-    if ('mipmap' in options) {
-      var hasMipMap = false;
-      switch (typeof options.mipmap) {
-        case 'string':
-          check$1.parameter(options.mipmap, mipmapHint,
-            'invalid mipmap hint');
-          info.mipmapHint = mipmapHint[options.mipmap];
-          info.genMipmaps = true;
-          hasMipMap = true;
-          break
-
-        case 'boolean':
-          hasMipMap = info.genMipmaps = options.mipmap;
-          break
-
-        case 'object':
-          check$1(Array.isArray(options.mipmap), 'invalid mipmap type');
-          info.genMipmaps = false;
-          hasMipMap = true;
-          break
-
-        default:
-          check$1.raise('invalid mipmap type');
-      }
-      if (hasMipMap && !('min' in options)) {
-        info.minFilter = GL_NEAREST_MIPMAP_NEAREST$1;
-      }
-    }
-  }
-
-  function setTexInfo (info, target) {
-    gl.texParameteri(target, GL_TEXTURE_MIN_FILTER, info.minFilter);
-    gl.texParameteri(target, GL_TEXTURE_MAG_FILTER, info.magFilter);
-    gl.texParameteri(target, GL_TEXTURE_WRAP_S, info.wrapS);
-    gl.texParameteri(target, GL_TEXTURE_WRAP_T, info.wrapT);
-    if (extensions.ext_texture_filter_anisotropic) {
-      gl.texParameteri(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, info.anisotropic);
-    }
-    if (info.genMipmaps) {
-      gl.hint(GL_GENERATE_MIPMAP_HINT, info.mipmapHint);
-      gl.generateMipmap(target);
-    }
-  }
-
-  // -------------------------------------------------------
-  // Full texture object
-  // -------------------------------------------------------
-  var textureCount = 0;
-  var textureSet = {};
-  var numTexUnits = limits.maxTextureUnits;
-  var textureUnits = Array(numTexUnits).map(function () {
-    return null
-  });
-
-  function REGLTexture (target) {
-    TexFlags.call(this);
-    this.mipmask = 0;
-    this.internalformat = GL_RGBA;
-
-    this.id = textureCount++;
-
-    this.refCount = 1;
-
-    this.target = target;
-    this.texture = gl.createTexture();
-
-    this.unit = -1;
-    this.bindCount = 0;
-
-    this.texInfo = new TexInfo();
-
-    if (config.profile) {
-      this.stats = {size: 0};
-    }
-  }
-
-  function tempBind (texture) {
-    gl.activeTexture(GL_TEXTURE0);
-    gl.bindTexture(texture.target, texture.texture);
-  }
-
-  function tempRestore () {
-    var prev = textureUnits[0];
-    if (prev) {
-      gl.bindTexture(prev.target, prev.texture);
-    } else {
-      gl.bindTexture(GL_TEXTURE_2D, null);
-    }
-  }
-
-  function destroy (texture) {
-    var handle = texture.texture;
-    check$1(handle, 'must not double destroy texture');
-    var unit = texture.unit;
-    var target = texture.target;
-    if (unit >= 0) {
-      gl.activeTexture(GL_TEXTURE0 + unit);
-      gl.bindTexture(target, null);
-      textureUnits[unit] = null;
-    }
-    gl.deleteTexture(handle);
-    texture.texture = null;
-    texture.params = null;
-    texture.pixels = null;
-    texture.refCount = 0;
-    delete textureSet[texture.id];
-    stats.textureCount--;
-  }
-
-  extend(REGLTexture.prototype, {
-    bind: function () {
-      var texture = this;
-      texture.bindCount += 1;
-      var unit = texture.unit;
-      if (unit < 0) {
-        for (var i = 0; i < numTexUnits; ++i) {
-          var other = textureUnits[i];
-          if (other) {
-            if (other.bindCount > 0) {
-              continue
-            }
-            other.unit = -1;
-          }
-          textureUnits[i] = texture;
-          unit = i;
-          break
-        }
-        if (unit >= numTexUnits) {
-          check$1.raise('insufficient number of texture units');
-        }
-        if (config.profile && stats.maxTextureUnits < (unit + 1)) {
-          stats.maxTextureUnits = unit + 1; // +1, since the units are zero-based
-        }
-        texture.unit = unit;
-        gl.activeTexture(GL_TEXTURE0 + unit);
-        gl.bindTexture(texture.target, texture.texture);
-      }
-      return unit
-    },
-
-    unbind: function () {
-      this.bindCount -= 1;
-    },
-
-    decRef: function () {
-      if (--this.refCount <= 0) {
-        destroy(this);
-      }
-    }
-  });
-
-  function createTexture2D (a, b) {
-    var texture = new REGLTexture(GL_TEXTURE_2D);
-    textureSet[texture.id] = texture;
-    stats.textureCount++;
-
-    function reglTexture2D (a, b) {
-      var texInfo = texture.texInfo;
-      TexInfo.call(texInfo);
-      var mipData = allocMipMap();
-
-      if (typeof a === 'number') {
-        if (typeof b === 'number') {
-          parseMipMapFromShape(mipData, a | 0, b | 0);
-        } else {
-          parseMipMapFromShape(mipData, a | 0, a | 0);
-        }
-      } else if (a) {
-        check$1.type(a, 'object', 'invalid arguments to regl.texture');
-        parseTexInfo(texInfo, a);
-        parseMipMapFromObject(mipData, a);
-      } else {
-        // empty textures get assigned a default shape of 1x1
-        parseMipMapFromShape(mipData, 1, 1);
-      }
-
-      if (texInfo.genMipmaps) {
-        mipData.mipmask = (mipData.width << 1) - 1;
-      }
-      texture.mipmask = mipData.mipmask;
-
-      copyFlags(texture, mipData);
-
-      check$1.texture2D(texInfo, mipData, limits);
-      texture.internalformat = mipData.internalformat;
-
-      reglTexture2D.width = mipData.width;
-      reglTexture2D.height = mipData.height;
-
-      tempBind(texture);
-      setMipMap(mipData, GL_TEXTURE_2D);
-      setTexInfo(texInfo, GL_TEXTURE_2D);
-      tempRestore();
-
-      freeMipMap(mipData);
-
-      if (config.profile) {
-        texture.stats.size = getTextureSize(
-          texture.internalformat,
-          texture.type,
-          mipData.width,
-          mipData.height,
-          texInfo.genMipmaps,
-          false);
-      }
-      reglTexture2D.format = textureFormatsInvert[texture.internalformat];
-      reglTexture2D.type = textureTypesInvert[texture.type];
-
-      reglTexture2D.mag = magFiltersInvert[texInfo.magFilter];
-      reglTexture2D.min = minFiltersInvert[texInfo.minFilter];
-
-      reglTexture2D.wrapS = wrapModesInvert[texInfo.wrapS];
-      reglTexture2D.wrapT = wrapModesInvert[texInfo.wrapT];
-
-      return reglTexture2D
-    }
-
-    function subimage (image, x_, y_, level_) {
-      check$1(!!image, 'must specify image data');
-
-      var x = x_ | 0;
-      var y = y_ | 0;
-      var level = level_ | 0;
-
-      var imageData = allocImage();
-      copyFlags(imageData, texture);
-      imageData.width = 0;
-      imageData.height = 0;
-      parseImage(imageData, image);
-      imageData.width = imageData.width || ((texture.width >> level) - x);
-      imageData.height = imageData.height || ((texture.height >> level) - y);
-
-      check$1(
-        texture.type === imageData.type &&
-        texture.format === imageData.format &&
-        texture.internalformat === imageData.internalformat,
-        'incompatible format for texture.subimage');
-      check$1(
-        x >= 0 && y >= 0 &&
-        x + imageData.width <= texture.width &&
-        y + imageData.height <= texture.height,
-        'texture.subimage write out of bounds');
-      check$1(
-        texture.mipmask & (1 << level),
-        'missing mipmap data');
-      check$1(
-        imageData.data || imageData.element || imageData.needsCopy,
-        'missing image data');
-
-      tempBind(texture);
-      setSubImage(imageData, GL_TEXTURE_2D, x, y, level);
-      tempRestore();
-
-      freeImage(imageData);
-
-      return reglTexture2D
-    }
-
-    function resize (w_, h_) {
-      var w = w_ | 0;
-      var h = (h_ | 0) || w;
-      if (w === texture.width && h === texture.height) {
-        return reglTexture2D
-      }
-
-      reglTexture2D.width = texture.width = w;
-      reglTexture2D.height = texture.height = h;
-
-      tempBind(texture);
-      for (var i = 0; texture.mipmask >> i; ++i) {
-        gl.texImage2D(
-          GL_TEXTURE_2D,
-          i,
-          texture.format,
-          w >> i,
-          h >> i,
-          0,
-          texture.format,
-          texture.type,
-          null);
-      }
-      tempRestore();
-
-      // also, recompute the texture size.
-      if (config.profile) {
-        texture.stats.size = getTextureSize(
-          texture.internalformat,
-          texture.type,
-          w,
-          h,
-          false,
-          false);
-      }
-
-      return reglTexture2D
-    }
-
-    reglTexture2D(a, b);
-
-    reglTexture2D.subimage = subimage;
-    reglTexture2D.resize = resize;
-    reglTexture2D._reglType = 'texture2d';
-    reglTexture2D._texture = texture;
-    if (config.profile) {
-      reglTexture2D.stats = texture.stats;
-    }
-    reglTexture2D.destroy = function () {
-      texture.decRef();
-    };
-
-    return reglTexture2D
-  }
-
-  function createTextureCube (a0, a1, a2, a3, a4, a5) {
-    var texture = new REGLTexture(GL_TEXTURE_CUBE_MAP);
-    textureSet[texture.id] = texture;
-    stats.cubeCount++;
-
-    var faces = new Array(6);
-
-    function reglTextureCube (a0, a1, a2, a3, a4, a5) {
-      var i;
-      var texInfo = texture.texInfo;
-      TexInfo.call(texInfo);
-      for (i = 0; i < 6; ++i) {
-        faces[i] = allocMipMap();
-      }
-
-      if (typeof a0 === 'number' || !a0) {
-        var s = (a0 | 0) || 1;
-        for (i = 0; i < 6; ++i) {
-          parseMipMapFromShape(faces[i], s, s);
-        }
-      } else if (typeof a0 === 'object') {
-        if (a1) {
-          parseMipMapFromObject(faces[0], a0);
-          parseMipMapFromObject(faces[1], a1);
-          parseMipMapFromObject(faces[2], a2);
-          parseMipMapFromObject(faces[3], a3);
-          parseMipMapFromObject(faces[4], a4);
-          parseMipMapFromObject(faces[5], a5);
-        } else {
-          parseTexInfo(texInfo, a0);
-          parseFlags(texture, a0);
-          if ('faces' in a0) {
-            var face_input = a0.faces;
-            check$1(Array.isArray(face_input) && face_input.length === 6,
-              'cube faces must be a length 6 array');
-            for (i = 0; i < 6; ++i) {
-              check$1(typeof face_input[i] === 'object' && !!face_input[i],
-                'invalid input for cube map face');
-              copyFlags(faces[i], texture);
-              parseMipMapFromObject(faces[i], face_input[i]);
-            }
-          } else {
-            for (i = 0; i < 6; ++i) {
-              parseMipMapFromObject(faces[i], a0);
-            }
-          }
-        }
-      } else {
-        check$1.raise('invalid arguments to cube map');
-      }
-
-      copyFlags(texture, faces[0]);
-      if (texInfo.genMipmaps) {
-        texture.mipmask = (faces[0].width << 1) - 1;
-      } else {
-        texture.mipmask = faces[0].mipmask;
-      }
-
-      check$1.textureCube(texture, texInfo, faces, limits);
-      texture.internalformat = faces[0].internalformat;
-
-      reglTextureCube.width = faces[0].width;
-      reglTextureCube.height = faces[0].height;
-
-      tempBind(texture);
-      for (i = 0; i < 6; ++i) {
-        setMipMap(faces[i], GL_TEXTURE_CUBE_MAP_POSITIVE_X + i);
-      }
-      setTexInfo(texInfo, GL_TEXTURE_CUBE_MAP);
-      tempRestore();
-
-      if (config.profile) {
-        texture.stats.size = getTextureSize(
-          texture.internalformat,
-          texture.type,
-          reglTextureCube.width,
-          reglTextureCube.height,
-          texInfo.genMipmaps,
-          true);
-      }
-
-      reglTextureCube.format = textureFormatsInvert[texture.internalformat];
-      reglTextureCube.type = textureTypesInvert[texture.type];
-
-      reglTextureCube.mag = magFiltersInvert[texInfo.magFilter];
-      reglTextureCube.min = minFiltersInvert[texInfo.minFilter];
-
-      reglTextureCube.wrapS = wrapModesInvert[texInfo.wrapS];
-      reglTextureCube.wrapT = wrapModesInvert[texInfo.wrapT];
-
-      for (i = 0; i < 6; ++i) {
-        freeMipMap(faces[i]);
-      }
-
-      return reglTextureCube
-    }
-
-    function subimage (face, image, x_, y_, level_) {
-      check$1(!!image, 'must specify image data');
-      check$1(typeof face === 'number' && face === (face | 0) &&
-        face >= 0 && face < 6, 'invalid face');
-
-      var x = x_ | 0;
-      var y = y_ | 0;
-      var level = level_ | 0;
-
-      var imageData = allocImage();
-      copyFlags(imageData, texture);
-      imageData.width = 0;
-      imageData.height = 0;
-      parseImage(imageData, image);
-      imageData.width = imageData.width || ((texture.width >> level) - x);
-      imageData.height = imageData.height || ((texture.height >> level) - y);
-
-      check$1(
-        texture.type === imageData.type &&
-        texture.format === imageData.format &&
-        texture.internalformat === imageData.internalformat,
-        'incompatible format for texture.subimage');
-      check$1(
-        x >= 0 && y >= 0 &&
-        x + imageData.width <= texture.width &&
-        y + imageData.height <= texture.height,
-        'texture.subimage write out of bounds');
-      check$1(
-        texture.mipmask & (1 << level),
-        'missing mipmap data');
-      check$1(
-        imageData.data || imageData.element || imageData.needsCopy,
-        'missing image data');
-
-      tempBind(texture);
-      setSubImage(imageData, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, x, y, level);
-      tempRestore();
-
-      freeImage(imageData);
-
-      return reglTextureCube
-    }
-
-    function resize (radius_) {
-      var radius = radius_ | 0;
-      if (radius === texture.width) {
-        return
-      }
-
-      reglTextureCube.width = texture.width = radius;
-      reglTextureCube.height = texture.height = radius;
-
-      tempBind(texture);
-      for (var i = 0; i < 6; ++i) {
-        for (var j = 0; texture.mipmask >> j; ++j) {
-          gl.texImage2D(
-            GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-            j,
-            texture.format,
-            radius >> j,
-            radius >> j,
-            0,
-            texture.format,
-            texture.type,
-            null);
-        }
-      }
-      tempRestore();
-
-      if (config.profile) {
-        texture.stats.size = getTextureSize(
-          texture.internalformat,
-          texture.type,
-          reglTextureCube.width,
-          reglTextureCube.height,
-          false,
-          true);
-      }
-
-      return reglTextureCube
-    }
-
-    reglTextureCube(a0, a1, a2, a3, a4, a5);
-
-    reglTextureCube.subimage = subimage;
-    reglTextureCube.resize = resize;
-    reglTextureCube._reglType = 'textureCube';
-    reglTextureCube._texture = texture;
-    if (config.profile) {
-      reglTextureCube.stats = texture.stats;
-    }
-    reglTextureCube.destroy = function () {
-      texture.decRef();
-    };
-
-    return reglTextureCube
-  }
-
-  // Called when regl is destroyed
-  function destroyTextures () {
-    for (var i = 0; i < numTexUnits; ++i) {
-      gl.activeTexture(GL_TEXTURE0 + i);
-      gl.bindTexture(GL_TEXTURE_2D, null);
-      textureUnits[i] = null;
-    }
-    values(textureSet).forEach(destroy);
-
-    stats.cubeCount = 0;
-    stats.textureCount = 0;
-  }
-
-  if (config.profile) {
-    stats.getTotalTextureSize = function () {
-      var total = 0;
-      Object.keys(textureSet).forEach(function (key) {
-        total += textureSet[key].stats.size;
-      });
-      return total
-    };
-  }
-
-  function restoreTextures () {
-    values(textureSet).forEach(function (texture) {
-      texture.texture = gl.createTexture();
-      gl.bindTexture(texture.target, texture.texture);
-      for (var i = 0; i < 32; ++i) {
-        if ((texture.mipmask & (1 << i)) === 0) {
-          continue
-        }
-        if (texture.target === GL_TEXTURE_2D) {
-          gl.texImage2D(GL_TEXTURE_2D,
-            i,
-            texture.internalformat,
-            texture.width >> i,
-            texture.height >> i,
-            0,
-            texture.internalformat,
-            texture.type,
-            null);
-        } else {
-          for (var j = 0; j < 6; ++j) {
-            gl.texImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + j,
-              i,
-              texture.internalformat,
-              texture.width >> i,
-              texture.height >> i,
-              0,
-              texture.internalformat,
-              texture.type,
-              null);
-          }
-        }
-      }
-      setTexInfo(texture.texInfo, texture.target);
-    });
-  }
-
-  return {
-    create2D: createTexture2D,
-    createCube: createTextureCube,
-    clear: destroyTextures,
-    getTexture: function (wrapper) {
-      return null
-    },
-    restore: restoreTextures
-  }
-}
-
-var GL_RENDERBUFFER = 0x8D41;
-
-var GL_RGBA4$1 = 0x8056;
-var GL_RGB5_A1$1 = 0x8057;
-var GL_RGB565$1 = 0x8D62;
-var GL_DEPTH_COMPONENT16 = 0x81A5;
-var GL_STENCIL_INDEX8 = 0x8D48;
-var GL_DEPTH_STENCIL$1 = 0x84F9;
-
-var GL_SRGB8_ALPHA8_EXT = 0x8C43;
-
-var GL_RGBA32F_EXT = 0x8814;
-
-var GL_RGBA16F_EXT = 0x881A;
-var GL_RGB16F_EXT = 0x881B;
-
-var FORMAT_SIZES = [];
-
-FORMAT_SIZES[GL_RGBA4$1] = 2;
-FORMAT_SIZES[GL_RGB5_A1$1] = 2;
-FORMAT_SIZES[GL_RGB565$1] = 2;
-
-FORMAT_SIZES[GL_DEPTH_COMPONENT16] = 2;
-FORMAT_SIZES[GL_STENCIL_INDEX8] = 1;
-FORMAT_SIZES[GL_DEPTH_STENCIL$1] = 4;
-
-FORMAT_SIZES[GL_SRGB8_ALPHA8_EXT] = 4;
-FORMAT_SIZES[GL_RGBA32F_EXT] = 16;
-FORMAT_SIZES[GL_RGBA16F_EXT] = 8;
-FORMAT_SIZES[GL_RGB16F_EXT] = 6;
-
-function getRenderbufferSize (format, width, height) {
-  return FORMAT_SIZES[format] * width * height
-}
-
-var wrapRenderbuffers = function (gl, extensions, limits, stats, config) {
-  var formatTypes = {
-    'rgba4': GL_RGBA4$1,
-    'rgb565': GL_RGB565$1,
-    'rgb5 a1': GL_RGB5_A1$1,
-    'depth': GL_DEPTH_COMPONENT16,
-    'stencil': GL_STENCIL_INDEX8,
-    'depth stencil': GL_DEPTH_STENCIL$1
-  };
-
-  if (extensions.ext_srgb) {
-    formatTypes['srgba'] = GL_SRGB8_ALPHA8_EXT;
-  }
-
-  if (extensions.ext_color_buffer_half_float) {
-    formatTypes['rgba16f'] = GL_RGBA16F_EXT;
-    formatTypes['rgb16f'] = GL_RGB16F_EXT;
-  }
-
-  if (extensions.webgl_color_buffer_float) {
-    formatTypes['rgba32f'] = GL_RGBA32F_EXT;
-  }
-
-  var formatTypesInvert = [];
-  Object.keys(formatTypes).forEach(function (key) {
-    var val = formatTypes[key];
-    formatTypesInvert[val] = key;
-  });
-
-  var renderbufferCount = 0;
-  var renderbufferSet = {};
-
-  function REGLRenderbuffer (renderbuffer) {
-    this.id = renderbufferCount++;
-    this.refCount = 1;
-
-    this.renderbuffer = renderbuffer;
-
-    this.format = GL_RGBA4$1;
-    this.width = 0;
-    this.height = 0;
-
-    if (config.profile) {
-      this.stats = {size: 0};
-    }
-  }
-
-  REGLRenderbuffer.prototype.decRef = function () {
-    if (--this.refCount <= 0) {
-      destroy(this);
-    }
-  };
-
-  function destroy (rb) {
-    var handle = rb.renderbuffer;
-    check$1(handle, 'must not double destroy renderbuffer');
-    gl.bindRenderbuffer(GL_RENDERBUFFER, null);
-    gl.deleteRenderbuffer(handle);
-    rb.renderbuffer = null;
-    rb.refCount = 0;
-    delete renderbufferSet[rb.id];
-    stats.renderbufferCount--;
-  }
-
-  function createRenderbuffer (a, b) {
-    var renderbuffer = new REGLRenderbuffer(gl.createRenderbuffer());
-    renderbufferSet[renderbuffer.id] = renderbuffer;
-    stats.renderbufferCount++;
-
-    function reglRenderbuffer (a, b) {
-      var w = 0;
-      var h = 0;
-      var format = GL_RGBA4$1;
-
-      if (typeof a === 'object' && a) {
-        var options = a;
-        if ('shape' in options) {
-          var shape = options.shape;
-          check$1(Array.isArray(shape) && shape.length >= 2,
-            'invalid renderbuffer shape');
-          w = shape[0] | 0;
-          h = shape[1] | 0;
-        } else {
-          if ('radius' in options) {
-            w = h = options.radius | 0;
-          }
-          if ('width' in options) {
-            w = options.width | 0;
-          }
-          if ('height' in options) {
-            h = options.height | 0;
-          }
-        }
-        if ('format' in options) {
-          check$1.parameter(options.format, formatTypes,
-            'invalid renderbuffer format');
-          format = formatTypes[options.format];
-        }
-      } else if (typeof a === 'number') {
-        w = a | 0;
-        if (typeof b === 'number') {
-          h = b | 0;
-        } else {
-          h = w;
-        }
-      } else if (!a) {
-        w = h = 1;
-      } else {
-        check$1.raise('invalid arguments to renderbuffer constructor');
-      }
-
-      // check shape
-      check$1(
-        w > 0 && h > 0 &&
-        w <= limits.maxRenderbufferSize && h <= limits.maxRenderbufferSize,
-        'invalid renderbuffer size');
-
-      if (w === renderbuffer.width &&
-          h === renderbuffer.height &&
-          format === renderbuffer.format) {
-        return
-      }
-
-      reglRenderbuffer.width = renderbuffer.width = w;
-      reglRenderbuffer.height = renderbuffer.height = h;
-      renderbuffer.format = format;
-
-      gl.bindRenderbuffer(GL_RENDERBUFFER, renderbuffer.renderbuffer);
-      gl.renderbufferStorage(GL_RENDERBUFFER, format, w, h);
-
-      if (config.profile) {
-        renderbuffer.stats.size = getRenderbufferSize(renderbuffer.format, renderbuffer.width, renderbuffer.height);
-      }
-      reglRenderbuffer.format = formatTypesInvert[renderbuffer.format];
-
-      return reglRenderbuffer
-    }
-
-    function resize (w_, h_) {
-      var w = w_ | 0;
-      var h = (h_ | 0) || w;
-
-      if (w === renderbuffer.width && h === renderbuffer.height) {
-        return reglRenderbuffer
-      }
-
-      // check shape
-      check$1(
-        w > 0 && h > 0 &&
-        w <= limits.maxRenderbufferSize && h <= limits.maxRenderbufferSize,
-        'invalid renderbuffer size');
-
-      reglRenderbuffer.width = renderbuffer.width = w;
-      reglRenderbuffer.height = renderbuffer.height = h;
-
-      gl.bindRenderbuffer(GL_RENDERBUFFER, renderbuffer.renderbuffer);
-      gl.renderbufferStorage(GL_RENDERBUFFER, renderbuffer.format, w, h);
-
-      // also, recompute size.
-      if (config.profile) {
-        renderbuffer.stats.size = getRenderbufferSize(
-          renderbuffer.format, renderbuffer.width, renderbuffer.height);
-      }
-
-      return reglRenderbuffer
-    }
-
-    reglRenderbuffer(a, b);
-
-    reglRenderbuffer.resize = resize;
-    reglRenderbuffer._reglType = 'renderbuffer';
-    reglRenderbuffer._renderbuffer = renderbuffer;
-    if (config.profile) {
-      reglRenderbuffer.stats = renderbuffer.stats;
-    }
-    reglRenderbuffer.destroy = function () {
-      renderbuffer.decRef();
-    };
-
-    return reglRenderbuffer
-  }
-
-  if (config.profile) {
-    stats.getTotalRenderbufferSize = function () {
-      var total = 0;
-      Object.keys(renderbufferSet).forEach(function (key) {
-        total += renderbufferSet[key].stats.size;
-      });
-      return total
-    };
-  }
-
-  function restoreRenderbuffers () {
-    values(renderbufferSet).forEach(function (rb) {
-      rb.renderbuffer = gl.createRenderbuffer();
-      gl.bindRenderbuffer(GL_RENDERBUFFER, rb.renderbuffer);
-      gl.renderbufferStorage(GL_RENDERBUFFER, rb.format, rb.width, rb.height);
-    });
-    gl.bindRenderbuffer(GL_RENDERBUFFER, null);
-  }
-
-  return {
-    create: createRenderbuffer,
-    clear: function () {
-      values(renderbufferSet).forEach(destroy);
-    },
-    restore: restoreRenderbuffers
-  }
-};
-
-// We store these constants so that the minifier can inline them
-var GL_FRAMEBUFFER = 0x8D40;
-var GL_RENDERBUFFER$1 = 0x8D41;
-
-var GL_TEXTURE_2D$1 = 0x0DE1;
-var GL_TEXTURE_CUBE_MAP_POSITIVE_X$1 = 0x8515;
-
-var GL_COLOR_ATTACHMENT0 = 0x8CE0;
-var GL_DEPTH_ATTACHMENT = 0x8D00;
-var GL_STENCIL_ATTACHMENT = 0x8D20;
-var GL_DEPTH_STENCIL_ATTACHMENT = 0x821A;
-
-var GL_FRAMEBUFFER_COMPLETE = 0x8CD5;
-var GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT = 0x8CD6;
-var GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT = 0x8CD7;
-var GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS = 0x8CD9;
-var GL_FRAMEBUFFER_UNSUPPORTED = 0x8CDD;
-
-var GL_HALF_FLOAT_OES$2 = 0x8D61;
-var GL_UNSIGNED_BYTE$5 = 0x1401;
-var GL_FLOAT$4 = 0x1406;
-
-var GL_RGBA$1 = 0x1908;
-
-var GL_DEPTH_COMPONENT$1 = 0x1902;
-
-var colorTextureFormatEnums = [
-  GL_RGBA$1
-];
-
-// for every texture format, store
-// the number of channels
-var textureFormatChannels = [];
-textureFormatChannels[GL_RGBA$1] = 4;
-
-// for every texture type, store
-// the size in bytes.
-var textureTypeSizes = [];
-textureTypeSizes[GL_UNSIGNED_BYTE$5] = 1;
-textureTypeSizes[GL_FLOAT$4] = 4;
-textureTypeSizes[GL_HALF_FLOAT_OES$2] = 2;
-
-var GL_RGBA4$2 = 0x8056;
-var GL_RGB5_A1$2 = 0x8057;
-var GL_RGB565$2 = 0x8D62;
-var GL_DEPTH_COMPONENT16$1 = 0x81A5;
-var GL_STENCIL_INDEX8$1 = 0x8D48;
-var GL_DEPTH_STENCIL$2 = 0x84F9;
-
-var GL_SRGB8_ALPHA8_EXT$1 = 0x8C43;
-
-var GL_RGBA32F_EXT$1 = 0x8814;
-
-var GL_RGBA16F_EXT$1 = 0x881A;
-var GL_RGB16F_EXT$1 = 0x881B;
-
-var colorRenderbufferFormatEnums = [
-  GL_RGBA4$2,
-  GL_RGB5_A1$2,
-  GL_RGB565$2,
-  GL_SRGB8_ALPHA8_EXT$1,
-  GL_RGBA16F_EXT$1,
-  GL_RGB16F_EXT$1,
-  GL_RGBA32F_EXT$1
-];
-
-var statusCode = {};
-statusCode[GL_FRAMEBUFFER_COMPLETE] = 'complete';
-statusCode[GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT] = 'incomplete attachment';
-statusCode[GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS] = 'incomplete dimensions';
-statusCode[GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT] = 'incomplete, missing attachment';
-statusCode[GL_FRAMEBUFFER_UNSUPPORTED] = 'unsupported';
-
-function wrapFBOState (
-  gl,
-  extensions,
-  limits,
-  textureState,
-  renderbufferState,
-  stats) {
-  var framebufferState = {
-    cur: null,
-    next: null,
-    dirty: false,
-    setFBO: null
-  };
-
-  var colorTextureFormats = ['rgba'];
-  var colorRenderbufferFormats = ['rgba4', 'rgb565', 'rgb5 a1'];
-
-  if (extensions.ext_srgb) {
-    colorRenderbufferFormats.push('srgba');
-  }
-
-  if (extensions.ext_color_buffer_half_float) {
-    colorRenderbufferFormats.push('rgba16f', 'rgb16f');
-  }
-
-  if (extensions.webgl_color_buffer_float) {
-    colorRenderbufferFormats.push('rgba32f');
-  }
-
-  var colorTypes = ['uint8'];
-  if (extensions.oes_texture_half_float) {
-    colorTypes.push('half float', 'float16');
-  }
-  if (extensions.oes_texture_float) {
-    colorTypes.push('float', 'float32');
-  }
-
-  function FramebufferAttachment (target, texture, renderbuffer) {
-    this.target = target;
-    this.texture = texture;
-    this.renderbuffer = renderbuffer;
-
-    var w = 0;
-    var h = 0;
-    if (texture) {
-      w = texture.width;
-      h = texture.height;
-    } else if (renderbuffer) {
-      w = renderbuffer.width;
-      h = renderbuffer.height;
-    }
-    this.width = w;
-    this.height = h;
-  }
-
-  function decRef (attachment) {
-    if (attachment) {
-      if (attachment.texture) {
-        attachment.texture._texture.decRef();
-      }
-      if (attachment.renderbuffer) {
-        attachment.renderbuffer._renderbuffer.decRef();
-      }
-    }
-  }
-
-  function incRefAndCheckShape (attachment, width, height) {
-    if (!attachment) {
-      return
-    }
-    if (attachment.texture) {
-      var texture = attachment.texture._texture;
-      var tw = Math.max(1, texture.width);
-      var th = Math.max(1, texture.height);
-      check$1(tw === width && th === height,
-        'inconsistent width/height for supplied texture');
-      texture.refCount += 1;
-    } else {
-      var renderbuffer = attachment.renderbuffer._renderbuffer;
-      check$1(
-        renderbuffer.width === width && renderbuffer.height === height,
-        'inconsistent width/height for renderbuffer');
-      renderbuffer.refCount += 1;
-    }
-  }
-
-  function attach (location, attachment) {
-    if (attachment) {
-      if (attachment.texture) {
-        gl.framebufferTexture2D(
-          GL_FRAMEBUFFER,
-          location,
-          attachment.target,
-          attachment.texture._texture.texture,
-          0);
-      } else {
-        gl.framebufferRenderbuffer(
-          GL_FRAMEBUFFER,
-          location,
-          GL_RENDERBUFFER$1,
-          attachment.renderbuffer._renderbuffer.renderbuffer);
-      }
-    }
-  }
-
-  function parseAttachment (attachment) {
-    var target = GL_TEXTURE_2D$1;
-    var texture = null;
-    var renderbuffer = null;
-
-    var data = attachment;
-    if (typeof attachment === 'object') {
-      data = attachment.data;
-      if ('target' in attachment) {
-        target = attachment.target | 0;
-      }
-    }
-
-    check$1.type(data, 'function', 'invalid attachment data');
-
-    var type = data._reglType;
-    if (type === 'texture2d') {
-      texture = data;
-      check$1(target === GL_TEXTURE_2D$1);
-    } else if (type === 'textureCube') {
-      texture = data;
-      check$1(
-        target >= GL_TEXTURE_CUBE_MAP_POSITIVE_X$1 &&
-        target < GL_TEXTURE_CUBE_MAP_POSITIVE_X$1 + 6,
-        'invalid cube map target');
-    } else if (type === 'renderbuffer') {
-      renderbuffer = data;
-      target = GL_RENDERBUFFER$1;
-    } else {
-      check$1.raise('invalid regl object for attachment');
-    }
-
-    return new FramebufferAttachment(target, texture, renderbuffer)
-  }
-
-  function allocAttachment (
-    width,
-    height,
-    isTexture,
-    format,
-    type) {
-    if (isTexture) {
-      var texture = textureState.create2D({
-        width: width,
-        height: height,
-        format: format,
-        type: type
-      });
-      texture._texture.refCount = 0;
-      return new FramebufferAttachment(GL_TEXTURE_2D$1, texture, null)
-    } else {
-      var rb = renderbufferState.create({
-        width: width,
-        height: height,
-        format: format
-      });
-      rb._renderbuffer.refCount = 0;
-      return new FramebufferAttachment(GL_RENDERBUFFER$1, null, rb)
-    }
-  }
-
-  function unwrapAttachment (attachment) {
-    return attachment && (attachment.texture || attachment.renderbuffer)
-  }
-
-  function resizeAttachment (attachment, w, h) {
-    if (attachment) {
-      if (attachment.texture) {
-        attachment.texture.resize(w, h);
-      } else if (attachment.renderbuffer) {
-        attachment.renderbuffer.resize(w, h);
-      }
-    }
-  }
-
-  var framebufferCount = 0;
-  var framebufferSet = {};
-
-  function REGLFramebuffer () {
-    this.id = framebufferCount++;
-    framebufferSet[this.id] = this;
-
-    this.framebuffer = gl.createFramebuffer();
-    this.width = 0;
-    this.height = 0;
-
-    this.colorAttachments = [];
-    this.depthAttachment = null;
-    this.stencilAttachment = null;
-    this.depthStencilAttachment = null;
-  }
-
-  function decFBORefs (framebuffer) {
-    framebuffer.colorAttachments.forEach(decRef);
-    decRef(framebuffer.depthAttachment);
-    decRef(framebuffer.stencilAttachment);
-    decRef(framebuffer.depthStencilAttachment);
-  }
-
-  function destroy (framebuffer) {
-    var handle = framebuffer.framebuffer;
-    check$1(handle, 'must not double destroy framebuffer');
-    gl.deleteFramebuffer(handle);
-    framebuffer.framebuffer = null;
-    stats.framebufferCount--;
-    delete framebufferSet[framebuffer.id];
-  }
-
-  function updateFramebuffer (framebuffer) {
-    var i;
-
-    gl.bindFramebuffer(GL_FRAMEBUFFER, framebuffer.framebuffer);
-    var colorAttachments = framebuffer.colorAttachments;
-    for (i = 0; i < colorAttachments.length; ++i) {
-      attach(GL_COLOR_ATTACHMENT0 + i, colorAttachments[i]);
-    }
-    for (i = colorAttachments.length; i < limits.maxColorAttachments; ++i) {
-      gl.framebufferTexture2D(
-        GL_FRAMEBUFFER,
-        GL_COLOR_ATTACHMENT0 + i,
-        GL_TEXTURE_2D$1,
-        null,
-        0);
-    }
-
-    gl.framebufferTexture2D(
-      GL_FRAMEBUFFER,
-      GL_DEPTH_STENCIL_ATTACHMENT,
-      GL_TEXTURE_2D$1,
-      null,
-      0);
-    gl.framebufferTexture2D(
-      GL_FRAMEBUFFER,
-      GL_DEPTH_ATTACHMENT,
-      GL_TEXTURE_2D$1,
-      null,
-      0);
-    gl.framebufferTexture2D(
-      GL_FRAMEBUFFER,
-      GL_STENCIL_ATTACHMENT,
-      GL_TEXTURE_2D$1,
-      null,
-      0);
-
-    attach(GL_DEPTH_ATTACHMENT, framebuffer.depthAttachment);
-    attach(GL_STENCIL_ATTACHMENT, framebuffer.stencilAttachment);
-    attach(GL_DEPTH_STENCIL_ATTACHMENT, framebuffer.depthStencilAttachment);
-
-    // Check status code
-    var status = gl.checkFramebufferStatus(GL_FRAMEBUFFER);
-    if (status !== GL_FRAMEBUFFER_COMPLETE) {
-      check$1.raise('framebuffer configuration not supported, status = ' +
-        statusCode[status]);
-    }
-
-    gl.bindFramebuffer(GL_FRAMEBUFFER, framebufferState.next);
-    framebufferState.cur = framebufferState.next;
-
-    // FIXME: Clear error code here.  This is a work around for a bug in
-    // headless-gl
-    gl.getError();
-  }
-
-  function createFBO (a0, a1) {
-    var framebuffer = new REGLFramebuffer();
-    stats.framebufferCount++;
-
-    function reglFramebuffer (a, b) {
-      var i;
-
-      check$1(framebufferState.next !== framebuffer,
-        'can not update framebuffer which is currently in use');
-
-      var extDrawBuffers = extensions.webgl_draw_buffers;
-
-      var width = 0;
-      var height = 0;
-
-      var needsDepth = true;
-      var needsStencil = true;
-
-      var colorBuffer = null;
-      var colorTexture = true;
-      var colorFormat = 'rgba';
-      var colorType = 'uint8';
-      var colorCount = 1;
-
-      var depthBuffer = null;
-      var stencilBuffer = null;
-      var depthStencilBuffer = null;
-      var depthStencilTexture = false;
-
-      if (typeof a === 'number') {
-        width = a | 0;
-        height = (b | 0) || width;
-      } else if (!a) {
-        width = height = 1;
-      } else {
-        check$1.type(a, 'object', 'invalid arguments for framebuffer');
-        var options = a;
-
-        if ('shape' in options) {
-          var shape = options.shape;
-          check$1(Array.isArray(shape) && shape.length >= 2,
-            'invalid shape for framebuffer');
-          width = shape[0];
-          height = shape[1];
-        } else {
-          if ('radius' in options) {
-            width = height = options.radius;
-          }
-          if ('width' in options) {
-            width = options.width;
-          }
-          if ('height' in options) {
-            height = options.height;
-          }
-        }
-
-        if ('color' in options ||
-            'colors' in options) {
-          colorBuffer =
-            options.color ||
-            options.colors;
-          if (Array.isArray(colorBuffer)) {
-            check$1(
-              colorBuffer.length === 1 || extDrawBuffers,
-              'multiple render targets not supported');
-          }
-        }
-
-        if (!colorBuffer) {
-          if ('colorCount' in options) {
-            colorCount = options.colorCount | 0;
-            check$1(colorCount > 0, 'invalid color buffer count');
-          }
-
-          if ('colorTexture' in options) {
-            colorTexture = !!options.colorTexture;
-            colorFormat = 'rgba4';
-          }
-
-          if ('colorType' in options) {
-            colorType = options.colorType;
-            if (!colorTexture) {
-              if (colorType === 'half float' || colorType === 'float16') {
-                check$1(extensions.ext_color_buffer_half_float,
-                  'you must enable EXT_color_buffer_half_float to use 16-bit render buffers');
-                colorFormat = 'rgba16f';
-              } else if (colorType === 'float' || colorType === 'float32') {
-                check$1(extensions.webgl_color_buffer_float,
-                  'you must enable WEBGL_color_buffer_float in order to use 32-bit floating point renderbuffers');
-                colorFormat = 'rgba32f';
-              }
-            } else {
-              check$1(extensions.oes_texture_float ||
-                !(colorType === 'float' || colorType === 'float32'),
-                'you must enable OES_texture_float in order to use floating point framebuffer objects');
-              check$1(extensions.oes_texture_half_float ||
-                !(colorType === 'half float' || colorType === 'float16'),
-                'you must enable OES_texture_half_float in order to use 16-bit floating point framebuffer objects');
-            }
-            check$1.oneOf(colorType, colorTypes, 'invalid color type');
-          }
-
-          if ('colorFormat' in options) {
-            colorFormat = options.colorFormat;
-            if (colorTextureFormats.indexOf(colorFormat) >= 0) {
-              colorTexture = true;
-            } else if (colorRenderbufferFormats.indexOf(colorFormat) >= 0) {
-              colorTexture = false;
-            } else {
-              if (colorTexture) {
-                check$1.oneOf(
-                  options.colorFormat, colorTextureFormats,
-                  'invalid color format for texture');
-              } else {
-                check$1.oneOf(
-                  options.colorFormat, colorRenderbufferFormats,
-                  'invalid color format for renderbuffer');
-              }
-            }
-          }
-        }
-
-        if ('depthTexture' in options || 'depthStencilTexture' in options) {
-          depthStencilTexture = !!(options.depthTexture ||
-            options.depthStencilTexture);
-          check$1(!depthStencilTexture || extensions.webgl_depth_texture,
-            'webgl_depth_texture extension not supported');
-        }
-
-        if ('depth' in options) {
-          if (typeof options.depth === 'boolean') {
-            needsDepth = options.depth;
-          } else {
-            depthBuffer = options.depth;
-            needsStencil = false;
-          }
-        }
-
-        if ('stencil' in options) {
-          if (typeof options.stencil === 'boolean') {
-            needsStencil = options.stencil;
-          } else {
-            stencilBuffer = options.stencil;
-            needsDepth = false;
-          }
-        }
-
-        if ('depthStencil' in options) {
-          if (typeof options.depthStencil === 'boolean') {
-            needsDepth = needsStencil = options.depthStencil;
-          } else {
-            depthStencilBuffer = options.depthStencil;
-            needsDepth = false;
-            needsStencil = false;
-          }
-        }
-      }
-
-      // parse attachments
-      var colorAttachments = null;
-      var depthAttachment = null;
-      var stencilAttachment = null;
-      var depthStencilAttachment = null;
-
-      // Set up color attachments
-      if (Array.isArray(colorBuffer)) {
-        colorAttachments = colorBuffer.map(parseAttachment);
-      } else if (colorBuffer) {
-        colorAttachments = [parseAttachment(colorBuffer)];
-      } else {
-        colorAttachments = new Array(colorCount);
-        for (i = 0; i < colorCount; ++i) {
-          colorAttachments[i] = allocAttachment(
-            width,
-            height,
-            colorTexture,
-            colorFormat,
-            colorType);
-        }
-      }
-
-      check$1(extensions.webgl_draw_buffers || colorAttachments.length <= 1,
-        'you must enable the WEBGL_draw_buffers extension in order to use multiple color buffers.');
-      check$1(colorAttachments.length <= limits.maxColorAttachments,
-        'too many color attachments, not supported');
-
-      width = width || colorAttachments[0].width;
-      height = height || colorAttachments[0].height;
-
-      if (depthBuffer) {
-        depthAttachment = parseAttachment(depthBuffer);
-      } else if (needsDepth && !needsStencil) {
-        depthAttachment = allocAttachment(
-          width,
-          height,
-          depthStencilTexture,
-          'depth',
-          'uint32');
-      }
-
-      if (stencilBuffer) {
-        stencilAttachment = parseAttachment(stencilBuffer);
-      } else if (needsStencil && !needsDepth) {
-        stencilAttachment = allocAttachment(
-          width,
-          height,
-          false,
-          'stencil',
-          'uint8');
-      }
-
-      if (depthStencilBuffer) {
-        depthStencilAttachment = parseAttachment(depthStencilBuffer);
-      } else if (!depthBuffer && !stencilBuffer && needsStencil && needsDepth) {
-        depthStencilAttachment = allocAttachment(
-          width,
-          height,
-          depthStencilTexture,
-          'depth stencil',
-          'depth stencil');
-      }
-
-      check$1(
-        (!!depthBuffer) + (!!stencilBuffer) + (!!depthStencilBuffer) <= 1,
-        'invalid framebuffer configuration, can specify exactly one depth/stencil attachment');
-
-      var commonColorAttachmentSize = null;
-
-      for (i = 0; i < colorAttachments.length; ++i) {
-        incRefAndCheckShape(colorAttachments[i], width, height);
-        check$1(!colorAttachments[i] ||
-          (colorAttachments[i].texture &&
-            colorTextureFormatEnums.indexOf(colorAttachments[i].texture._texture.format) >= 0) ||
-          (colorAttachments[i].renderbuffer &&
-            colorRenderbufferFormatEnums.indexOf(colorAttachments[i].renderbuffer._renderbuffer.format) >= 0),
-          'framebuffer color attachment ' + i + ' is invalid');
-
-        if (colorAttachments[i] && colorAttachments[i].texture) {
-          var colorAttachmentSize =
-              textureFormatChannels[colorAttachments[i].texture._texture.format] *
-              textureTypeSizes[colorAttachments[i].texture._texture.type];
-
-          if (commonColorAttachmentSize === null) {
-            commonColorAttachmentSize = colorAttachmentSize;
-          } else {
-            // We need to make sure that all color attachments have the same number of bitplanes
-            // (that is, the same numer of bits per pixel)
-            // This is required by the GLES2.0 standard. See the beginning of Chapter 4 in that document.
-            check$1(commonColorAttachmentSize === colorAttachmentSize,
-                  'all color attachments much have the same number of bits per pixel.');
-          }
-        }
-      }
-      incRefAndCheckShape(depthAttachment, width, height);
-      check$1(!depthAttachment ||
-        (depthAttachment.texture &&
-          depthAttachment.texture._texture.format === GL_DEPTH_COMPONENT$1) ||
-        (depthAttachment.renderbuffer &&
-          depthAttachment.renderbuffer._renderbuffer.format === GL_DEPTH_COMPONENT16$1),
-        'invalid depth attachment for framebuffer object');
-      incRefAndCheckShape(stencilAttachment, width, height);
-      check$1(!stencilAttachment ||
-        (stencilAttachment.renderbuffer &&
-          stencilAttachment.renderbuffer._renderbuffer.format === GL_STENCIL_INDEX8$1),
-        'invalid stencil attachment for framebuffer object');
-      incRefAndCheckShape(depthStencilAttachment, width, height);
-      check$1(!depthStencilAttachment ||
-        (depthStencilAttachment.texture &&
-          depthStencilAttachment.texture._texture.format === GL_DEPTH_STENCIL$2) ||
-        (depthStencilAttachment.renderbuffer &&
-          depthStencilAttachment.renderbuffer._renderbuffer.format === GL_DEPTH_STENCIL$2),
-        'invalid depth-stencil attachment for framebuffer object');
-
-      // decrement references
-      decFBORefs(framebuffer);
-
-      framebuffer.width = width;
-      framebuffer.height = height;
-
-      framebuffer.colorAttachments = colorAttachments;
-      framebuffer.depthAttachment = depthAttachment;
-      framebuffer.stencilAttachment = stencilAttachment;
-      framebuffer.depthStencilAttachment = depthStencilAttachment;
-
-      reglFramebuffer.color = colorAttachments.map(unwrapAttachment);
-      reglFramebuffer.depth = unwrapAttachment(depthAttachment);
-      reglFramebuffer.stencil = unwrapAttachment(stencilAttachment);
-      reglFramebuffer.depthStencil = unwrapAttachment(depthStencilAttachment);
-
-      reglFramebuffer.width = framebuffer.width;
-      reglFramebuffer.height = framebuffer.height;
-
-      updateFramebuffer(framebuffer);
-
-      return reglFramebuffer
-    }
-
-    function resize (w_, h_) {
-      check$1(framebufferState.next !== framebuffer,
-        'can not resize a framebuffer which is currently in use');
-
-      var w = w_ | 0;
-      var h = (h_ | 0) || w;
-      if (w === framebuffer.width && h === framebuffer.height) {
-        return reglFramebuffer
-      }
-
-      // resize all buffers
-      var colorAttachments = framebuffer.colorAttachments;
-      for (var i = 0; i < colorAttachments.length; ++i) {
-        resizeAttachment(colorAttachments[i], w, h);
-      }
-      resizeAttachment(framebuffer.depthAttachment, w, h);
-      resizeAttachment(framebuffer.stencilAttachment, w, h);
-      resizeAttachment(framebuffer.depthStencilAttachment, w, h);
-
-      framebuffer.width = reglFramebuffer.width = w;
-      framebuffer.height = reglFramebuffer.height = h;
-
-      updateFramebuffer(framebuffer);
-
-      return reglFramebuffer
-    }
-
-    reglFramebuffer(a0, a1);
-
-    return extend(reglFramebuffer, {
-      resize: resize,
-      _reglType: 'framebuffer',
-      _framebuffer: framebuffer,
-      destroy: function () {
-        destroy(framebuffer);
-        decFBORefs(framebuffer);
-      },
-      use: function (block) {
-        framebufferState.setFBO({
-          framebuffer: reglFramebuffer
-        }, block);
-      }
-    })
-  }
-
-  function createCubeFBO (options) {
-    var faces = Array(6);
-
-    function reglFramebufferCube (a) {
-      var i;
-
-      check$1(faces.indexOf(framebufferState.next) < 0,
-        'can not update framebuffer which is currently in use');
-
-      var extDrawBuffers = extensions.webgl_draw_buffers;
-
-      var params = {
-        color: null
-      };
-
-      var radius = 0;
-
-      var colorBuffer = null;
-      var colorFormat = 'rgba';
-      var colorType = 'uint8';
-      var colorCount = 1;
-
-      if (typeof a === 'number') {
-        radius = a | 0;
-      } else if (!a) {
-        radius = 1;
-      } else {
-        check$1.type(a, 'object', 'invalid arguments for framebuffer');
-        var options = a;
-
-        if ('shape' in options) {
-          var shape = options.shape;
-          check$1(
-            Array.isArray(shape) && shape.length >= 2,
-            'invalid shape for framebuffer');
-          check$1(
-            shape[0] === shape[1],
-            'cube framebuffer must be square');
-          radius = shape[0];
-        } else {
-          if ('radius' in options) {
-            radius = options.radius | 0;
-          }
-          if ('width' in options) {
-            radius = options.width | 0;
-            if ('height' in options) {
-              check$1(options.height === radius, 'must be square');
-            }
-          } else if ('height' in options) {
-            radius = options.height | 0;
-          }
-        }
-
-        if ('color' in options ||
-            'colors' in options) {
-          colorBuffer =
-            options.color ||
-            options.colors;
-          if (Array.isArray(colorBuffer)) {
-            check$1(
-              colorBuffer.length === 1 || extDrawBuffers,
-              'multiple render targets not supported');
-          }
-        }
-
-        if (!colorBuffer) {
-          if ('colorCount' in options) {
-            colorCount = options.colorCount | 0;
-            check$1(colorCount > 0, 'invalid color buffer count');
-          }
-
-          if ('colorType' in options) {
-            check$1.oneOf(
-              options.colorType, colorTypes,
-              'invalid color type');
-            colorType = options.colorType;
-          }
-
-          if ('colorFormat' in options) {
-            colorFormat = options.colorFormat;
-            check$1.oneOf(
-              options.colorFormat, colorTextureFormats,
-              'invalid color format for texture');
-          }
-        }
-
-        if ('depth' in options) {
-          params.depth = options.depth;
-        }
-
-        if ('stencil' in options) {
-          params.stencil = options.stencil;
-        }
-
-        if ('depthStencil' in options) {
-          params.depthStencil = options.depthStencil;
-        }
-      }
-
-      var colorCubes;
-      if (colorBuffer) {
-        if (Array.isArray(colorBuffer)) {
-          colorCubes = [];
-          for (i = 0; i < colorBuffer.length; ++i) {
-            colorCubes[i] = colorBuffer[i];
-          }
-        } else {
-          colorCubes = [ colorBuffer ];
-        }
-      } else {
-        colorCubes = Array(colorCount);
-        var cubeMapParams = {
-          radius: radius,
-          format: colorFormat,
-          type: colorType
-        };
-        for (i = 0; i < colorCount; ++i) {
-          colorCubes[i] = textureState.createCube(cubeMapParams);
-        }
-      }
-
-      // Check color cubes
-      params.color = Array(colorCubes.length);
-      for (i = 0; i < colorCubes.length; ++i) {
-        var cube = colorCubes[i];
-        check$1(
-          typeof cube === 'function' && cube._reglType === 'textureCube',
-          'invalid cube map');
-        radius = radius || cube.width;
-        check$1(
-          cube.width === radius && cube.height === radius,
-          'invalid cube map shape');
-        params.color[i] = {
-          target: GL_TEXTURE_CUBE_MAP_POSITIVE_X$1,
-          data: colorCubes[i]
-        };
-      }
-
-      for (i = 0; i < 6; ++i) {
-        for (var j = 0; j < colorCubes.length; ++j) {
-          params.color[j].target = GL_TEXTURE_CUBE_MAP_POSITIVE_X$1 + i;
-        }
-        // reuse depth-stencil attachments across all cube maps
-        if (i > 0) {
-          params.depth = faces[0].depth;
-          params.stencil = faces[0].stencil;
-          params.depthStencil = faces[0].depthStencil;
-        }
-        if (faces[i]) {
-          (faces[i])(params);
-        } else {
-          faces[i] = createFBO(params);
-        }
-      }
-
-      return extend(reglFramebufferCube, {
-        width: radius,
-        height: radius,
-        color: colorCubes
-      })
-    }
-
-    function resize (radius_) {
-      var i;
-      var radius = radius_ | 0;
-      check$1(radius > 0 && radius <= limits.maxCubeMapSize,
-        'invalid radius for cube fbo');
-
-      if (radius === reglFramebufferCube.width) {
-        return reglFramebufferCube
-      }
-
-      var colors = reglFramebufferCube.color;
-      for (i = 0; i < colors.length; ++i) {
-        colors[i].resize(radius);
-      }
-
-      for (i = 0; i < 6; ++i) {
-        faces[i].resize(radius);
-      }
-
-      reglFramebufferCube.width = reglFramebufferCube.height = radius;
-
-      return reglFramebufferCube
-    }
-
-    reglFramebufferCube(options);
-
-    return extend(reglFramebufferCube, {
-      faces: faces,
-      resize: resize,
-      _reglType: 'framebufferCube',
-      destroy: function () {
-        faces.forEach(function (f) {
-          f.destroy();
-        });
-      }
-    })
-  }
-
-  function restoreFramebuffers () {
-    values(framebufferSet).forEach(function (fb) {
-      fb.framebuffer = gl.createFramebuffer();
-      updateFramebuffer(fb);
-    });
-  }
-
-  return extend(framebufferState, {
-    getFramebuffer: function (object) {
-      if (typeof object === 'function' && object._reglType === 'framebuffer') {
-        var fbo = object._framebuffer;
-        if (fbo instanceof REGLFramebuffer) {
-          return fbo
-        }
-      }
-      return null
-    },
-    create: createFBO,
-    createCube: createCubeFBO,
-    clear: function () {
-      values(framebufferSet).forEach(destroy);
-    },
-    restore: restoreFramebuffers
-  })
-}
-
-var GL_FLOAT$5 = 5126;
-
-function AttributeRecord () {
-  this.state = 0;
-
-  this.x = 0.0;
-  this.y = 0.0;
-  this.z = 0.0;
-  this.w = 0.0;
-
-  this.buffer = null;
-  this.size = 0;
-  this.normalized = false;
-  this.type = GL_FLOAT$5;
-  this.offset = 0;
-  this.stride = 0;
-  this.divisor = 0;
-}
-
-function wrapAttributeState (
-  gl,
-  extensions,
-  limits,
-  bufferState,
-  stringStore) {
-  var NUM_ATTRIBUTES = limits.maxAttributes;
-  var attributeBindings = new Array(NUM_ATTRIBUTES);
-  for (var i = 0; i < NUM_ATTRIBUTES; ++i) {
-    attributeBindings[i] = new AttributeRecord();
-  }
-
-  return {
-    Record: AttributeRecord,
-    scope: {},
-    state: attributeBindings
-  }
-}
-
-var GL_FRAGMENT_SHADER = 35632;
-var GL_VERTEX_SHADER = 35633;
-
-var GL_ACTIVE_UNIFORMS = 0x8B86;
-var GL_ACTIVE_ATTRIBUTES = 0x8B89;
-
-function wrapShaderState (gl, stringStore, stats, config) {
-  // ===================================================
-  // glsl compilation and linking
-  // ===================================================
-  var fragShaders = {};
-  var vertShaders = {};
-
-  function ActiveInfo (name, id, location, info) {
-    this.name = name;
-    this.id = id;
-    this.location = location;
-    this.info = info;
-  }
-
-  function insertActiveInfo (list, info) {
-    for (var i = 0; i < list.length; ++i) {
-      if (list[i].id === info.id) {
-        list[i].location = info.location;
-        return
-      }
-    }
-    list.push(info);
-  }
-
-  function getShader (type, id, command) {
-    var cache = type === GL_FRAGMENT_SHADER ? fragShaders : vertShaders;
-    var shader = cache[id];
-
-    if (!shader) {
-      var source = stringStore.str(id);
-      shader = gl.createShader(type);
-      gl.shaderSource(shader, source);
-      gl.compileShader(shader);
-      check$1.shaderError(gl, shader, source, type, command);
-      cache[id] = shader;
-    }
-
-    return shader
-  }
-
-  // ===================================================
-  // program linking
-  // ===================================================
-  var programCache = {};
-  var programList = [];
-
-  var PROGRAM_COUNTER = 0;
-
-  function REGLProgram (fragId, vertId) {
-    this.id = PROGRAM_COUNTER++;
-    this.fragId = fragId;
-    this.vertId = vertId;
-    this.program = null;
-    this.uniforms = [];
-    this.attributes = [];
-
-    if (config.profile) {
-      this.stats = {
-        uniformsCount: 0,
-        attributesCount: 0
-      };
-    }
-  }
-
-  function linkProgram (desc, command) {
-    var i, info;
-
-    // -------------------------------
-    // compile & link
-    // -------------------------------
-    var fragShader = getShader(GL_FRAGMENT_SHADER, desc.fragId);
-    var vertShader = getShader(GL_VERTEX_SHADER, desc.vertId);
-
-    var program = desc.program = gl.createProgram();
-    gl.attachShader(program, fragShader);
-    gl.attachShader(program, vertShader);
-    gl.linkProgram(program);
-    check$1.linkError(
-      gl,
-      program,
-      stringStore.str(desc.fragId),
-      stringStore.str(desc.vertId),
-      command);
-
-    // -------------------------------
-    // grab uniforms
-    // -------------------------------
-    var numUniforms = gl.getProgramParameter(program, GL_ACTIVE_UNIFORMS);
-    if (config.profile) {
-      desc.stats.uniformsCount = numUniforms;
-    }
-    var uniforms = desc.uniforms;
-    for (i = 0; i < numUniforms; ++i) {
-      info = gl.getActiveUniform(program, i);
-      if (info) {
-        if (info.size > 1) {
-          for (var j = 0; j < info.size; ++j) {
-            var name = info.name.replace('[0]', '[' + j + ']');
-            insertActiveInfo(uniforms, new ActiveInfo(
-              name,
-              stringStore.id(name),
-              gl.getUniformLocation(program, name),
-              info));
-          }
-        } else {
-          insertActiveInfo(uniforms, new ActiveInfo(
-            info.name,
-            stringStore.id(info.name),
-            gl.getUniformLocation(program, info.name),
-            info));
-        }
-      }
-    }
-
-    // -------------------------------
-    // grab attributes
-    // -------------------------------
-    var numAttributes = gl.getProgramParameter(program, GL_ACTIVE_ATTRIBUTES);
-    if (config.profile) {
-      desc.stats.attributesCount = numAttributes;
-    }
-
-    var attributes = desc.attributes;
-    for (i = 0; i < numAttributes; ++i) {
-      info = gl.getActiveAttrib(program, i);
-      if (info) {
-        insertActiveInfo(attributes, new ActiveInfo(
-          info.name,
-          stringStore.id(info.name),
-          gl.getAttribLocation(program, info.name),
-          info));
-      }
-    }
-  }
-
-  if (config.profile) {
-    stats.getMaxUniformsCount = function () {
-      var m = 0;
-      programList.forEach(function (desc) {
-        if (desc.stats.uniformsCount > m) {
-          m = desc.stats.uniformsCount;
-        }
-      });
-      return m
-    };
-
-    stats.getMaxAttributesCount = function () {
-      var m = 0;
-      programList.forEach(function (desc) {
-        if (desc.stats.attributesCount > m) {
-          m = desc.stats.attributesCount;
-        }
-      });
-      return m
-    };
-  }
-
-  function restoreShaders () {
-    fragShaders = {};
-    vertShaders = {};
-    for (var i = 0; i < programList.length; ++i) {
-      linkProgram(programList[i]);
-    }
-  }
-
-  return {
-    clear: function () {
-      var deleteShader = gl.deleteShader.bind(gl);
-      values(fragShaders).forEach(deleteShader);
-      fragShaders = {};
-      values(vertShaders).forEach(deleteShader);
-      vertShaders = {};
-
-      programList.forEach(function (desc) {
-        gl.deleteProgram(desc.program);
-      });
-      programList.length = 0;
-      programCache = {};
-
-      stats.shaderCount = 0;
-    },
-
-    program: function (vertId, fragId, command) {
-      check$1.command(vertId >= 0, 'missing vertex shader', command);
-      check$1.command(fragId >= 0, 'missing fragment shader', command);
-
-      var cache = programCache[fragId];
-      if (!cache) {
-        cache = programCache[fragId] = {};
-      }
-      var program = cache[vertId];
-      if (!program) {
-        program = new REGLProgram(fragId, vertId);
-        stats.shaderCount++;
-
-        linkProgram(program, command);
-        cache[vertId] = program;
-        programList.push(program);
-      }
-      return program
-    },
-
-    restore: restoreShaders,
-
-    shader: getShader,
-
-    frag: -1,
-    vert: -1
-  }
-}
-
-var GL_RGBA$2 = 6408;
-var GL_UNSIGNED_BYTE$6 = 5121;
-var GL_PACK_ALIGNMENT = 0x0D05;
-var GL_FLOAT$6 = 0x1406; // 5126
-
-function wrapReadPixels (
-  gl,
-  framebufferState,
-  reglPoll,
-  context,
-  glAttributes,
-  extensions) {
-  function readPixelsImpl (input) {
-    var type;
-    if (framebufferState.next === null) {
-      check$1(
-        glAttributes.preserveDrawingBuffer,
-        'you must create a webgl context with "preserveDrawingBuffer":true in order to read pixels from the drawing buffer');
-      type = GL_UNSIGNED_BYTE$6;
-    } else {
-      check$1(
-        framebufferState.next.colorAttachments[0].texture !== null,
-          'You cannot read from a renderbuffer');
-      type = framebufferState.next.colorAttachments[0].texture._texture.type;
-
-      if (extensions.oes_texture_float) {
-        check$1(
-          type === GL_UNSIGNED_BYTE$6 || type === GL_FLOAT$6,
-          'Reading from a framebuffer is only allowed for the types \'uint8\' and \'float\'');
-      } else {
-        check$1(
-          type === GL_UNSIGNED_BYTE$6,
-          'Reading from a framebuffer is only allowed for the type \'uint8\'');
-      }
-    }
-
-    var x = 0;
-    var y = 0;
-    var width = context.framebufferWidth;
-    var height = context.framebufferHeight;
-    var data = null;
-
-    if (isTypedArray(input)) {
-      data = input;
-    } else if (input) {
-      check$1.type(input, 'object', 'invalid arguments to regl.read()');
-      x = input.x | 0;
-      y = input.y | 0;
-      check$1(
-        x >= 0 && x < context.framebufferWidth,
-        'invalid x offset for regl.read');
-      check$1(
-        y >= 0 && y < context.framebufferHeight,
-        'invalid y offset for regl.read');
-      width = (input.width || (context.framebufferWidth - x)) | 0;
-      height = (input.height || (context.framebufferHeight - y)) | 0;
-      data = input.data || null;
-    }
-
-    // sanity check input.data
-    if (data) {
-      if (type === GL_UNSIGNED_BYTE$6) {
-        check$1(
-          data instanceof Uint8Array,
-          'buffer must be \'Uint8Array\' when reading from a framebuffer of type \'uint8\'');
-      } else if (type === GL_FLOAT$6) {
-        check$1(
-          data instanceof Float32Array,
-          'buffer must be \'Float32Array\' when reading from a framebuffer of type \'float\'');
-      }
-    }
-
-    check$1(
-      width > 0 && width + x <= context.framebufferWidth,
-      'invalid width for read pixels');
-    check$1(
-      height > 0 && height + y <= context.framebufferHeight,
-      'invalid height for read pixels');
-
-    // Update WebGL state
-    reglPoll();
-
-    // Compute size
-    var size = width * height * 4;
-
-    // Allocate data
-    if (!data) {
-      if (type === GL_UNSIGNED_BYTE$6) {
-        data = new Uint8Array(size);
-      } else if (type === GL_FLOAT$6) {
-        data = data || new Float32Array(size);
-      }
-    }
-
-    // Type check
-    check$1.isTypedArray(data, 'data buffer for regl.read() must be a typedarray');
-    check$1(data.byteLength >= size, 'data buffer for regl.read() too small');
-
-    // Run read pixels
-    gl.pixelStorei(GL_PACK_ALIGNMENT, 4);
-    gl.readPixels(x, y, width, height, GL_RGBA$2,
-                  type,
-                  data);
-
-    return data
-  }
-
-  function readPixelsFBO (options) {
-    var result;
-    framebufferState.setFBO({
-      framebuffer: options.framebuffer
-    }, function () {
-      result = readPixelsImpl(options);
-    });
-    return result
-  }
-
-  function readPixels (options) {
-    if (!options || !('framebuffer' in options)) {
-      return readPixelsImpl(options)
-    } else {
-      return readPixelsFBO(options)
-    }
-  }
-
-  return readPixels
-}
-
-function slice (x) {
-  return Array.prototype.slice.call(x)
-}
-
-function join (x) {
-  return slice(x).join('')
-}
-
-function createEnvironment () {
-  // Unique variable id counter
-  var varCounter = 0;
-
-  // Linked values are passed from this scope into the generated code block
-  // Calling link() passes a value into the generated scope and returns
-  // the variable name which it is bound to
-  var linkedNames = [];
-  var linkedValues = [];
-  function link (value) {
-    for (var i = 0; i < linkedValues.length; ++i) {
-      if (linkedValues[i] === value) {
-        return linkedNames[i]
-      }
-    }
-
-    var name = 'g' + (varCounter++);
-    linkedNames.push(name);
-    linkedValues.push(value);
-    return name
-  }
-
-  // create a code block
-  function block () {
-    var code = [];
-    function push () {
-      code.push.apply(code, slice(arguments));
-    }
-
-    var vars = [];
-    function def () {
-      var name = 'v' + (varCounter++);
-      vars.push(name);
-
-      if (arguments.length > 0) {
-        code.push(name, '=');
-        code.push.apply(code, slice(arguments));
-        code.push(';');
-      }
-
-      return name
-    }
-
-    return extend(push, {
-      def: def,
-      toString: function () {
-        return join([
-          (vars.length > 0 ? 'var ' + vars + ';' : ''),
-          join(code)
-        ])
-      }
-    })
-  }
-
-  function scope () {
-    var entry = block();
-    var exit = block();
-
-    var entryToString = entry.toString;
-    var exitToString = exit.toString;
-
-    function save (object, prop) {
-      exit(object, prop, '=', entry.def(object, prop), ';');
-    }
-
-    return extend(function () {
-      entry.apply(entry, slice(arguments));
-    }, {
-      def: entry.def,
-      entry: entry,
-      exit: exit,
-      save: save,
-      set: function (object, prop, value) {
-        save(object, prop);
-        entry(object, prop, '=', value, ';');
-      },
-      toString: function () {
-        return entryToString() + exitToString()
-      }
-    })
-  }
-
-  function conditional () {
-    var pred = join(arguments);
-    var thenBlock = scope();
-    var elseBlock = scope();
-
-    var thenToString = thenBlock.toString;
-    var elseToString = elseBlock.toString;
-
-    return extend(thenBlock, {
-      then: function () {
-        thenBlock.apply(thenBlock, slice(arguments));
-        return this
-      },
-      else: function () {
-        elseBlock.apply(elseBlock, slice(arguments));
-        return this
-      },
-      toString: function () {
-        var elseClause = elseToString();
-        if (elseClause) {
-          elseClause = 'else{' + elseClause + '}';
-        }
-        return join([
-          'if(', pred, '){',
-          thenToString(),
-          '}', elseClause
-        ])
-      }
-    })
-  }
-
-  // procedure list
-  var globalBlock = block();
-  var procedures = {};
-  function proc (name, count) {
-    var args = [];
-    function arg () {
-      var name = 'a' + args.length;
-      args.push(name);
-      return name
-    }
-
-    count = count || 0;
-    for (var i = 0; i < count; ++i) {
-      arg();
-    }
-
-    var body = scope();
-    var bodyToString = body.toString;
-
-    var result = procedures[name] = extend(body, {
-      arg: arg,
-      toString: function () {
-        return join([
-          'function(', args.join(), '){',
-          bodyToString(),
-          '}'
-        ])
-      }
-    });
-
-    return result
-  }
-
-  function compile () {
-    var code = ['"use strict";',
-      globalBlock,
-      'return {'];
-    Object.keys(procedures).forEach(function (name) {
-      code.push('"', name, '":', procedures[name].toString(), ',');
-    });
-    code.push('}');
-    var src = join(code)
-      .replace(/;/g, ';\n')
-      .replace(/}/g, '}\n')
-      .replace(/{/g, '{\n');
-    var proc = Function.apply(null, linkedNames.concat(src));
-    return proc.apply(null, linkedValues)
-  }
-
-  return {
-    global: globalBlock,
-    link: link,
-    block: block,
-    proc: proc,
-    scope: scope,
-    cond: conditional,
-    compile: compile
-  }
-}
-
-// "cute" names for vector components
-var CUTE_COMPONENTS = 'xyzw'.split('');
-
-var GL_UNSIGNED_BYTE$7 = 5121;
-
-var ATTRIB_STATE_POINTER = 1;
-var ATTRIB_STATE_CONSTANT = 2;
-
-var DYN_FUNC$1 = 0;
-var DYN_PROP$1 = 1;
-var DYN_CONTEXT$1 = 2;
-var DYN_STATE$1 = 3;
-var DYN_THUNK = 4;
-
-var S_DITHER = 'dither';
-var S_BLEND_ENABLE = 'blend.enable';
-var S_BLEND_COLOR = 'blend.color';
-var S_BLEND_EQUATION = 'blend.equation';
-var S_BLEND_FUNC = 'blend.func';
-var S_DEPTH_ENABLE = 'depth.enable';
-var S_DEPTH_FUNC = 'depth.func';
-var S_DEPTH_RANGE = 'depth.range';
-var S_DEPTH_MASK = 'depth.mask';
-var S_COLOR_MASK = 'colorMask';
-var S_CULL_ENABLE = 'cull.enable';
-var S_CULL_FACE = 'cull.face';
-var S_FRONT_FACE = 'frontFace';
-var S_LINE_WIDTH = 'lineWidth';
-var S_POLYGON_OFFSET_ENABLE = 'polygonOffset.enable';
-var S_POLYGON_OFFSET_OFFSET = 'polygonOffset.offset';
-var S_SAMPLE_ALPHA = 'sample.alpha';
-var S_SAMPLE_ENABLE = 'sample.enable';
-var S_SAMPLE_COVERAGE = 'sample.coverage';
-var S_STENCIL_ENABLE = 'stencil.enable';
-var S_STENCIL_MASK = 'stencil.mask';
-var S_STENCIL_FUNC = 'stencil.func';
-var S_STENCIL_OPFRONT = 'stencil.opFront';
-var S_STENCIL_OPBACK = 'stencil.opBack';
-var S_SCISSOR_ENABLE = 'scissor.enable';
-var S_SCISSOR_BOX = 'scissor.box';
-var S_VIEWPORT = 'viewport';
-
-var S_PROFILE = 'profile';
-
-var S_FRAMEBUFFER = 'framebuffer';
-var S_VERT = 'vert';
-var S_FRAG = 'frag';
-var S_ELEMENTS = 'elements';
-var S_PRIMITIVE = 'primitive';
-var S_COUNT = 'count';
-var S_OFFSET = 'offset';
-var S_INSTANCES = 'instances';
-
-var SUFFIX_WIDTH = 'Width';
-var SUFFIX_HEIGHT = 'Height';
-
-var S_FRAMEBUFFER_WIDTH = S_FRAMEBUFFER + SUFFIX_WIDTH;
-var S_FRAMEBUFFER_HEIGHT = S_FRAMEBUFFER + SUFFIX_HEIGHT;
-var S_VIEWPORT_WIDTH = S_VIEWPORT + SUFFIX_WIDTH;
-var S_VIEWPORT_HEIGHT = S_VIEWPORT + SUFFIX_HEIGHT;
-var S_DRAWINGBUFFER = 'drawingBuffer';
-var S_DRAWINGBUFFER_WIDTH = S_DRAWINGBUFFER + SUFFIX_WIDTH;
-var S_DRAWINGBUFFER_HEIGHT = S_DRAWINGBUFFER + SUFFIX_HEIGHT;
-
-var NESTED_OPTIONS = [
-  S_BLEND_FUNC,
-  S_BLEND_EQUATION,
-  S_STENCIL_FUNC,
-  S_STENCIL_OPFRONT,
-  S_STENCIL_OPBACK,
-  S_SAMPLE_COVERAGE,
-  S_VIEWPORT,
-  S_SCISSOR_BOX,
-  S_POLYGON_OFFSET_OFFSET
-];
-
-var GL_ARRAY_BUFFER$1 = 34962;
-var GL_ELEMENT_ARRAY_BUFFER$1 = 34963;
-
-var GL_FRAGMENT_SHADER$1 = 35632;
-var GL_VERTEX_SHADER$1 = 35633;
-
-var GL_TEXTURE_2D$2 = 0x0DE1;
-var GL_TEXTURE_CUBE_MAP$1 = 0x8513;
-
-var GL_CULL_FACE = 0x0B44;
-var GL_BLEND = 0x0BE2;
-var GL_DITHER = 0x0BD0;
-var GL_STENCIL_TEST = 0x0B90;
-var GL_DEPTH_TEST = 0x0B71;
-var GL_SCISSOR_TEST = 0x0C11;
-var GL_POLYGON_OFFSET_FILL = 0x8037;
-var GL_SAMPLE_ALPHA_TO_COVERAGE = 0x809E;
-var GL_SAMPLE_COVERAGE = 0x80A0;
-
-var GL_FLOAT$7 = 5126;
-var GL_FLOAT_VEC2 = 35664;
-var GL_FLOAT_VEC3 = 35665;
-var GL_FLOAT_VEC4 = 35666;
-var GL_INT$3 = 5124;
-var GL_INT_VEC2 = 35667;
-var GL_INT_VEC3 = 35668;
-var GL_INT_VEC4 = 35669;
-var GL_BOOL = 35670;
-var GL_BOOL_VEC2 = 35671;
-var GL_BOOL_VEC3 = 35672;
-var GL_BOOL_VEC4 = 35673;
-var GL_FLOAT_MAT2 = 35674;
-var GL_FLOAT_MAT3 = 35675;
-var GL_FLOAT_MAT4 = 35676;
-var GL_SAMPLER_2D = 35678;
-var GL_SAMPLER_CUBE = 35680;
-
-var GL_TRIANGLES$1 = 4;
-
-var GL_FRONT = 1028;
-var GL_BACK = 1029;
-var GL_CW = 0x0900;
-var GL_CCW = 0x0901;
-var GL_MIN_EXT = 0x8007;
-var GL_MAX_EXT = 0x8008;
-var GL_ALWAYS = 519;
-var GL_KEEP = 7680;
-var GL_ZERO = 0;
-var GL_ONE = 1;
-var GL_FUNC_ADD = 0x8006;
-var GL_LESS = 513;
-
-var GL_FRAMEBUFFER$1 = 0x8D40;
-var GL_COLOR_ATTACHMENT0$1 = 0x8CE0;
-
-var blendFuncs = {
-  '0': 0,
-  '1': 1,
-  'zero': 0,
-  'one': 1,
-  'src color': 768,
-  'one minus src color': 769,
-  'src alpha': 770,
-  'one minus src alpha': 771,
-  'dst color': 774,
-  'one minus dst color': 775,
-  'dst alpha': 772,
-  'one minus dst alpha': 773,
-  'constant color': 32769,
-  'one minus constant color': 32770,
-  'constant alpha': 32771,
-  'one minus constant alpha': 32772,
-  'src alpha saturate': 776
-};
-
-// There are invalid values for srcRGB and dstRGB. See:
-// https://www.khronos.org/registry/webgl/specs/1.0/#6.13
-// https://github.com/KhronosGroup/WebGL/blob/0d3201f5f7ec3c0060bc1f04077461541f1987b9/conformance-suites/1.0.3/conformance/misc/webgl-specific.html#L56
-var invalidBlendCombinations = [
-  'constant color, constant alpha',
-  'one minus constant color, constant alpha',
-  'constant color, one minus constant alpha',
-  'one minus constant color, one minus constant alpha',
-  'constant alpha, constant color',
-  'constant alpha, one minus constant color',
-  'one minus constant alpha, constant color',
-  'one minus constant alpha, one minus constant color'
-];
-
-var compareFuncs = {
-  'never': 512,
-  'less': 513,
-  '<': 513,
-  'equal': 514,
-  '=': 514,
-  '==': 514,
-  '===': 514,
-  'lequal': 515,
-  '<=': 515,
-  'greater': 516,
-  '>': 516,
-  'notequal': 517,
-  '!=': 517,
-  '!==': 517,
-  'gequal': 518,
-  '>=': 518,
-  'always': 519
-};
-
-var stencilOps = {
-  '0': 0,
-  'zero': 0,
-  'keep': 7680,
-  'replace': 7681,
-  'increment': 7682,
-  'decrement': 7683,
-  'increment wrap': 34055,
-  'decrement wrap': 34056,
-  'invert': 5386
-};
-
-var shaderType = {
-  'frag': GL_FRAGMENT_SHADER$1,
-  'vert': GL_VERTEX_SHADER$1
-};
-
-var orientationType = {
-  'cw': GL_CW,
-  'ccw': GL_CCW
-};
-
-function isBufferArgs (x) {
-  return Array.isArray(x) ||
-    isTypedArray(x) ||
-    isNDArrayLike(x)
-}
-
-// Make sure viewport is processed first
-function sortState (state) {
-  return state.sort(function (a, b) {
-    if (a === S_VIEWPORT) {
-      return -1
-    } else if (b === S_VIEWPORT) {
-      return 1
-    }
-    return (a < b) ? -1 : 1
-  })
-}
-
-function Declaration (thisDep, contextDep, propDep, append) {
-  this.thisDep = thisDep;
-  this.contextDep = contextDep;
-  this.propDep = propDep;
-  this.append = append;
-}
-
-function isStatic (decl) {
-  return decl && !(decl.thisDep || decl.contextDep || decl.propDep)
-}
-
-function createStaticDecl (append) {
-  return new Declaration(false, false, false, append)
-}
-
-function createDynamicDecl (dyn, append) {
-  var type = dyn.type;
-  if (type === DYN_FUNC$1) {
-    var numArgs = dyn.data.length;
-    return new Declaration(
-      true,
-      numArgs >= 1,
-      numArgs >= 2,
-      append)
-  } else if (type === DYN_THUNK) {
-    var data = dyn.data;
-    return new Declaration(
-      data.thisDep,
-      data.contextDep,
-      data.propDep,
-      append)
-  } else {
-    return new Declaration(
-      type === DYN_STATE$1,
-      type === DYN_CONTEXT$1,
-      type === DYN_PROP$1,
-      append)
-  }
-}
-
-var SCOPE_DECL = new Declaration(false, false, false, function () {});
-
-function reglCore (
-  gl,
-  stringStore,
-  extensions,
-  limits,
-  bufferState,
-  elementState,
-  textureState,
-  framebufferState,
-  uniformState,
-  attributeState,
-  shaderState,
-  drawState,
-  contextState,
-  timer,
-  config) {
-  var AttributeRecord = attributeState.Record;
-
-  var blendEquations = {
-    'add': 32774,
-    'subtract': 32778,
-    'reverse subtract': 32779
-  };
-  if (extensions.ext_blend_minmax) {
-    blendEquations.min = GL_MIN_EXT;
-    blendEquations.max = GL_MAX_EXT;
-  }
-
-  var extInstancing = extensions.angle_instanced_arrays;
-  var extDrawBuffers = extensions.webgl_draw_buffers;
-
-  // ===================================================
-  // ===================================================
-  // WEBGL STATE
-  // ===================================================
-  // ===================================================
-  var currentState = {
-    dirty: true,
-    profile: config.profile
-  };
-  var nextState = {};
-  var GL_STATE_NAMES = [];
-  var GL_FLAGS = {};
-  var GL_VARIABLES = {};
-
-  function propName (name) {
-    return name.replace('.', '_')
-  }
-
-  function stateFlag (sname, cap, init) {
-    var name = propName(sname);
-    GL_STATE_NAMES.push(sname);
-    nextState[name] = currentState[name] = !!init;
-    GL_FLAGS[name] = cap;
-  }
-
-  function stateVariable (sname, func, init) {
-    var name = propName(sname);
-    GL_STATE_NAMES.push(sname);
-    if (Array.isArray(init)) {
-      currentState[name] = init.slice();
-      nextState[name] = init.slice();
-    } else {
-      currentState[name] = nextState[name] = init;
-    }
-    GL_VARIABLES[name] = func;
-  }
-
-  // Dithering
-  stateFlag(S_DITHER, GL_DITHER);
-
-  // Blending
-  stateFlag(S_BLEND_ENABLE, GL_BLEND);
-  stateVariable(S_BLEND_COLOR, 'blendColor', [0, 0, 0, 0]);
-  stateVariable(S_BLEND_EQUATION, 'blendEquationSeparate',
-    [GL_FUNC_ADD, GL_FUNC_ADD]);
-  stateVariable(S_BLEND_FUNC, 'blendFuncSeparate',
-    [GL_ONE, GL_ZERO, GL_ONE, GL_ZERO]);
-
-  // Depth
-  stateFlag(S_DEPTH_ENABLE, GL_DEPTH_TEST, true);
-  stateVariable(S_DEPTH_FUNC, 'depthFunc', GL_LESS);
-  stateVariable(S_DEPTH_RANGE, 'depthRange', [0, 1]);
-  stateVariable(S_DEPTH_MASK, 'depthMask', true);
-
-  // Color mask
-  stateVariable(S_COLOR_MASK, S_COLOR_MASK, [true, true, true, true]);
-
-  // Face culling
-  stateFlag(S_CULL_ENABLE, GL_CULL_FACE);
-  stateVariable(S_CULL_FACE, 'cullFace', GL_BACK);
-
-  // Front face orientation
-  stateVariable(S_FRONT_FACE, S_FRONT_FACE, GL_CCW);
-
-  // Line width
-  stateVariable(S_LINE_WIDTH, S_LINE_WIDTH, 1);
-
-  // Polygon offset
-  stateFlag(S_POLYGON_OFFSET_ENABLE, GL_POLYGON_OFFSET_FILL);
-  stateVariable(S_POLYGON_OFFSET_OFFSET, 'polygonOffset', [0, 0]);
-
-  // Sample coverage
-  stateFlag(S_SAMPLE_ALPHA, GL_SAMPLE_ALPHA_TO_COVERAGE);
-  stateFlag(S_SAMPLE_ENABLE, GL_SAMPLE_COVERAGE);
-  stateVariable(S_SAMPLE_COVERAGE, 'sampleCoverage', [1, false]);
-
-  // Stencil
-  stateFlag(S_STENCIL_ENABLE, GL_STENCIL_TEST);
-  stateVariable(S_STENCIL_MASK, 'stencilMask', -1);
-  stateVariable(S_STENCIL_FUNC, 'stencilFunc', [GL_ALWAYS, 0, -1]);
-  stateVariable(S_STENCIL_OPFRONT, 'stencilOpSeparate',
-    [GL_FRONT, GL_KEEP, GL_KEEP, GL_KEEP]);
-  stateVariable(S_STENCIL_OPBACK, 'stencilOpSeparate',
-    [GL_BACK, GL_KEEP, GL_KEEP, GL_KEEP]);
-
-  // Scissor
-  stateFlag(S_SCISSOR_ENABLE, GL_SCISSOR_TEST);
-  stateVariable(S_SCISSOR_BOX, 'scissor',
-    [0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight]);
-
-  // Viewport
-  stateVariable(S_VIEWPORT, S_VIEWPORT,
-    [0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight]);
-
-  // ===================================================
-  // ===================================================
-  // ENVIRONMENT
-  // ===================================================
-  // ===================================================
-  var sharedState = {
-    gl: gl,
-    context: contextState,
-    strings: stringStore,
-    next: nextState,
-    current: currentState,
-    draw: drawState,
-    elements: elementState,
-    buffer: bufferState,
-    shader: shaderState,
-    attributes: attributeState.state,
-    uniforms: uniformState,
-    framebuffer: framebufferState,
-    extensions: extensions,
-
-    timer: timer,
-    isBufferArgs: isBufferArgs
-  };
-
-  var sharedConstants = {
-    primTypes: primTypes,
-    compareFuncs: compareFuncs,
-    blendFuncs: blendFuncs,
-    blendEquations: blendEquations,
-    stencilOps: stencilOps,
-    glTypes: glTypes,
-    orientationType: orientationType
-  };
-
-  check$1.optional(function () {
-    sharedState.isArrayLike = isArrayLike;
-  });
-
-  if (extDrawBuffers) {
-    sharedConstants.backBuffer = [GL_BACK];
-    sharedConstants.drawBuffer = loop(limits.maxDrawbuffers, function (i) {
-      if (i === 0) {
-        return [0]
-      }
-      return loop(i, function (j) {
-        return GL_COLOR_ATTACHMENT0$1 + j
-      })
-    });
-  }
-
-  var drawCallCounter = 0;
-  function createREGLEnvironment () {
-    var env = createEnvironment();
-    var link = env.link;
-    var global = env.global;
-    env.id = drawCallCounter++;
-
-    env.batchId = '0';
-
-    // link shared state
-    var SHARED = link(sharedState);
-    var shared = env.shared = {
-      props: 'a0'
-    };
-    Object.keys(sharedState).forEach(function (prop) {
-      shared[prop] = global.def(SHARED, '.', prop);
-    });
-
-    // Inject runtime assertion stuff for debug builds
-    check$1.optional(function () {
-      env.CHECK = link(check$1);
-      env.commandStr = check$1.guessCommand();
-      env.command = link(env.commandStr);
-      env.assert = function (block, pred, message) {
-        block(
-          'if(!(', pred, '))',
-          this.CHECK, '.commandRaise(', link(message), ',', this.command, ');');
-      };
-
-      sharedConstants.invalidBlendCombinations = invalidBlendCombinations;
-    });
-
-    // Copy GL state variables over
-    var nextVars = env.next = {};
-    var currentVars = env.current = {};
-    Object.keys(GL_VARIABLES).forEach(function (variable) {
-      if (Array.isArray(currentState[variable])) {
-        nextVars[variable] = global.def(shared.next, '.', variable);
-        currentVars[variable] = global.def(shared.current, '.', variable);
-      }
-    });
-
-    // Initialize shared constants
-    var constants = env.constants = {};
-    Object.keys(sharedConstants).forEach(function (name) {
-      constants[name] = global.def(JSON.stringify(sharedConstants[name]));
-    });
-
-    // Helper function for calling a block
-    env.invoke = function (block, x) {
-      switch (x.type) {
-        case DYN_FUNC$1:
-          var argList = [
-            'this',
-            shared.context,
-            shared.props,
-            env.batchId
-          ];
-          return block.def(
-            link(x.data), '.call(',
-              argList.slice(0, Math.max(x.data.length + 1, 4)),
-             ')')
-        case DYN_PROP$1:
-          return block.def(shared.props, x.data)
-        case DYN_CONTEXT$1:
-          return block.def(shared.context, x.data)
-        case DYN_STATE$1:
-          return block.def('this', x.data)
-        case DYN_THUNK:
-          x.data.append(env, block);
-          return x.data.ref
-      }
-    };
-
-    env.attribCache = {};
-
-    var scopeAttribs = {};
-    env.scopeAttrib = function (name) {
-      var id = stringStore.id(name);
-      if (id in scopeAttribs) {
-        return scopeAttribs[id]
-      }
-      var binding = attributeState.scope[id];
-      if (!binding) {
-        binding = attributeState.scope[id] = new AttributeRecord();
-      }
-      var result = scopeAttribs[id] = link(binding);
-      return result
-    };
-
-    return env
-  }
-
-  // ===================================================
-  // ===================================================
-  // PARSING
-  // ===================================================
-  // ===================================================
-  function parseProfile (options) {
-    var staticOptions = options.static;
-    var dynamicOptions = options.dynamic;
-
-    var profileEnable;
-    if (S_PROFILE in staticOptions) {
-      var value = !!staticOptions[S_PROFILE];
-      profileEnable = createStaticDecl(function (env, scope) {
-        return value
-      });
-      profileEnable.enable = value;
-    } else if (S_PROFILE in dynamicOptions) {
-      var dyn = dynamicOptions[S_PROFILE];
-      profileEnable = createDynamicDecl(dyn, function (env, scope) {
-        return env.invoke(scope, dyn)
-      });
-    }
-
-    return profileEnable
-  }
-
-  function parseFramebuffer (options, env) {
-    var staticOptions = options.static;
-    var dynamicOptions = options.dynamic;
-
-    if (S_FRAMEBUFFER in staticOptions) {
-      var framebuffer = staticOptions[S_FRAMEBUFFER];
-      if (framebuffer) {
-        framebuffer = framebufferState.getFramebuffer(framebuffer);
-        check$1.command(framebuffer, 'invalid framebuffer object');
-        return createStaticDecl(function (env, block) {
-          var FRAMEBUFFER = env.link(framebuffer);
-          var shared = env.shared;
-          block.set(
-            shared.framebuffer,
-            '.next',
-            FRAMEBUFFER);
-          var CONTEXT = shared.context;
-          block.set(
-            CONTEXT,
-            '.' + S_FRAMEBUFFER_WIDTH,
-            FRAMEBUFFER + '.width');
-          block.set(
-            CONTEXT,
-            '.' + S_FRAMEBUFFER_HEIGHT,
-            FRAMEBUFFER + '.height');
-          return FRAMEBUFFER
-        })
-      } else {
-        return createStaticDecl(function (env, scope) {
-          var shared = env.shared;
-          scope.set(
-            shared.framebuffer,
-            '.next',
-            'null');
-          var CONTEXT = shared.context;
-          scope.set(
-            CONTEXT,
-            '.' + S_FRAMEBUFFER_WIDTH,
-            CONTEXT + '.' + S_DRAWINGBUFFER_WIDTH);
-          scope.set(
-            CONTEXT,
-            '.' + S_FRAMEBUFFER_HEIGHT,
-            CONTEXT + '.' + S_DRAWINGBUFFER_HEIGHT);
-          return 'null'
-        })
-      }
-    } else if (S_FRAMEBUFFER in dynamicOptions) {
-      var dyn = dynamicOptions[S_FRAMEBUFFER];
-      return createDynamicDecl(dyn, function (env, scope) {
-        var FRAMEBUFFER_FUNC = env.invoke(scope, dyn);
-        var shared = env.shared;
-        var FRAMEBUFFER_STATE = shared.framebuffer;
-        var FRAMEBUFFER = scope.def(
-          FRAMEBUFFER_STATE, '.getFramebuffer(', FRAMEBUFFER_FUNC, ')');
-
-        check$1.optional(function () {
-          env.assert(scope,
-            '!' + FRAMEBUFFER_FUNC + '||' + FRAMEBUFFER,
-            'invalid framebuffer object');
-        });
-
-        scope.set(
-          FRAMEBUFFER_STATE,
-          '.next',
-          FRAMEBUFFER);
-        var CONTEXT = shared.context;
-        scope.set(
-          CONTEXT,
-          '.' + S_FRAMEBUFFER_WIDTH,
-          FRAMEBUFFER + '?' + FRAMEBUFFER + '.width:' +
-          CONTEXT + '.' + S_DRAWINGBUFFER_WIDTH);
-        scope.set(
-          CONTEXT,
-          '.' + S_FRAMEBUFFER_HEIGHT,
-          FRAMEBUFFER +
-          '?' + FRAMEBUFFER + '.height:' +
-          CONTEXT + '.' + S_DRAWINGBUFFER_HEIGHT);
-        return FRAMEBUFFER
-      })
-    } else {
-      return null
-    }
-  }
-
-  function parseViewportScissor (options, framebuffer, env) {
-    var staticOptions = options.static;
-    var dynamicOptions = options.dynamic;
-
-    function parseBox (param) {
-      if (param in staticOptions) {
-        var box = staticOptions[param];
-        check$1.commandType(box, 'object', 'invalid ' + param, env.commandStr);
-
-        var isStatic = true;
-        var x = box.x | 0;
-        var y = box.y | 0;
-        var w, h;
-        if ('width' in box) {
-          w = box.width | 0;
-          check$1.command(w >= 0, 'invalid ' + param, env.commandStr);
-        } else {
-          isStatic = false;
-        }
-        if ('height' in box) {
-          h = box.height | 0;
-          check$1.command(h >= 0, 'invalid ' + param, env.commandStr);
-        } else {
-          isStatic = false;
-        }
-
-        return new Declaration(
-          !isStatic && framebuffer && framebuffer.thisDep,
-          !isStatic && framebuffer && framebuffer.contextDep,
-          !isStatic && framebuffer && framebuffer.propDep,
-          function (env, scope) {
-            var CONTEXT = env.shared.context;
-            var BOX_W = w;
-            if (!('width' in box)) {
-              BOX_W = scope.def(CONTEXT, '.', S_FRAMEBUFFER_WIDTH, '-', x);
-            }
-            var BOX_H = h;
-            if (!('height' in box)) {
-              BOX_H = scope.def(CONTEXT, '.', S_FRAMEBUFFER_HEIGHT, '-', y);
-            }
-            return [x, y, BOX_W, BOX_H]
-          })
-      } else if (param in dynamicOptions) {
-        var dynBox = dynamicOptions[param];
-        var result = createDynamicDecl(dynBox, function (env, scope) {
-          var BOX = env.invoke(scope, dynBox);
-
-          check$1.optional(function () {
-            env.assert(scope,
-              BOX + '&&typeof ' + BOX + '==="object"',
-              'invalid ' + param);
-          });
-
-          var CONTEXT = env.shared.context;
-          var BOX_X = scope.def(BOX, '.x|0');
-          var BOX_Y = scope.def(BOX, '.y|0');
-          var BOX_W = scope.def(
-            '"width" in ', BOX, '?', BOX, '.width|0:',
-            '(', CONTEXT, '.', S_FRAMEBUFFER_WIDTH, '-', BOX_X, ')');
-          var BOX_H = scope.def(
-            '"height" in ', BOX, '?', BOX, '.height|0:',
-            '(', CONTEXT, '.', S_FRAMEBUFFER_HEIGHT, '-', BOX_Y, ')');
-
-          check$1.optional(function () {
-            env.assert(scope,
-              BOX_W + '>=0&&' +
-              BOX_H + '>=0',
-              'invalid ' + param);
-          });
-
-          return [BOX_X, BOX_Y, BOX_W, BOX_H]
-        });
-        if (framebuffer) {
-          result.thisDep = result.thisDep || framebuffer.thisDep;
-          result.contextDep = result.contextDep || framebuffer.contextDep;
-          result.propDep = result.propDep || framebuffer.propDep;
-        }
-        return result
-      } else if (framebuffer) {
-        return new Declaration(
-          framebuffer.thisDep,
-          framebuffer.contextDep,
-          framebuffer.propDep,
-          function (env, scope) {
-            var CONTEXT = env.shared.context;
-            return [
-              0, 0,
-              scope.def(CONTEXT, '.', S_FRAMEBUFFER_WIDTH),
-              scope.def(CONTEXT, '.', S_FRAMEBUFFER_HEIGHT)]
-          })
-      } else {
-        return null
-      }
-    }
-
-    var viewport = parseBox(S_VIEWPORT);
-
-    if (viewport) {
-      var prevViewport = viewport;
-      viewport = new Declaration(
-        viewport.thisDep,
-        viewport.contextDep,
-        viewport.propDep,
-        function (env, scope) {
-          var VIEWPORT = prevViewport.append(env, scope);
-          var CONTEXT = env.shared.context;
-          scope.set(
-            CONTEXT,
-            '.' + S_VIEWPORT_WIDTH,
-            VIEWPORT[2]);
-          scope.set(
-            CONTEXT,
-            '.' + S_VIEWPORT_HEIGHT,
-            VIEWPORT[3]);
-          return VIEWPORT
-        });
-    }
-
-    return {
-      viewport: viewport,
-      scissor_box: parseBox(S_SCISSOR_BOX)
-    }
-  }
-
-  function parseProgram (options) {
-    var staticOptions = options.static;
-    var dynamicOptions = options.dynamic;
-
-    function parseShader (name) {
-      if (name in staticOptions) {
-        var id = stringStore.id(staticOptions[name]);
-        check$1.optional(function () {
-          shaderState.shader(shaderType[name], id, check$1.guessCommand());
-        });
-        var result = createStaticDecl(function () {
-          return id
-        });
-        result.id = id;
-        return result
-      } else if (name in dynamicOptions) {
-        var dyn = dynamicOptions[name];
-        return createDynamicDecl(dyn, function (env, scope) {
-          var str = env.invoke(scope, dyn);
-          var id = scope.def(env.shared.strings, '.id(', str, ')');
-          check$1.optional(function () {
-            scope(
-              env.shared.shader, '.shader(',
-              shaderType[name], ',',
-              id, ',',
-              env.command, ');');
-          });
-          return id
-        })
-      }
-      return null
-    }
-
-    var frag = parseShader(S_FRAG);
-    var vert = parseShader(S_VERT);
-
-    var program = null;
-    var progVar;
-    if (isStatic(frag) && isStatic(vert)) {
-      program = shaderState.program(vert.id, frag.id);
-      progVar = createStaticDecl(function (env, scope) {
-        return env.link(program)
-      });
-    } else {
-      progVar = new Declaration(
-        (frag && frag.thisDep) || (vert && vert.thisDep),
-        (frag && frag.contextDep) || (vert && vert.contextDep),
-        (frag && frag.propDep) || (vert && vert.propDep),
-        function (env, scope) {
-          var SHADER_STATE = env.shared.shader;
-          var fragId;
-          if (frag) {
-            fragId = frag.append(env, scope);
-          } else {
-            fragId = scope.def(SHADER_STATE, '.', S_FRAG);
-          }
-          var vertId;
-          if (vert) {
-            vertId = vert.append(env, scope);
-          } else {
-            vertId = scope.def(SHADER_STATE, '.', S_VERT);
-          }
-          var progDef = SHADER_STATE + '.program(' + vertId + ',' + fragId;
-          check$1.optional(function () {
-            progDef += ',' + env.command;
-          });
-          return scope.def(progDef + ')')
-        });
-    }
-
-    return {
-      frag: frag,
-      vert: vert,
-      progVar: progVar,
-      program: program
-    }
-  }
-
-  function parseDraw (options, env) {
-    var staticOptions = options.static;
-    var dynamicOptions = options.dynamic;
-
-    function parseElements () {
-      if (S_ELEMENTS in staticOptions) {
-        var elements = staticOptions[S_ELEMENTS];
-        if (isBufferArgs(elements)) {
-          elements = elementState.getElements(elementState.create(elements, true));
-        } else if (elements) {
-          elements = elementState.getElements(elements);
-          check$1.command(elements, 'invalid elements', env.commandStr);
-        }
-        var result = createStaticDecl(function (env, scope) {
-          if (elements) {
-            var result = env.link(elements);
-            env.ELEMENTS = result;
-            return result
-          }
-          env.ELEMENTS = null;
-          return null
-        });
-        result.value = elements;
-        return result
-      } else if (S_ELEMENTS in dynamicOptions) {
-        var dyn = dynamicOptions[S_ELEMENTS];
-        return createDynamicDecl(dyn, function (env, scope) {
-          var shared = env.shared;
-
-          var IS_BUFFER_ARGS = shared.isBufferArgs;
-          var ELEMENT_STATE = shared.elements;
-
-          var elementDefn = env.invoke(scope, dyn);
-          var elements = scope.def('null');
-          var elementStream = scope.def(IS_BUFFER_ARGS, '(', elementDefn, ')');
-
-          var ifte = env.cond(elementStream)
-            .then(elements, '=', ELEMENT_STATE, '.createStream(', elementDefn, ');')
-            .else(elements, '=', ELEMENT_STATE, '.getElements(', elementDefn, ');');
-
-          check$1.optional(function () {
-            env.assert(ifte.else,
-              '!' + elementDefn + '||' + elements,
-              'invalid elements');
-          });
-
-          scope.entry(ifte);
-          scope.exit(
-            env.cond(elementStream)
-              .then(ELEMENT_STATE, '.destroyStream(', elements, ');'));
-
-          env.ELEMENTS = elements;
-
-          return elements
-        })
-      }
-
-      return null
-    }
-
-    var elements = parseElements();
-
-    function parsePrimitive () {
-      if (S_PRIMITIVE in staticOptions) {
-        var primitive = staticOptions[S_PRIMITIVE];
-        check$1.commandParameter(primitive, primTypes, 'invalid primitve', env.commandStr);
-        return createStaticDecl(function (env, scope) {
-          return primTypes[primitive]
-        })
-      } else if (S_PRIMITIVE in dynamicOptions) {
-        var dynPrimitive = dynamicOptions[S_PRIMITIVE];
-        return createDynamicDecl(dynPrimitive, function (env, scope) {
-          var PRIM_TYPES = env.constants.primTypes;
-          var prim = env.invoke(scope, dynPrimitive);
-          check$1.optional(function () {
-            env.assert(scope,
-              prim + ' in ' + PRIM_TYPES,
-              'invalid primitive, must be one of ' + Object.keys(primTypes));
-          });
-          return scope.def(PRIM_TYPES, '[', prim, ']')
-        })
-      } else if (elements) {
-        if (isStatic(elements)) {
-          if (elements.value) {
-            return createStaticDecl(function (env, scope) {
-              return scope.def(env.ELEMENTS, '.primType')
-            })
-          } else {
-            return createStaticDecl(function () {
-              return GL_TRIANGLES$1
-            })
-          }
-        } else {
-          return new Declaration(
-            elements.thisDep,
-            elements.contextDep,
-            elements.propDep,
-            function (env, scope) {
-              var elements = env.ELEMENTS;
-              return scope.def(elements, '?', elements, '.primType:', GL_TRIANGLES$1)
-            })
-        }
-      }
-      return null
-    }
-
-    function parseParam (param, isOffset) {
-      if (param in staticOptions) {
-        var value = staticOptions[param] | 0;
-        check$1.command(!isOffset || value >= 0, 'invalid ' + param, env.commandStr);
-        return createStaticDecl(function (env, scope) {
-          if (isOffset) {
-            env.OFFSET = value;
-          }
-          return value
-        })
-      } else if (param in dynamicOptions) {
-        var dynValue = dynamicOptions[param];
-        return createDynamicDecl(dynValue, function (env, scope) {
-          var result = env.invoke(scope, dynValue);
-          if (isOffset) {
-            env.OFFSET = result;
-            check$1.optional(function () {
-              env.assert(scope,
-                result + '>=0',
-                'invalid ' + param);
-            });
-          }
-          return result
-        })
-      } else if (isOffset && elements) {
-        return createStaticDecl(function (env, scope) {
-          env.OFFSET = '0';
-          return 0
-        })
-      }
-      return null
-    }
-
-    var OFFSET = parseParam(S_OFFSET, true);
-
-    function parseVertCount () {
-      if (S_COUNT in staticOptions) {
-        var count = staticOptions[S_COUNT] | 0;
-        check$1.command(
-          typeof count === 'number' && count >= 0, 'invalid vertex count', env.commandStr);
-        return createStaticDecl(function () {
-          return count
-        })
-      } else if (S_COUNT in dynamicOptions) {
-        var dynCount = dynamicOptions[S_COUNT];
-        return createDynamicDecl(dynCount, function (env, scope) {
-          var result = env.invoke(scope, dynCount);
-          check$1.optional(function () {
-            env.assert(scope,
-              'typeof ' + result + '==="number"&&' +
-              result + '>=0&&' +
-              result + '===(' + result + '|0)',
-              'invalid vertex count');
-          });
-          return result
-        })
-      } else if (elements) {
-        if (isStatic(elements)) {
-          if (elements) {
-            if (OFFSET) {
-              return new Declaration(
-                OFFSET.thisDep,
-                OFFSET.contextDep,
-                OFFSET.propDep,
-                function (env, scope) {
-                  var result = scope.def(
-                    env.ELEMENTS, '.vertCount-', env.OFFSET);
-
-                  check$1.optional(function () {
-                    env.assert(scope,
-                      result + '>=0',
-                      'invalid vertex offset/element buffer too small');
-                  });
-
-                  return result
-                })
-            } else {
-              return createStaticDecl(function (env, scope) {
-                return scope.def(env.ELEMENTS, '.vertCount')
-              })
-            }
-          } else {
-            var result = createStaticDecl(function () {
-              return -1
-            });
-            check$1.optional(function () {
-              result.MISSING = true;
-            });
-            return result
-          }
-        } else {
-          var variable = new Declaration(
-            elements.thisDep || OFFSET.thisDep,
-            elements.contextDep || OFFSET.contextDep,
-            elements.propDep || OFFSET.propDep,
-            function (env, scope) {
-              var elements = env.ELEMENTS;
-              if (env.OFFSET) {
-                return scope.def(elements, '?', elements, '.vertCount-',
-                  env.OFFSET, ':-1')
-              }
-              return scope.def(elements, '?', elements, '.vertCount:-1')
-            });
-          check$1.optional(function () {
-            variable.DYNAMIC = true;
-          });
-          return variable
-        }
-      }
-      return null
-    }
-
-    return {
-      elements: elements,
-      primitive: parsePrimitive(),
-      count: parseVertCount(),
-      instances: parseParam(S_INSTANCES, false),
-      offset: OFFSET
-    }
-  }
-
-  function parseGLState (options, env) {
-    var staticOptions = options.static;
-    var dynamicOptions = options.dynamic;
-
-    var STATE = {};
-
-    GL_STATE_NAMES.forEach(function (prop) {
-      var param = propName(prop);
-
-      function parseParam (parseStatic, parseDynamic) {
-        if (prop in staticOptions) {
-          var value = parseStatic(staticOptions[prop]);
-          STATE[param] = createStaticDecl(function () {
-            return value
-          });
-        } else if (prop in dynamicOptions) {
-          var dyn = dynamicOptions[prop];
-          STATE[param] = createDynamicDecl(dyn, function (env, scope) {
-            return parseDynamic(env, scope, env.invoke(scope, dyn))
-          });
-        }
-      }
-
-      switch (prop) {
-        case S_CULL_ENABLE:
-        case S_BLEND_ENABLE:
-        case S_DITHER:
-        case S_STENCIL_ENABLE:
-        case S_DEPTH_ENABLE:
-        case S_SCISSOR_ENABLE:
-        case S_POLYGON_OFFSET_ENABLE:
-        case S_SAMPLE_ALPHA:
-        case S_SAMPLE_ENABLE:
-        case S_DEPTH_MASK:
-          return parseParam(
-            function (value) {
-              check$1.commandType(value, 'boolean', prop, env.commandStr);
-              return value
-            },
-            function (env, scope, value) {
-              check$1.optional(function () {
-                env.assert(scope,
-                  'typeof ' + value + '==="boolean"',
-                  'invalid flag ' + prop, env.commandStr);
-              });
-              return value
-            })
-
-        case S_DEPTH_FUNC:
-          return parseParam(
-            function (value) {
-              check$1.commandParameter(value, compareFuncs, 'invalid ' + prop, env.commandStr);
-              return compareFuncs[value]
-            },
-            function (env, scope, value) {
-              var COMPARE_FUNCS = env.constants.compareFuncs;
-              check$1.optional(function () {
-                env.assert(scope,
-                  value + ' in ' + COMPARE_FUNCS,
-                  'invalid ' + prop + ', must be one of ' + Object.keys(compareFuncs));
-              });
-              return scope.def(COMPARE_FUNCS, '[', value, ']')
-            })
-
-        case S_DEPTH_RANGE:
-          return parseParam(
-            function (value) {
-              check$1.command(
-                isArrayLike(value) &&
-                value.length === 2 &&
-                typeof value[0] === 'number' &&
-                typeof value[1] === 'number' &&
-                value[0] <= value[1],
-                'depth range is 2d array',
-                env.commandStr);
-              return value
-            },
-            function (env, scope, value) {
-              check$1.optional(function () {
-                env.assert(scope,
-                  env.shared.isArrayLike + '(' + value + ')&&' +
-                  value + '.length===2&&' +
-                  'typeof ' + value + '[0]==="number"&&' +
-                  'typeof ' + value + '[1]==="number"&&' +
-                  value + '[0]<=' + value + '[1]',
-                  'depth range must be a 2d array');
-              });
-
-              var Z_NEAR = scope.def('+', value, '[0]');
-              var Z_FAR = scope.def('+', value, '[1]');
-              return [Z_NEAR, Z_FAR]
-            })
-
-        case S_BLEND_FUNC:
-          return parseParam(
-            function (value) {
-              check$1.commandType(value, 'object', 'blend.func', env.commandStr);
-              var srcRGB = ('srcRGB' in value ? value.srcRGB : value.src);
-              var srcAlpha = ('srcAlpha' in value ? value.srcAlpha : value.src);
-              var dstRGB = ('dstRGB' in value ? value.dstRGB : value.dst);
-              var dstAlpha = ('dstAlpha' in value ? value.dstAlpha : value.dst);
-              check$1.commandParameter(srcRGB, blendFuncs, param + '.srcRGB', env.commandStr);
-              check$1.commandParameter(srcAlpha, blendFuncs, param + '.srcAlpha', env.commandStr);
-              check$1.commandParameter(dstRGB, blendFuncs, param + '.dstRGB', env.commandStr);
-              check$1.commandParameter(dstAlpha, blendFuncs, param + '.dstAlpha', env.commandStr);
-
-              check$1.command(
-                (invalidBlendCombinations.indexOf(srcRGB + ', ' + dstRGB) === -1),
-                'unallowed blending combination (srcRGB, dstRGB) = (' + srcRGB + ', ' + dstRGB + ')', env.commandStr);
-
-              return [
-                blendFuncs[srcRGB],
-                blendFuncs[dstRGB],
-                blendFuncs[srcAlpha],
-                blendFuncs[dstAlpha]
-              ]
-            },
-            function (env, scope, value) {
-              var BLEND_FUNCS = env.constants.blendFuncs;
-
-              check$1.optional(function () {
-                env.assert(scope,
-                  value + '&&typeof ' + value + '==="object"',
-                  'invalid blend func, must be an object');
-              });
-
-              function read (prefix, suffix) {
-                var func = scope.def(
-                  '"', prefix, suffix, '" in ', value,
-                  '?', value, '.', prefix, suffix,
-                  ':', value, '.', prefix);
-
-                check$1.optional(function () {
-                  env.assert(scope,
-                    func + ' in ' + BLEND_FUNCS,
-                    'invalid ' + prop + '.' + prefix + suffix + ', must be one of ' + Object.keys(blendFuncs));
-                });
-
-                return func
-              }
-
-              var srcRGB = read('src', 'RGB');
-              var dstRGB = read('dst', 'RGB');
-
-              check$1.optional(function () {
-                var INVALID_BLEND_COMBINATIONS = env.constants.invalidBlendCombinations;
-
-                env.assert(scope,
-                           INVALID_BLEND_COMBINATIONS +
-                           '.indexOf(' + srcRGB + '+", "+' + dstRGB + ') === -1 ',
-                           'unallowed blending combination for (srcRGB, dstRGB)'
-                          );
-              });
-
-              var SRC_RGB = scope.def(BLEND_FUNCS, '[', srcRGB, ']');
-              var SRC_ALPHA = scope.def(BLEND_FUNCS, '[', read('src', 'Alpha'), ']');
-              var DST_RGB = scope.def(BLEND_FUNCS, '[', dstRGB, ']');
-              var DST_ALPHA = scope.def(BLEND_FUNCS, '[', read('dst', 'Alpha'), ']');
-
-              return [SRC_RGB, DST_RGB, SRC_ALPHA, DST_ALPHA]
-            })
-
-        case S_BLEND_EQUATION:
-          return parseParam(
-            function (value) {
-              if (typeof value === 'string') {
-                check$1.commandParameter(value, blendEquations, 'invalid ' + prop, env.commandStr);
-                return [
-                  blendEquations[value],
-                  blendEquations[value]
-                ]
-              } else if (typeof value === 'object') {
-                check$1.commandParameter(
-                  value.rgb, blendEquations, prop + '.rgb', env.commandStr);
-                check$1.commandParameter(
-                  value.alpha, blendEquations, prop + '.alpha', env.commandStr);
-                return [
-                  blendEquations[value.rgb],
-                  blendEquations[value.alpha]
-                ]
-              } else {
-                check$1.commandRaise('invalid blend.equation', env.commandStr);
-              }
-            },
-            function (env, scope, value) {
-              var BLEND_EQUATIONS = env.constants.blendEquations;
-
-              var RGB = scope.def();
-              var ALPHA = scope.def();
-
-              var ifte = env.cond('typeof ', value, '==="string"');
-
-              check$1.optional(function () {
-                function checkProp (block, name, value) {
-                  env.assert(block,
-                    value + ' in ' + BLEND_EQUATIONS,
-                    'invalid ' + name + ', must be one of ' + Object.keys(blendEquations));
-                }
-                checkProp(ifte.then, prop, value);
-
-                env.assert(ifte.else,
-                  value + '&&typeof ' + value + '==="object"',
-                  'invalid ' + prop);
-                checkProp(ifte.else, prop + '.rgb', value + '.rgb');
-                checkProp(ifte.else, prop + '.alpha', value + '.alpha');
-              });
-
-              ifte.then(
-                RGB, '=', ALPHA, '=', BLEND_EQUATIONS, '[', value, '];');
-              ifte.else(
-                RGB, '=', BLEND_EQUATIONS, '[', value, '.rgb];',
-                ALPHA, '=', BLEND_EQUATIONS, '[', value, '.alpha];');
-
-              scope(ifte);
-
-              return [RGB, ALPHA]
-            })
-
-        case S_BLEND_COLOR:
-          return parseParam(
-            function (value) {
-              check$1.command(
-                isArrayLike(value) &&
-                value.length === 4,
-                'blend.color must be a 4d array', env.commandStr);
-              return loop(4, function (i) {
-                return +value[i]
-              })
-            },
-            function (env, scope, value) {
-              check$1.optional(function () {
-                env.assert(scope,
-                  env.shared.isArrayLike + '(' + value + ')&&' +
-                  value + '.length===4',
-                  'blend.color must be a 4d array');
-              });
-              return loop(4, function (i) {
-                return scope.def('+', value, '[', i, ']')
-              })
-            })
-
-        case S_STENCIL_MASK:
-          return parseParam(
-            function (value) {
-              check$1.commandType(value, 'number', param, env.commandStr);
-              return value | 0
-            },
-            function (env, scope, value) {
-              check$1.optional(function () {
-                env.assert(scope,
-                  'typeof ' + value + '==="number"',
-                  'invalid stencil.mask');
-              });
-              return scope.def(value, '|0')
-            })
-
-        case S_STENCIL_FUNC:
-          return parseParam(
-            function (value) {
-              check$1.commandType(value, 'object', param, env.commandStr);
-              var cmp = value.cmp || 'keep';
-              var ref = value.ref || 0;
-              var mask = 'mask' in value ? value.mask : -1;
-              check$1.commandParameter(cmp, compareFuncs, prop + '.cmp', env.commandStr);
-              check$1.commandType(ref, 'number', prop + '.ref', env.commandStr);
-              check$1.commandType(mask, 'number', prop + '.mask', env.commandStr);
-              return [
-                compareFuncs[cmp],
-                ref,
-                mask
-              ]
-            },
-            function (env, scope, value) {
-              var COMPARE_FUNCS = env.constants.compareFuncs;
-              check$1.optional(function () {
-                function assert () {
-                  env.assert(scope,
-                    Array.prototype.join.call(arguments, ''),
-                    'invalid stencil.func');
-                }
-                assert(value + '&&typeof ', value, '==="object"');
-                assert('!("cmp" in ', value, ')||(',
-                  value, '.cmp in ', COMPARE_FUNCS, ')');
-              });
-              var cmp = scope.def(
-                '"cmp" in ', value,
-                '?', COMPARE_FUNCS, '[', value, '.cmp]',
-                ':', GL_KEEP);
-              var ref = scope.def(value, '.ref|0');
-              var mask = scope.def(
-                '"mask" in ', value,
-                '?', value, '.mask|0:-1');
-              return [cmp, ref, mask]
-            })
-
-        case S_STENCIL_OPFRONT:
-        case S_STENCIL_OPBACK:
-          return parseParam(
-            function (value) {
-              check$1.commandType(value, 'object', param, env.commandStr);
-              var fail = value.fail || 'keep';
-              var zfail = value.zfail || 'keep';
-              var zpass = value.zpass || 'keep';
-              check$1.commandParameter(fail, stencilOps, prop + '.fail', env.commandStr);
-              check$1.commandParameter(zfail, stencilOps, prop + '.zfail', env.commandStr);
-              check$1.commandParameter(zpass, stencilOps, prop + '.zpass', env.commandStr);
-              return [
-                prop === S_STENCIL_OPBACK ? GL_BACK : GL_FRONT,
-                stencilOps[fail],
-                stencilOps[zfail],
-                stencilOps[zpass]
-              ]
-            },
-            function (env, scope, value) {
-              var STENCIL_OPS = env.constants.stencilOps;
-
-              check$1.optional(function () {
-                env.assert(scope,
-                  value + '&&typeof ' + value + '==="object"',
-                  'invalid ' + prop);
-              });
-
-              function read (name) {
-                check$1.optional(function () {
-                  env.assert(scope,
-                    '!("' + name + '" in ' + value + ')||' +
-                    '(' + value + '.' + name + ' in ' + STENCIL_OPS + ')',
-                    'invalid ' + prop + '.' + name + ', must be one of ' + Object.keys(stencilOps));
-                });
-
-                return scope.def(
-                  '"', name, '" in ', value,
-                  '?', STENCIL_OPS, '[', value, '.', name, ']:',
-                  GL_KEEP)
-              }
-
-              return [
-                prop === S_STENCIL_OPBACK ? GL_BACK : GL_FRONT,
-                read('fail'),
-                read('zfail'),
-                read('zpass')
-              ]
-            })
-
-        case S_POLYGON_OFFSET_OFFSET:
-          return parseParam(
-            function (value) {
-              check$1.commandType(value, 'object', param, env.commandStr);
-              var factor = value.factor | 0;
-              var units = value.units | 0;
-              check$1.commandType(factor, 'number', param + '.factor', env.commandStr);
-              check$1.commandType(units, 'number', param + '.units', env.commandStr);
-              return [factor, units]
-            },
-            function (env, scope, value) {
-              check$1.optional(function () {
-                env.assert(scope,
-                  value + '&&typeof ' + value + '==="object"',
-                  'invalid ' + prop);
-              });
-
-              var FACTOR = scope.def(value, '.factor|0');
-              var UNITS = scope.def(value, '.units|0');
-
-              return [FACTOR, UNITS]
-            })
-
-        case S_CULL_FACE:
-          return parseParam(
-            function (value) {
-              var face = 0;
-              if (value === 'front') {
-                face = GL_FRONT;
-              } else if (value === 'back') {
-                face = GL_BACK;
-              }
-              check$1.command(!!face, param, env.commandStr);
-              return face
-            },
-            function (env, scope, value) {
-              check$1.optional(function () {
-                env.assert(scope,
-                  value + '==="front"||' +
-                  value + '==="back"',
-                  'invalid cull.face');
-              });
-              return scope.def(value, '==="front"?', GL_FRONT, ':', GL_BACK)
-            })
-
-        case S_LINE_WIDTH:
-          return parseParam(
-            function (value) {
-              check$1.command(
-                typeof value === 'number' &&
-                value >= limits.lineWidthDims[0] &&
-                value <= limits.lineWidthDims[1],
-                'invalid line width, must positive number between ' +
-                limits.lineWidthDims[0] + ' and ' + limits.lineWidthDims[1], env.commandStr);
-              return value
-            },
-            function (env, scope, value) {
-              check$1.optional(function () {
-                env.assert(scope,
-                  'typeof ' + value + '==="number"&&' +
-                  value + '>=' + limits.lineWidthDims[0] + '&&' +
-                  value + '<=' + limits.lineWidthDims[1],
-                  'invalid line width');
-              });
-
-              return value
-            })
-
-        case S_FRONT_FACE:
-          return parseParam(
-            function (value) {
-              check$1.commandParameter(value, orientationType, param, env.commandStr);
-              return orientationType[value]
-            },
-            function (env, scope, value) {
-              check$1.optional(function () {
-                env.assert(scope,
-                  value + '==="cw"||' +
-                  value + '==="ccw"',
-                  'invalid frontFace, must be one of cw,ccw');
-              });
-              return scope.def(value + '==="cw"?' + GL_CW + ':' + GL_CCW)
-            })
-
-        case S_COLOR_MASK:
-          return parseParam(
-            function (value) {
-              check$1.command(
-                isArrayLike(value) && value.length === 4,
-                'color.mask must be length 4 array', env.commandStr);
-              return value.map(function (v) { return !!v })
-            },
-            function (env, scope, value) {
-              check$1.optional(function () {
-                env.assert(scope,
-                  env.shared.isArrayLike + '(' + value + ')&&' +
-                  value + '.length===4',
-                  'invalid color.mask');
-              });
-              return loop(4, function (i) {
-                return '!!' + value + '[' + i + ']'
-              })
-            })
-
-        case S_SAMPLE_COVERAGE:
-          return parseParam(
-            function (value) {
-              check$1.command(typeof value === 'object' && value, param, env.commandStr);
-              var sampleValue = 'value' in value ? value.value : 1;
-              var sampleInvert = !!value.invert;
-              check$1.command(
-                typeof sampleValue === 'number' &&
-                sampleValue >= 0 && sampleValue <= 1,
-                'sample.coverage.value must be a number between 0 and 1', env.commandStr);
-              return [sampleValue, sampleInvert]
-            },
-            function (env, scope, value) {
-              check$1.optional(function () {
-                env.assert(scope,
-                  value + '&&typeof ' + value + '==="object"',
-                  'invalid sample.coverage');
-              });
-              var VALUE = scope.def(
-                '"value" in ', value, '?+', value, '.value:1');
-              var INVERT = scope.def('!!', value, '.invert');
-              return [VALUE, INVERT]
-            })
-      }
-    });
-
-    return STATE
-  }
-
-  function parseUniforms (uniforms, env) {
-    var staticUniforms = uniforms.static;
-    var dynamicUniforms = uniforms.dynamic;
-
-    var UNIFORMS = {};
-
-    Object.keys(staticUniforms).forEach(function (name) {
-      var value = staticUniforms[name];
-      var result;
-      if (typeof value === 'number' ||
-          typeof value === 'boolean') {
-        result = createStaticDecl(function () {
-          return value
-        });
-      } else if (typeof value === 'function') {
-        var reglType = value._reglType;
-        if (reglType === 'texture2d' ||
-            reglType === 'textureCube') {
-          result = createStaticDecl(function (env) {
-            return env.link(value)
-          });
-        } else if (reglType === 'framebuffer' ||
-                   reglType === 'framebufferCube') {
-          check$1.command(value.color.length > 0,
-            'missing color attachment for framebuffer sent to uniform "' + name + '"', env.commandStr);
-          result = createStaticDecl(function (env) {
-            return env.link(value.color[0])
-          });
-        } else {
-          check$1.commandRaise('invalid data for uniform "' + name + '"', env.commandStr);
-        }
-      } else if (isArrayLike(value)) {
-        result = createStaticDecl(function (env) {
-          var ITEM = env.global.def('[',
-            loop(value.length, function (i) {
-              check$1.command(
-                typeof value[i] === 'number' ||
-                typeof value[i] === 'boolean',
-                'invalid uniform ' + name, env.commandStr);
-              return value[i]
-            }), ']');
-          return ITEM
-        });
-      } else {
-        check$1.commandRaise('invalid or missing data for uniform "' + name + '"', env.commandStr);
-      }
-      result.value = value;
-      UNIFORMS[name] = result;
-    });
-
-    Object.keys(dynamicUniforms).forEach(function (key) {
-      var dyn = dynamicUniforms[key];
-      UNIFORMS[key] = createDynamicDecl(dyn, function (env, scope) {
-        return env.invoke(scope, dyn)
-      });
-    });
-
-    return UNIFORMS
-  }
-
-  function parseAttributes (attributes, env) {
-    var staticAttributes = attributes.static;
-    var dynamicAttributes = attributes.dynamic;
-
-    var attributeDefs = {};
-
-    Object.keys(staticAttributes).forEach(function (attribute) {
-      var value = staticAttributes[attribute];
-      var id = stringStore.id(attribute);
-
-      var record = new AttributeRecord();
-      if (isBufferArgs(value)) {
-        record.state = ATTRIB_STATE_POINTER;
-        record.buffer = bufferState.getBuffer(
-          bufferState.create(value, GL_ARRAY_BUFFER$1, false, true));
-        record.type = 0;
-      } else {
-        var buffer = bufferState.getBuffer(value);
-        if (buffer) {
-          record.state = ATTRIB_STATE_POINTER;
-          record.buffer = buffer;
-          record.type = 0;
-        } else {
-          check$1.command(typeof value === 'object' && value,
-            'invalid data for attribute ' + attribute, env.commandStr);
-          if (value.constant) {
-            var constant = value.constant;
-            record.buffer = 'null';
-            record.state = ATTRIB_STATE_CONSTANT;
-            if (typeof constant === 'number') {
-              record.x = constant;
-            } else {
-              check$1.command(
-                isArrayLike(constant) &&
-                constant.length > 0 &&
-                constant.length <= 4,
-                'invalid constant for attribute ' + attribute, env.commandStr);
-              CUTE_COMPONENTS.forEach(function (c, i) {
-                if (i < constant.length) {
-                  record[c] = constant[i];
-                }
-              });
-            }
-          } else {
-            if (isBufferArgs(value.buffer)) {
-              buffer = bufferState.getBuffer(
-                bufferState.create(value.buffer, GL_ARRAY_BUFFER$1, false, true));
-            } else {
-              buffer = bufferState.getBuffer(value.buffer);
-            }
-            check$1.command(!!buffer, 'missing buffer for attribute "' + attribute + '"', env.commandStr);
-
-            var offset = value.offset | 0;
-            check$1.command(offset >= 0,
-              'invalid offset for attribute "' + attribute + '"', env.commandStr);
-
-            var stride = value.stride | 0;
-            check$1.command(stride >= 0 && stride < 256,
-              'invalid stride for attribute "' + attribute + '", must be integer betweeen [0, 255]', env.commandStr);
-
-            var size = value.size | 0;
-            check$1.command(!('size' in value) || (size > 0 && size <= 4),
-              'invalid size for attribute "' + attribute + '", must be 1,2,3,4', env.commandStr);
-
-            var normalized = !!value.normalized;
-
-            var type = 0;
-            if ('type' in value) {
-              check$1.commandParameter(
-                value.type, glTypes,
-                'invalid type for attribute ' + attribute, env.commandStr);
-              type = glTypes[value.type];
-            }
-
-            var divisor = value.divisor | 0;
-            if ('divisor' in value) {
-              check$1.command(divisor === 0 || extInstancing,
-                'cannot specify divisor for attribute "' + attribute + '", instancing not supported', env.commandStr);
-              check$1.command(divisor >= 0,
-                'invalid divisor for attribute "' + attribute + '"', env.commandStr);
-            }
-
-            check$1.optional(function () {
-              var command = env.commandStr;
-
-              var VALID_KEYS = [
-                'buffer',
-                'offset',
-                'divisor',
-                'normalized',
-                'type',
-                'size',
-                'stride'
-              ];
-
-              Object.keys(value).forEach(function (prop) {
-                check$1.command(
-                  VALID_KEYS.indexOf(prop) >= 0,
-                  'unknown parameter "' + prop + '" for attribute pointer "' + attribute + '" (valid parameters are ' + VALID_KEYS + ')',
-                  command);
-              });
-            });
-
-            record.buffer = buffer;
-            record.state = ATTRIB_STATE_POINTER;
-            record.size = size;
-            record.normalized = normalized;
-            record.type = type || buffer.dtype;
-            record.offset = offset;
-            record.stride = stride;
-            record.divisor = divisor;
-          }
-        }
-      }
-
-      attributeDefs[attribute] = createStaticDecl(function (env, scope) {
-        var cache = env.attribCache;
-        if (id in cache) {
-          return cache[id]
-        }
-        var result = {
-          isStream: false
-        };
-        Object.keys(record).forEach(function (key) {
-          result[key] = record[key];
-        });
-        if (record.buffer) {
-          result.buffer = env.link(record.buffer);
-          result.type = result.type || (result.buffer + '.dtype');
-        }
-        cache[id] = result;
-        return result
-      });
-    });
-
-    Object.keys(dynamicAttributes).forEach(function (attribute) {
-      var dyn = dynamicAttributes[attribute];
-
-      function appendAttributeCode (env, block) {
-        var VALUE = env.invoke(block, dyn);
-
-        var shared = env.shared;
-
-        var IS_BUFFER_ARGS = shared.isBufferArgs;
-        var BUFFER_STATE = shared.buffer;
-
-        // Perform validation on attribute
-        check$1.optional(function () {
-          env.assert(block,
-            VALUE + '&&(typeof ' + VALUE + '==="object"||typeof ' +
-            VALUE + '==="function")&&(' +
-            IS_BUFFER_ARGS + '(' + VALUE + ')||' +
-            BUFFER_STATE + '.getBuffer(' + VALUE + ')||' +
-            BUFFER_STATE + '.getBuffer(' + VALUE + '.buffer)||' +
-            IS_BUFFER_ARGS + '(' + VALUE + '.buffer)||' +
-            '("constant" in ' + VALUE +
-            '&&(typeof ' + VALUE + '.constant==="number"||' +
-            shared.isArrayLike + '(' + VALUE + '.constant))))',
-            'invalid dynamic attribute "' + attribute + '"');
-        });
-
-        // allocate names for result
-        var result = {
-          isStream: block.def(false)
-        };
-        var defaultRecord = new AttributeRecord();
-        defaultRecord.state = ATTRIB_STATE_POINTER;
-        Object.keys(defaultRecord).forEach(function (key) {
-          result[key] = block.def('' + defaultRecord[key]);
-        });
-
-        var BUFFER = result.buffer;
-        var TYPE = result.type;
-        block(
-          'if(', IS_BUFFER_ARGS, '(', VALUE, ')){',
-          result.isStream, '=true;',
-          BUFFER, '=', BUFFER_STATE, '.createStream(', GL_ARRAY_BUFFER$1, ',', VALUE, ');',
-          TYPE, '=', BUFFER, '.dtype;',
-          '}else{',
-          BUFFER, '=', BUFFER_STATE, '.getBuffer(', VALUE, ');',
-          'if(', BUFFER, '){',
-          TYPE, '=', BUFFER, '.dtype;',
-          '}else if("constant" in ', VALUE, '){',
-          result.state, '=', ATTRIB_STATE_CONSTANT, ';',
-          'if(typeof ' + VALUE + '.constant === "number"){',
-          result[CUTE_COMPONENTS[0]], '=', VALUE, '.constant;',
-          CUTE_COMPONENTS.slice(1).map(function (n) {
-            return result[n]
-          }).join('='), '=0;',
-          '}else{',
-          CUTE_COMPONENTS.map(function (name, i) {
-            return (
-              result[name] + '=' + VALUE + '.constant.length>=' + i +
-              '?' + VALUE + '.constant[' + i + ']:0;'
-            )
-          }).join(''),
-          '}}else{',
-          'if(', IS_BUFFER_ARGS, '(', VALUE, '.buffer)){',
-          BUFFER, '=', BUFFER_STATE, '.createStream(', GL_ARRAY_BUFFER$1, ',', VALUE, '.buffer);',
-          '}else{',
-          BUFFER, '=', BUFFER_STATE, '.getBuffer(', VALUE, '.buffer);',
-          '}',
-          TYPE, '="type" in ', VALUE, '?',
-          shared.glTypes, '[', VALUE, '.type]:', BUFFER, '.dtype;',
-          result.normalized, '=!!', VALUE, '.normalized;');
-        function emitReadRecord (name) {
-          block(result[name], '=', VALUE, '.', name, '|0;');
-        }
-        emitReadRecord('size');
-        emitReadRecord('offset');
-        emitReadRecord('stride');
-        emitReadRecord('divisor');
-
-        block('}}');
-
-        block.exit(
-          'if(', result.isStream, '){',
-          BUFFER_STATE, '.destroyStream(', BUFFER, ');',
-          '}');
-
-        return result
-      }
-
-      attributeDefs[attribute] = createDynamicDecl(dyn, appendAttributeCode);
-    });
-
-    return attributeDefs
-  }
-
-  function parseContext (context) {
-    var staticContext = context.static;
-    var dynamicContext = context.dynamic;
-    var result = {};
-
-    Object.keys(staticContext).forEach(function (name) {
-      var value = staticContext[name];
-      result[name] = createStaticDecl(function (env, scope) {
-        if (typeof value === 'number' || typeof value === 'boolean') {
-          return '' + value
-        } else {
-          return env.link(value)
-        }
-      });
-    });
-
-    Object.keys(dynamicContext).forEach(function (name) {
-      var dyn = dynamicContext[name];
-      result[name] = createDynamicDecl(dyn, function (env, scope) {
-        return env.invoke(scope, dyn)
-      });
-    });
-
-    return result
-  }
-
-  function parseArguments (options, attributes, uniforms, context, env) {
-    var staticOptions = options.static;
-    var dynamicOptions = options.dynamic;
-
-    check$1.optional(function () {
-      var KEY_NAMES = [
-        S_FRAMEBUFFER,
-        S_VERT,
-        S_FRAG,
-        S_ELEMENTS,
-        S_PRIMITIVE,
-        S_OFFSET,
-        S_COUNT,
-        S_INSTANCES,
-        S_PROFILE
-      ].concat(GL_STATE_NAMES);
-
-      function checkKeys (dict) {
-        Object.keys(dict).forEach(function (key) {
-          check$1.command(
-            KEY_NAMES.indexOf(key) >= 0,
-            'unknown parameter "' + key + '"',
-            env.commandStr);
-        });
-      }
-
-      checkKeys(staticOptions);
-      checkKeys(dynamicOptions);
-    });
-
-    var framebuffer = parseFramebuffer(options, env);
-    var viewportAndScissor = parseViewportScissor(options, framebuffer, env);
-    var draw = parseDraw(options, env);
-    var state = parseGLState(options, env);
-    var shader = parseProgram(options, env);
-
-    function copyBox (name) {
-      var defn = viewportAndScissor[name];
-      if (defn) {
-        state[name] = defn;
-      }
-    }
-    copyBox(S_VIEWPORT);
-    copyBox(propName(S_SCISSOR_BOX));
-
-    var dirty = Object.keys(state).length > 0;
-
-    var result = {
-      framebuffer: framebuffer,
-      draw: draw,
-      shader: shader,
-      state: state,
-      dirty: dirty
-    };
-
-    result.profile = parseProfile(options, env);
-    result.uniforms = parseUniforms(uniforms, env);
-    result.attributes = parseAttributes(attributes, env);
-    result.context = parseContext(context, env);
-    return result
-  }
-
-  // ===================================================
-  // ===================================================
-  // COMMON UPDATE FUNCTIONS
-  // ===================================================
-  // ===================================================
-  function emitContext (env, scope, context) {
-    var shared = env.shared;
-    var CONTEXT = shared.context;
-
-    var contextEnter = env.scope();
-
-    Object.keys(context).forEach(function (name) {
-      scope.save(CONTEXT, '.' + name);
-      var defn = context[name];
-      contextEnter(CONTEXT, '.', name, '=', defn.append(env, scope), ';');
-    });
-
-    scope(contextEnter);
-  }
-
-  // ===================================================
-  // ===================================================
-  // COMMON DRAWING FUNCTIONS
-  // ===================================================
-  // ===================================================
-  function emitPollFramebuffer (env, scope, framebuffer, skipCheck) {
-    var shared = env.shared;
-
-    var GL = shared.gl;
-    var FRAMEBUFFER_STATE = shared.framebuffer;
-    var EXT_DRAW_BUFFERS;
-    if (extDrawBuffers) {
-      EXT_DRAW_BUFFERS = scope.def(shared.extensions, '.webgl_draw_buffers');
-    }
-
-    var constants = env.constants;
-
-    var DRAW_BUFFERS = constants.drawBuffer;
-    var BACK_BUFFER = constants.backBuffer;
-
-    var NEXT;
-    if (framebuffer) {
-      NEXT = framebuffer.append(env, scope);
-    } else {
-      NEXT = scope.def(FRAMEBUFFER_STATE, '.next');
-    }
-
-    if (!skipCheck) {
-      scope('if(', NEXT, '!==', FRAMEBUFFER_STATE, '.cur){');
-    }
-    scope(
-      'if(', NEXT, '){',
-      GL, '.bindFramebuffer(', GL_FRAMEBUFFER$1, ',', NEXT, '.framebuffer);');
-    if (extDrawBuffers) {
-      scope(EXT_DRAW_BUFFERS, '.drawBuffersWEBGL(',
-        DRAW_BUFFERS, '[', NEXT, '.colorAttachments.length]);');
-    }
-    scope('}else{',
-      GL, '.bindFramebuffer(', GL_FRAMEBUFFER$1, ',null);');
-    if (extDrawBuffers) {
-      scope(EXT_DRAW_BUFFERS, '.drawBuffersWEBGL(', BACK_BUFFER, ');');
-    }
-    scope(
-      '}',
-      FRAMEBUFFER_STATE, '.cur=', NEXT, ';');
-    if (!skipCheck) {
-      scope('}');
-    }
-  }
-
-  function emitPollState (env, scope, args) {
-    var shared = env.shared;
-
-    var GL = shared.gl;
-
-    var CURRENT_VARS = env.current;
-    var NEXT_VARS = env.next;
-    var CURRENT_STATE = shared.current;
-    var NEXT_STATE = shared.next;
-
-    var block = env.cond(CURRENT_STATE, '.dirty');
-
-    GL_STATE_NAMES.forEach(function (prop) {
-      var param = propName(prop);
-      if (param in args.state) {
-        return
-      }
-
-      var NEXT, CURRENT;
-      if (param in NEXT_VARS) {
-        NEXT = NEXT_VARS[param];
-        CURRENT = CURRENT_VARS[param];
-        var parts = loop(currentState[param].length, function (i) {
-          return block.def(NEXT, '[', i, ']')
-        });
-        block(env.cond(parts.map(function (p, i) {
-          return p + '!==' + CURRENT + '[' + i + ']'
-        }).join('||'))
-          .then(
-            GL, '.', GL_VARIABLES[param], '(', parts, ');',
-            parts.map(function (p, i) {
-              return CURRENT + '[' + i + ']=' + p
-            }).join(';'), ';'));
-      } else {
-        NEXT = block.def(NEXT_STATE, '.', param);
-        var ifte = env.cond(NEXT, '!==', CURRENT_STATE, '.', param);
-        block(ifte);
-        if (param in GL_FLAGS) {
-          ifte(
-            env.cond(NEXT)
-                .then(GL, '.enable(', GL_FLAGS[param], ');')
-                .else(GL, '.disable(', GL_FLAGS[param], ');'),
-            CURRENT_STATE, '.', param, '=', NEXT, ';');
-        } else {
-          ifte(
-            GL, '.', GL_VARIABLES[param], '(', NEXT, ');',
-            CURRENT_STATE, '.', param, '=', NEXT, ';');
-        }
-      }
-    });
-    if (Object.keys(args.state).length === 0) {
-      block(CURRENT_STATE, '.dirty=false;');
-    }
-    scope(block);
-  }
-
-  function emitSetOptions (env, scope, options, filter) {
-    var shared = env.shared;
-    var CURRENT_VARS = env.current;
-    var CURRENT_STATE = shared.current;
-    var GL = shared.gl;
-    sortState(Object.keys(options)).forEach(function (param) {
-      var defn = options[param];
-      if (filter && !filter(defn)) {
-        return
-      }
-      var variable = defn.append(env, scope);
-      if (GL_FLAGS[param]) {
-        var flag = GL_FLAGS[param];
-        if (isStatic(defn)) {
-          if (variable) {
-            scope(GL, '.enable(', flag, ');');
-          } else {
-            scope(GL, '.disable(', flag, ');');
-          }
-        } else {
-          scope(env.cond(variable)
-            .then(GL, '.enable(', flag, ');')
-            .else(GL, '.disable(', flag, ');'));
-        }
-        scope(CURRENT_STATE, '.', param, '=', variable, ';');
-      } else if (isArrayLike(variable)) {
-        var CURRENT = CURRENT_VARS[param];
-        scope(
-          GL, '.', GL_VARIABLES[param], '(', variable, ');',
-          variable.map(function (v, i) {
-            return CURRENT + '[' + i + ']=' + v
-          }).join(';'), ';');
-      } else {
-        scope(
-          GL, '.', GL_VARIABLES[param], '(', variable, ');',
-          CURRENT_STATE, '.', param, '=', variable, ';');
-      }
-    });
-  }
-
-  function injectExtensions (env, scope) {
-    if (extInstancing) {
-      env.instancing = scope.def(
-        env.shared.extensions, '.angle_instanced_arrays');
-    }
-  }
-
-  function emitProfile (env, scope, args, useScope, incrementCounter) {
-    var shared = env.shared;
-    var STATS = env.stats;
-    var CURRENT_STATE = shared.current;
-    var TIMER = shared.timer;
-    var profileArg = args.profile;
-
-    function perfCounter () {
-      if (typeof performance === 'undefined') {
-        return 'Date.now()'
-      } else {
-        return 'performance.now()'
-      }
-    }
-
-    var CPU_START, QUERY_COUNTER;
-    function emitProfileStart (block) {
-      CPU_START = scope.def();
-      block(CPU_START, '=', perfCounter(), ';');
-      if (typeof incrementCounter === 'string') {
-        block(STATS, '.count+=', incrementCounter, ';');
-      } else {
-        block(STATS, '.count++;');
-      }
-      if (timer) {
-        if (useScope) {
-          QUERY_COUNTER = scope.def();
-          block(QUERY_COUNTER, '=', TIMER, '.getNumPendingQueries();');
-        } else {
-          block(TIMER, '.beginQuery(', STATS, ');');
-        }
-      }
-    }
-
-    function emitProfileEnd (block) {
-      block(STATS, '.cpuTime+=', perfCounter(), '-', CPU_START, ';');
-      if (timer) {
-        if (useScope) {
-          block(TIMER, '.pushScopeStats(',
-            QUERY_COUNTER, ',',
-            TIMER, '.getNumPendingQueries(),',
-            STATS, ');');
-        } else {
-          block(TIMER, '.endQuery();');
-        }
-      }
-    }
-
-    function scopeProfile (value) {
-      var prev = scope.def(CURRENT_STATE, '.profile');
-      scope(CURRENT_STATE, '.profile=', value, ';');
-      scope.exit(CURRENT_STATE, '.profile=', prev, ';');
-    }
-
-    var USE_PROFILE;
-    if (profileArg) {
-      if (isStatic(profileArg)) {
-        if (profileArg.enable) {
-          emitProfileStart(scope);
-          emitProfileEnd(scope.exit);
-          scopeProfile('true');
-        } else {
-          scopeProfile('false');
-        }
-        return
-      }
-      USE_PROFILE = profileArg.append(env, scope);
-      scopeProfile(USE_PROFILE);
-    } else {
-      USE_PROFILE = scope.def(CURRENT_STATE, '.profile');
-    }
-
-    var start = env.block();
-    emitProfileStart(start);
-    scope('if(', USE_PROFILE, '){', start, '}');
-    var end = env.block();
-    emitProfileEnd(end);
-    scope.exit('if(', USE_PROFILE, '){', end, '}');
-  }
-
-  function emitAttributes (env, scope, args, attributes, filter) {
-    var shared = env.shared;
-
-    function typeLength (x) {
-      switch (x) {
-        case GL_FLOAT_VEC2:
-        case GL_INT_VEC2:
-        case GL_BOOL_VEC2:
-          return 2
-        case GL_FLOAT_VEC3:
-        case GL_INT_VEC3:
-        case GL_BOOL_VEC3:
-          return 3
-        case GL_FLOAT_VEC4:
-        case GL_INT_VEC4:
-        case GL_BOOL_VEC4:
-          return 4
-        default:
-          return 1
-      }
-    }
-
-    function emitBindAttribute (ATTRIBUTE, size, record) {
-      var GL = shared.gl;
-
-      var LOCATION = scope.def(ATTRIBUTE, '.location');
-      var BINDING = scope.def(shared.attributes, '[', LOCATION, ']');
-
-      var STATE = record.state;
-      var BUFFER = record.buffer;
-      var CONST_COMPONENTS = [
-        record.x,
-        record.y,
-        record.z,
-        record.w
-      ];
-
-      var COMMON_KEYS = [
-        'buffer',
-        'normalized',
-        'offset',
-        'stride'
-      ];
-
-      function emitBuffer () {
-        scope(
-          'if(!', BINDING, '.buffer){',
-          GL, '.enableVertexAttribArray(', LOCATION, ');}');
-
-        var TYPE = record.type;
-        var SIZE;
-        if (!record.size) {
-          SIZE = size;
-        } else {
-          SIZE = scope.def(record.size, '||', size);
-        }
-
-        scope('if(',
-          BINDING, '.type!==', TYPE, '||',
-          BINDING, '.size!==', SIZE, '||',
-          COMMON_KEYS.map(function (key) {
-            return BINDING + '.' + key + '!==' + record[key]
-          }).join('||'),
-          '){',
-          GL, '.bindBuffer(', GL_ARRAY_BUFFER$1, ',', BUFFER, '.buffer);',
-          GL, '.vertexAttribPointer(', [
-            LOCATION,
-            SIZE,
-            TYPE,
-            record.normalized,
-            record.stride,
-            record.offset
-          ], ');',
-          BINDING, '.type=', TYPE, ';',
-          BINDING, '.size=', SIZE, ';',
-          COMMON_KEYS.map(function (key) {
-            return BINDING + '.' + key + '=' + record[key] + ';'
-          }).join(''),
-          '}');
-
-        if (extInstancing) {
-          var DIVISOR = record.divisor;
-          scope(
-            'if(', BINDING, '.divisor!==', DIVISOR, '){',
-            env.instancing, '.vertexAttribDivisorANGLE(', [LOCATION, DIVISOR], ');',
-            BINDING, '.divisor=', DIVISOR, ';}');
-        }
-      }
-
-      function emitConstant () {
-        scope(
-          'if(', BINDING, '.buffer){',
-          GL, '.disableVertexAttribArray(', LOCATION, ');',
-          '}if(', CUTE_COMPONENTS.map(function (c, i) {
-            return BINDING + '.' + c + '!==' + CONST_COMPONENTS[i]
-          }).join('||'), '){',
-          GL, '.vertexAttrib4f(', LOCATION, ',', CONST_COMPONENTS, ');',
-          CUTE_COMPONENTS.map(function (c, i) {
-            return BINDING + '.' + c + '=' + CONST_COMPONENTS[i] + ';'
-          }).join(''),
-          '}');
-      }
-
-      if (STATE === ATTRIB_STATE_POINTER) {
-        emitBuffer();
-      } else if (STATE === ATTRIB_STATE_CONSTANT) {
-        emitConstant();
-      } else {
-        scope('if(', STATE, '===', ATTRIB_STATE_POINTER, '){');
-        emitBuffer();
-        scope('}else{');
-        emitConstant();
-        scope('}');
-      }
-    }
-
-    attributes.forEach(function (attribute) {
-      var name = attribute.name;
-      var arg = args.attributes[name];
-      var record;
-      if (arg) {
-        if (!filter(arg)) {
-          return
-        }
-        record = arg.append(env, scope);
-      } else {
-        if (!filter(SCOPE_DECL)) {
-          return
-        }
-        var scopeAttrib = env.scopeAttrib(name);
-        check$1.optional(function () {
-          env.assert(scope,
-            scopeAttrib + '.state',
-            'missing attribute ' + name);
-        });
-        record = {};
-        Object.keys(new AttributeRecord()).forEach(function (key) {
-          record[key] = scope.def(scopeAttrib, '.', key);
-        });
-      }
-      emitBindAttribute(
-        env.link(attribute), typeLength(attribute.info.type), record);
-    });
-  }
-
-  function emitUniforms (env, scope, args, uniforms, filter) {
-    var shared = env.shared;
-    var GL = shared.gl;
-
-    var infix;
-    for (var i = 0; i < uniforms.length; ++i) {
-      var uniform = uniforms[i];
-      var name = uniform.name;
-      var type = uniform.info.type;
-      var arg = args.uniforms[name];
-      var UNIFORM = env.link(uniform);
-      var LOCATION = UNIFORM + '.location';
-
-      var VALUE;
-      if (arg) {
-        if (!filter(arg)) {
-          continue
-        }
-        if (isStatic(arg)) {
-          var value = arg.value;
-          check$1.command(
-            value !== null && typeof value !== 'undefined',
-            'missing uniform "' + name + '"', env.commandStr);
-          if (type === GL_SAMPLER_2D || type === GL_SAMPLER_CUBE) {
-            check$1.command(
-              typeof value === 'function' &&
-              ((type === GL_SAMPLER_2D &&
-                (value._reglType === 'texture2d' ||
-                value._reglType === 'framebuffer')) ||
-              (type === GL_SAMPLER_CUBE &&
-                (value._reglType === 'textureCube' ||
-                value._reglType === 'framebufferCube'))),
-              'invalid texture for uniform ' + name, env.commandStr);
-            var TEX_VALUE = env.link(value._texture || value.color[0]._texture);
-            scope(GL, '.uniform1i(', LOCATION, ',', TEX_VALUE + '.bind());');
-            scope.exit(TEX_VALUE, '.unbind();');
-          } else if (
-            type === GL_FLOAT_MAT2 ||
-            type === GL_FLOAT_MAT3 ||
-            type === GL_FLOAT_MAT4) {
-            check$1.optional(function () {
-              check$1.command(isArrayLike(value),
-                'invalid matrix for uniform ' + name, env.commandStr);
-              check$1.command(
-                (type === GL_FLOAT_MAT2 && value.length === 4) ||
-                (type === GL_FLOAT_MAT3 && value.length === 9) ||
-                (type === GL_FLOAT_MAT4 && value.length === 16),
-                'invalid length for matrix uniform ' + name, env.commandStr);
-            });
-            var MAT_VALUE = env.global.def('new Float32Array([' +
-              Array.prototype.slice.call(value) + '])');
-            var dim = 2;
-            if (type === GL_FLOAT_MAT3) {
-              dim = 3;
-            } else if (type === GL_FLOAT_MAT4) {
-              dim = 4;
-            }
-            scope(
-              GL, '.uniformMatrix', dim, 'fv(',
-              LOCATION, ',false,', MAT_VALUE, ');');
-          } else {
-            switch (type) {
-              case GL_FLOAT$7:
-                check$1.commandType(value, 'number', 'uniform ' + name, env.commandStr);
-                infix = '1f';
-                break
-              case GL_FLOAT_VEC2:
-                check$1.command(
-                  isArrayLike(value) && value.length === 2,
-                  'uniform ' + name, env.commandStr);
-                infix = '2f';
-                break
-              case GL_FLOAT_VEC3:
-                check$1.command(
-                  isArrayLike(value) && value.length === 3,
-                  'uniform ' + name, env.commandStr);
-                infix = '3f';
-                break
-              case GL_FLOAT_VEC4:
-                check$1.command(
-                  isArrayLike(value) && value.length === 4,
-                  'uniform ' + name, env.commandStr);
-                infix = '4f';
-                break
-              case GL_BOOL:
-                check$1.commandType(value, 'boolean', 'uniform ' + name, env.commandStr);
-                infix = '1i';
-                break
-              case GL_INT$3:
-                check$1.commandType(value, 'number', 'uniform ' + name, env.commandStr);
-                infix = '1i';
-                break
-              case GL_BOOL_VEC2:
-                check$1.command(
-                  isArrayLike(value) && value.length === 2,
-                  'uniform ' + name, env.commandStr);
-                infix = '2i';
-                break
-              case GL_INT_VEC2:
-                check$1.command(
-                  isArrayLike(value) && value.length === 2,
-                  'uniform ' + name, env.commandStr);
-                infix = '2i';
-                break
-              case GL_BOOL_VEC3:
-                check$1.command(
-                  isArrayLike(value) && value.length === 3,
-                  'uniform ' + name, env.commandStr);
-                infix = '3i';
-                break
-              case GL_INT_VEC3:
-                check$1.command(
-                  isArrayLike(value) && value.length === 3,
-                  'uniform ' + name, env.commandStr);
-                infix = '3i';
-                break
-              case GL_BOOL_VEC4:
-                check$1.command(
-                  isArrayLike(value) && value.length === 4,
-                  'uniform ' + name, env.commandStr);
-                infix = '4i';
-                break
-              case GL_INT_VEC4:
-                check$1.command(
-                  isArrayLike(value) && value.length === 4,
-                  'uniform ' + name, env.commandStr);
-                infix = '4i';
-                break
-            }
-            scope(GL, '.uniform', infix, '(', LOCATION, ',',
-              isArrayLike(value) ? Array.prototype.slice.call(value) : value,
-              ');');
-          }
-          continue
-        } else {
-          VALUE = arg.append(env, scope);
-        }
-      } else {
-        if (!filter(SCOPE_DECL)) {
-          continue
-        }
-        VALUE = scope.def(shared.uniforms, '[', stringStore.id(name), ']');
-      }
-
-      if (type === GL_SAMPLER_2D) {
-        scope(
-          'if(', VALUE, '&&', VALUE, '._reglType==="framebuffer"){',
-          VALUE, '=', VALUE, '.color[0];',
-          '}');
-      } else if (type === GL_SAMPLER_CUBE) {
-        scope(
-          'if(', VALUE, '&&', VALUE, '._reglType==="framebufferCube"){',
-          VALUE, '=', VALUE, '.color[0];',
-          '}');
-      }
-
-      // perform type validation
-      check$1.optional(function () {
-        function check (pred, message) {
-          env.assert(scope, pred,
-            'bad data or missing for uniform "' + name + '".  ' + message);
-        }
-
-        function checkType (type) {
-          check(
-            'typeof ' + VALUE + '==="' + type + '"',
-            'invalid type, expected ' + type);
-        }
-
-        function checkVector (n, type) {
-          check(
-            shared.isArrayLike + '(' + VALUE + ')&&' + VALUE + '.length===' + n,
-            'invalid vector, should have length ' + n, env.commandStr);
-        }
-
-        function checkTexture (target) {
-          check(
-            'typeof ' + VALUE + '==="function"&&' +
-            VALUE + '._reglType==="texture' +
-            (target === GL_TEXTURE_2D$2 ? '2d' : 'Cube') + '"',
-            'invalid texture type', env.commandStr);
-        }
-
-        switch (type) {
-          case GL_INT$3:
-            checkType('number');
-            break
-          case GL_INT_VEC2:
-            checkVector(2, 'number');
-            break
-          case GL_INT_VEC3:
-            checkVector(3, 'number');
-            break
-          case GL_INT_VEC4:
-            checkVector(4, 'number');
-            break
-          case GL_FLOAT$7:
-            checkType('number');
-            break
-          case GL_FLOAT_VEC2:
-            checkVector(2, 'number');
-            break
-          case GL_FLOAT_VEC3:
-            checkVector(3, 'number');
-            break
-          case GL_FLOAT_VEC4:
-            checkVector(4, 'number');
-            break
-          case GL_BOOL:
-            checkType('boolean');
-            break
-          case GL_BOOL_VEC2:
-            checkVector(2, 'boolean');
-            break
-          case GL_BOOL_VEC3:
-            checkVector(3, 'boolean');
-            break
-          case GL_BOOL_VEC4:
-            checkVector(4, 'boolean');
-            break
-          case GL_FLOAT_MAT2:
-            checkVector(4, 'number');
-            break
-          case GL_FLOAT_MAT3:
-            checkVector(9, 'number');
-            break
-          case GL_FLOAT_MAT4:
-            checkVector(16, 'number');
-            break
-          case GL_SAMPLER_2D:
-            checkTexture(GL_TEXTURE_2D$2);
-            break
-          case GL_SAMPLER_CUBE:
-            checkTexture(GL_TEXTURE_CUBE_MAP$1);
-            break
-        }
-      });
-
-      var unroll = 1;
-      switch (type) {
-        case GL_SAMPLER_2D:
-        case GL_SAMPLER_CUBE:
-          var TEX = scope.def(VALUE, '._texture');
-          scope(GL, '.uniform1i(', LOCATION, ',', TEX, '.bind());');
-          scope.exit(TEX, '.unbind();');
-          continue
-
-        case GL_INT$3:
-        case GL_BOOL:
-          infix = '1i';
-          break
-
-        case GL_INT_VEC2:
-        case GL_BOOL_VEC2:
-          infix = '2i';
-          unroll = 2;
-          break
-
-        case GL_INT_VEC3:
-        case GL_BOOL_VEC3:
-          infix = '3i';
-          unroll = 3;
-          break
-
-        case GL_INT_VEC4:
-        case GL_BOOL_VEC4:
-          infix = '4i';
-          unroll = 4;
-          break
-
-        case GL_FLOAT$7:
-          infix = '1f';
-          break
-
-        case GL_FLOAT_VEC2:
-          infix = '2f';
-          unroll = 2;
-          break
-
-        case GL_FLOAT_VEC3:
-          infix = '3f';
-          unroll = 3;
-          break
-
-        case GL_FLOAT_VEC4:
-          infix = '4f';
-          unroll = 4;
-          break
-
-        case GL_FLOAT_MAT2:
-          infix = 'Matrix2fv';
-          break
-
-        case GL_FLOAT_MAT3:
-          infix = 'Matrix3fv';
-          break
-
-        case GL_FLOAT_MAT4:
-          infix = 'Matrix4fv';
-          break
-      }
-
-      scope(GL, '.uniform', infix, '(', LOCATION, ',');
-      if (infix.charAt(0) === 'M') {
-        var matSize = Math.pow(type - GL_FLOAT_MAT2 + 2, 2);
-        var STORAGE = env.global.def('new Float32Array(', matSize, ')');
-        scope(
-          'false,(Array.isArray(', VALUE, ')||', VALUE, ' instanceof Float32Array)?', VALUE, ':(',
-          loop(matSize, function (i) {
-            return STORAGE + '[' + i + ']=' + VALUE + '[' + i + ']'
-          }), ',', STORAGE, ')');
-      } else if (unroll > 1) {
-        scope(loop(unroll, function (i) {
-          return VALUE + '[' + i + ']'
-        }));
-      } else {
-        scope(VALUE);
-      }
-      scope(');');
-    }
-  }
-
-  function emitDraw (env, outer, inner, args) {
-    var shared = env.shared;
-    var GL = shared.gl;
-    var DRAW_STATE = shared.draw;
-
-    var drawOptions = args.draw;
-
-    function emitElements () {
-      var defn = drawOptions.elements;
-      var ELEMENTS;
-      var scope = outer;
-      if (defn) {
-        if ((defn.contextDep && args.contextDynamic) || defn.propDep) {
-          scope = inner;
-        }
-        ELEMENTS = defn.append(env, scope);
-      } else {
-        ELEMENTS = scope.def(DRAW_STATE, '.', S_ELEMENTS);
-      }
-      if (ELEMENTS) {
-        scope(
-          'if(' + ELEMENTS + ')' +
-          GL + '.bindBuffer(' + GL_ELEMENT_ARRAY_BUFFER$1 + ',' + ELEMENTS + '.buffer.buffer);');
-      }
-      return ELEMENTS
-    }
-
-    function emitCount () {
-      var defn = drawOptions.count;
-      var COUNT;
-      var scope = outer;
-      if (defn) {
-        if ((defn.contextDep && args.contextDynamic) || defn.propDep) {
-          scope = inner;
-        }
-        COUNT = defn.append(env, scope);
-        check$1.optional(function () {
-          if (defn.MISSING) {
-            env.assert(outer, 'false', 'missing vertex count');
-          }
-          if (defn.DYNAMIC) {
-            env.assert(scope, COUNT + '>=0', 'missing vertex count');
-          }
-        });
-      } else {
-        COUNT = scope.def(DRAW_STATE, '.', S_COUNT);
-        check$1.optional(function () {
-          env.assert(scope, COUNT + '>=0', 'missing vertex count');
-        });
-      }
-      return COUNT
-    }
-
-    var ELEMENTS = emitElements();
-    function emitValue (name) {
-      var defn = drawOptions[name];
-      if (defn) {
-        if ((defn.contextDep && args.contextDynamic) || defn.propDep) {
-          return defn.append(env, inner)
-        } else {
-          return defn.append(env, outer)
-        }
-      } else {
-        return outer.def(DRAW_STATE, '.', name)
-      }
-    }
-
-    var PRIMITIVE = emitValue(S_PRIMITIVE);
-    var OFFSET = emitValue(S_OFFSET);
-
-    var COUNT = emitCount();
-    if (typeof COUNT === 'number') {
-      if (COUNT === 0) {
-        return
-      }
-    } else {
-      inner('if(', COUNT, '){');
-      inner.exit('}');
-    }
-
-    var INSTANCES, EXT_INSTANCING;
-    if (extInstancing) {
-      INSTANCES = emitValue(S_INSTANCES);
-      EXT_INSTANCING = env.instancing;
-    }
-
-    var ELEMENT_TYPE = ELEMENTS + '.type';
-
-    var elementsStatic = drawOptions.elements && isStatic(drawOptions.elements);
-
-    function emitInstancing () {
-      function drawElements () {
-        inner(EXT_INSTANCING, '.drawElementsInstancedANGLE(', [
-          PRIMITIVE,
-          COUNT,
-          ELEMENT_TYPE,
-          OFFSET + '<<((' + ELEMENT_TYPE + '-' + GL_UNSIGNED_BYTE$7 + ')>>1)',
-          INSTANCES
-        ], ');');
-      }
-
-      function drawArrays () {
-        inner(EXT_INSTANCING, '.drawArraysInstancedANGLE(',
-          [PRIMITIVE, OFFSET, COUNT, INSTANCES], ');');
-      }
-
-      if (ELEMENTS) {
-        if (!elementsStatic) {
-          inner('if(', ELEMENTS, '){');
-          drawElements();
-          inner('}else{');
-          drawArrays();
-          inner('}');
-        } else {
-          drawElements();
-        }
-      } else {
-        drawArrays();
-      }
-    }
-
-    function emitRegular () {
-      function drawElements () {
-        inner(GL + '.drawElements(' + [
-          PRIMITIVE,
-          COUNT,
-          ELEMENT_TYPE,
-          OFFSET + '<<((' + ELEMENT_TYPE + '-' + GL_UNSIGNED_BYTE$7 + ')>>1)'
-        ] + ');');
-      }
-
-      function drawArrays () {
-        inner(GL + '.drawArrays(' + [PRIMITIVE, OFFSET, COUNT] + ');');
-      }
-
-      if (ELEMENTS) {
-        if (!elementsStatic) {
-          inner('if(', ELEMENTS, '){');
-          drawElements();
-          inner('}else{');
-          drawArrays();
-          inner('}');
-        } else {
-          drawElements();
-        }
-      } else {
-        drawArrays();
-      }
-    }
-
-    if (extInstancing && (typeof INSTANCES !== 'number' || INSTANCES >= 0)) {
-      if (typeof INSTANCES === 'string') {
-        inner('if(', INSTANCES, '>0){');
-        emitInstancing();
-        inner('}else if(', INSTANCES, '<0){');
-        emitRegular();
-        inner('}');
-      } else {
-        emitInstancing();
-      }
-    } else {
-      emitRegular();
-    }
-  }
-
-  function createBody (emitBody, parentEnv, args, program, count) {
-    var env = createREGLEnvironment();
-    var scope = env.proc('body', count);
-    check$1.optional(function () {
-      env.commandStr = parentEnv.commandStr;
-      env.command = env.link(parentEnv.commandStr);
-    });
-    if (extInstancing) {
-      env.instancing = scope.def(
-        env.shared.extensions, '.angle_instanced_arrays');
-    }
-    emitBody(env, scope, args, program);
-    return env.compile().body
-  }
-
-  // ===================================================
-  // ===================================================
-  // DRAW PROC
-  // ===================================================
-  // ===================================================
-  function emitDrawBody (env, draw, args, program) {
-    injectExtensions(env, draw);
-    emitAttributes(env, draw, args, program.attributes, function () {
-      return true
-    });
-    emitUniforms(env, draw, args, program.uniforms, function () {
-      return true
-    });
-    emitDraw(env, draw, draw, args);
-  }
-
-  function emitDrawProc (env, args) {
-    var draw = env.proc('draw', 1);
-
-    injectExtensions(env, draw);
-
-    emitContext(env, draw, args.context);
-    emitPollFramebuffer(env, draw, args.framebuffer);
-
-    emitPollState(env, draw, args);
-    emitSetOptions(env, draw, args.state);
-
-    emitProfile(env, draw, args, false, true);
-
-    var program = args.shader.progVar.append(env, draw);
-    draw(env.shared.gl, '.useProgram(', program, '.program);');
-
-    if (args.shader.program) {
-      emitDrawBody(env, draw, args, args.shader.program);
-    } else {
-      var drawCache = env.global.def('{}');
-      var PROG_ID = draw.def(program, '.id');
-      var CACHED_PROC = draw.def(drawCache, '[', PROG_ID, ']');
-      draw(
-        env.cond(CACHED_PROC)
-          .then(CACHED_PROC, '.call(this,a0);')
-          .else(
-            CACHED_PROC, '=', drawCache, '[', PROG_ID, ']=',
-            env.link(function (program) {
-              return createBody(emitDrawBody, env, args, program, 1)
-            }), '(', program, ');',
-            CACHED_PROC, '.call(this,a0);'));
-    }
-
-    if (Object.keys(args.state).length > 0) {
-      draw(env.shared.current, '.dirty=true;');
-    }
-  }
-
-  // ===================================================
-  // ===================================================
-  // BATCH PROC
-  // ===================================================
-  // ===================================================
-
-  function emitBatchDynamicShaderBody (env, scope, args, program) {
-    env.batchId = 'a1';
-
-    injectExtensions(env, scope);
-
-    function all () {
-      return true
-    }
-
-    emitAttributes(env, scope, args, program.attributes, all);
-    emitUniforms(env, scope, args, program.uniforms, all);
-    emitDraw(env, scope, scope, args);
-  }
-
-  function emitBatchBody (env, scope, args, program) {
-    injectExtensions(env, scope);
-
-    var contextDynamic = args.contextDep;
-
-    var BATCH_ID = scope.def();
-    var PROP_LIST = 'a0';
-    var NUM_PROPS = 'a1';
-    var PROPS = scope.def();
-    env.shared.props = PROPS;
-    env.batchId = BATCH_ID;
-
-    var outer = env.scope();
-    var inner = env.scope();
-
-    scope(
-      outer.entry,
-      'for(', BATCH_ID, '=0;', BATCH_ID, '<', NUM_PROPS, ';++', BATCH_ID, '){',
-      PROPS, '=', PROP_LIST, '[', BATCH_ID, '];',
-      inner,
-      '}',
-      outer.exit);
-
-    function isInnerDefn (defn) {
-      return ((defn.contextDep && contextDynamic) || defn.propDep)
-    }
-
-    function isOuterDefn (defn) {
-      return !isInnerDefn(defn)
-    }
-
-    if (args.needsContext) {
-      emitContext(env, inner, args.context);
-    }
-    if (args.needsFramebuffer) {
-      emitPollFramebuffer(env, inner, args.framebuffer);
-    }
-    emitSetOptions(env, inner, args.state, isInnerDefn);
-
-    if (args.profile && isInnerDefn(args.profile)) {
-      emitProfile(env, inner, args, false, true);
-    }
-
-    if (!program) {
-      var progCache = env.global.def('{}');
-      var PROGRAM = args.shader.progVar.append(env, inner);
-      var PROG_ID = inner.def(PROGRAM, '.id');
-      var CACHED_PROC = inner.def(progCache, '[', PROG_ID, ']');
-      inner(
-        env.shared.gl, '.useProgram(', PROGRAM, '.program);',
-        'if(!', CACHED_PROC, '){',
-        CACHED_PROC, '=', progCache, '[', PROG_ID, ']=',
-        env.link(function (program) {
-          return createBody(
-            emitBatchDynamicShaderBody, env, args, program, 2)
-        }), '(', PROGRAM, ');}',
-        CACHED_PROC, '.call(this,a0[', BATCH_ID, '],', BATCH_ID, ');');
-    } else {
-      emitAttributes(env, outer, args, program.attributes, isOuterDefn);
-      emitAttributes(env, inner, args, program.attributes, isInnerDefn);
-      emitUniforms(env, outer, args, program.uniforms, isOuterDefn);
-      emitUniforms(env, inner, args, program.uniforms, isInnerDefn);
-      emitDraw(env, outer, inner, args);
-    }
-  }
-
-  function emitBatchProc (env, args) {
-    var batch = env.proc('batch', 2);
-    env.batchId = '0';
-
-    injectExtensions(env, batch);
-
-    // Check if any context variables depend on props
-    var contextDynamic = false;
-    var needsContext = true;
-    Object.keys(args.context).forEach(function (name) {
-      contextDynamic = contextDynamic || args.context[name].propDep;
-    });
-    if (!contextDynamic) {
-      emitContext(env, batch, args.context);
-      needsContext = false;
-    }
-
-    // framebuffer state affects framebufferWidth/height context vars
-    var framebuffer = args.framebuffer;
-    var needsFramebuffer = false;
-    if (framebuffer) {
-      if (framebuffer.propDep) {
-        contextDynamic = needsFramebuffer = true;
-      } else if (framebuffer.contextDep && contextDynamic) {
-        needsFramebuffer = true;
-      }
-      if (!needsFramebuffer) {
-        emitPollFramebuffer(env, batch, framebuffer);
-      }
-    } else {
-      emitPollFramebuffer(env, batch, null);
-    }
-
-    // viewport is weird because it can affect context vars
-    if (args.state.viewport && args.state.viewport.propDep) {
-      contextDynamic = true;
-    }
-
-    function isInnerDefn (defn) {
-      return (defn.contextDep && contextDynamic) || defn.propDep
-    }
-
-    // set webgl options
-    emitPollState(env, batch, args);
-    emitSetOptions(env, batch, args.state, function (defn) {
-      return !isInnerDefn(defn)
-    });
-
-    if (!args.profile || !isInnerDefn(args.profile)) {
-      emitProfile(env, batch, args, false, 'a1');
-    }
-
-    // Save these values to args so that the batch body routine can use them
-    args.contextDep = contextDynamic;
-    args.needsContext = needsContext;
-    args.needsFramebuffer = needsFramebuffer;
-
-    // determine if shader is dynamic
-    var progDefn = args.shader.progVar;
-    if ((progDefn.contextDep && contextDynamic) || progDefn.propDep) {
-      emitBatchBody(
-        env,
-        batch,
-        args,
-        null);
-    } else {
-      var PROGRAM = progDefn.append(env, batch);
-      batch(env.shared.gl, '.useProgram(', PROGRAM, '.program);');
-      if (args.shader.program) {
-        emitBatchBody(
-          env,
-          batch,
-          args,
-          args.shader.program);
-      } else {
-        var batchCache = env.global.def('{}');
-        var PROG_ID = batch.def(PROGRAM, '.id');
-        var CACHED_PROC = batch.def(batchCache, '[', PROG_ID, ']');
-        batch(
-          env.cond(CACHED_PROC)
-            .then(CACHED_PROC, '.call(this,a0,a1);')
-            .else(
-              CACHED_PROC, '=', batchCache, '[', PROG_ID, ']=',
-              env.link(function (program) {
-                return createBody(emitBatchBody, env, args, program, 2)
-              }), '(', PROGRAM, ');',
-              CACHED_PROC, '.call(this,a0,a1);'));
-      }
-    }
-
-    if (Object.keys(args.state).length > 0) {
-      batch(env.shared.current, '.dirty=true;');
-    }
-  }
-
-  // ===================================================
-  // ===================================================
-  // SCOPE COMMAND
-  // ===================================================
-  // ===================================================
-  function emitScopeProc (env, args) {
-    var scope = env.proc('scope', 3);
-    env.batchId = 'a2';
-
-    var shared = env.shared;
-    var CURRENT_STATE = shared.current;
-
-    emitContext(env, scope, args.context);
-
-    if (args.framebuffer) {
-      args.framebuffer.append(env, scope);
-    }
-
-    sortState(Object.keys(args.state)).forEach(function (name) {
-      var defn = args.state[name];
-      var value = defn.append(env, scope);
-      if (isArrayLike(value)) {
-        value.forEach(function (v, i) {
-          scope.set(env.next[name], '[' + i + ']', v);
-        });
-      } else {
-        scope.set(shared.next, '.' + name, value);
-      }
-    });
-
-    emitProfile(env, scope, args, true, true)
-
-    ;[S_ELEMENTS, S_OFFSET, S_COUNT, S_INSTANCES, S_PRIMITIVE].forEach(
-      function (opt) {
-        var variable = args.draw[opt];
-        if (!variable) {
-          return
-        }
-        scope.set(shared.draw, '.' + opt, '' + variable.append(env, scope));
-      });
-
-    Object.keys(args.uniforms).forEach(function (opt) {
-      scope.set(
-        shared.uniforms,
-        '[' + stringStore.id(opt) + ']',
-        args.uniforms[opt].append(env, scope));
-    });
-
-    Object.keys(args.attributes).forEach(function (name) {
-      var record = args.attributes[name].append(env, scope);
-      var scopeAttrib = env.scopeAttrib(name);
-      Object.keys(new AttributeRecord()).forEach(function (prop) {
-        scope.set(scopeAttrib, '.' + prop, record[prop]);
-      });
-    });
-
-    function saveShader (name) {
-      var shader = args.shader[name];
-      if (shader) {
-        scope.set(shared.shader, '.' + name, shader.append(env, scope));
-      }
-    }
-    saveShader(S_VERT);
-    saveShader(S_FRAG);
-
-    if (Object.keys(args.state).length > 0) {
-      scope(CURRENT_STATE, '.dirty=true;');
-      scope.exit(CURRENT_STATE, '.dirty=true;');
-    }
-
-    scope('a1(', env.shared.context, ',a0,', env.batchId, ');');
-  }
-
-  function isDynamicObject (object) {
-    if (typeof object !== 'object' || isArrayLike(object)) {
-      return
-    }
-    var props = Object.keys(object);
-    for (var i = 0; i < props.length; ++i) {
-      if (dynamic.isDynamic(object[props[i]])) {
-        return true
-      }
-    }
-    return false
-  }
-
-  function splatObject (env, options, name) {
-    var object = options.static[name];
-    if (!object || !isDynamicObject(object)) {
-      return
-    }
-
-    var globals = env.global;
-    var keys = Object.keys(object);
-    var thisDep = false;
-    var contextDep = false;
-    var propDep = false;
-    var objectRef = env.global.def('{}');
-    keys.forEach(function (key) {
-      var value = object[key];
-      if (dynamic.isDynamic(value)) {
-        if (typeof value === 'function') {
-          value = object[key] = dynamic.unbox(value);
-        }
-        var deps = createDynamicDecl(value, null);
-        thisDep = thisDep || deps.thisDep;
-        propDep = propDep || deps.propDep;
-        contextDep = contextDep || deps.contextDep;
-      } else {
-        globals(objectRef, '.', key, '=');
-        switch (typeof value) {
-          case 'number':
-            globals(value);
-            break
-          case 'string':
-            globals('"', value, '"');
-            break
-          case 'object':
-            if (Array.isArray(value)) {
-              globals('[', value.join(), ']');
-            }
-            break
-          default:
-            globals(env.link(value));
-            break
-        }
-        globals(';');
-      }
-    });
-
-    function appendBlock (env, block) {
-      keys.forEach(function (key) {
-        var value = object[key];
-        if (!dynamic.isDynamic(value)) {
-          return
-        }
-        var ref = env.invoke(block, value);
-        block(objectRef, '.', key, '=', ref, ';');
-      });
-    }
-
-    options.dynamic[name] = new dynamic.DynamicVariable(DYN_THUNK, {
-      thisDep: thisDep,
-      contextDep: contextDep,
-      propDep: propDep,
-      ref: objectRef,
-      append: appendBlock
-    });
-    delete options.static[name];
-  }
-
-  // ===========================================================================
-  // ===========================================================================
-  // MAIN DRAW COMMAND
-  // ===========================================================================
-  // ===========================================================================
-  function compileCommand (options, attributes, uniforms, context, stats) {
-    var env = createREGLEnvironment();
-
-    // link stats, so that we can easily access it in the program.
-    env.stats = env.link(stats);
-
-    // splat options and attributes to allow for dynamic nested properties
-    Object.keys(attributes.static).forEach(function (key) {
-      splatObject(env, attributes, key);
-    });
-    NESTED_OPTIONS.forEach(function (name) {
-      splatObject(env, options, name);
-    });
-
-    var args = parseArguments(options, attributes, uniforms, context, env);
-
-    emitDrawProc(env, args);
-    emitScopeProc(env, args);
-    emitBatchProc(env, args);
-
-    return env.compile()
-  }
-
-  // ===========================================================================
-  // ===========================================================================
-  // POLL / REFRESH
-  // ===========================================================================
-  // ===========================================================================
-  return {
-    next: nextState,
-    current: currentState,
-    procs: (function () {
-      var env = createREGLEnvironment();
-      var poll = env.proc('poll');
-      var refresh = env.proc('refresh');
-      var common = env.block();
-      poll(common);
-      refresh(common);
-
-      var shared = env.shared;
-      var GL = shared.gl;
-      var NEXT_STATE = shared.next;
-      var CURRENT_STATE = shared.current;
-
-      common(CURRENT_STATE, '.dirty=false;');
-
-      emitPollFramebuffer(env, poll);
-      emitPollFramebuffer(env, refresh, null, true);
-
-      // Refresh updates all attribute state changes
-      var extInstancing = gl.getExtension('angle_instanced_arrays');
-      var INSTANCING;
-      if (extInstancing) {
-        INSTANCING = env.link(extInstancing);
-      }
-      for (var i = 0; i < limits.maxAttributes; ++i) {
-        var BINDING = refresh.def(shared.attributes, '[', i, ']');
-        var ifte = env.cond(BINDING, '.buffer');
-        ifte.then(
-          GL, '.enableVertexAttribArray(', i, ');',
-          GL, '.bindBuffer(',
-            GL_ARRAY_BUFFER$1, ',',
-            BINDING, '.buffer.buffer);',
-          GL, '.vertexAttribPointer(',
-            i, ',',
-            BINDING, '.size,',
-            BINDING, '.type,',
-            BINDING, '.normalized,',
-            BINDING, '.stride,',
-            BINDING, '.offset);'
-        ).else(
-          GL, '.disableVertexAttribArray(', i, ');',
-          GL, '.vertexAttrib4f(',
-            i, ',',
-            BINDING, '.x,',
-            BINDING, '.y,',
-            BINDING, '.z,',
-            BINDING, '.w);',
-          BINDING, '.buffer=null;');
-        refresh(ifte);
-        if (extInstancing) {
-          refresh(
-            INSTANCING, '.vertexAttribDivisorANGLE(',
-            i, ',',
-            BINDING, '.divisor);');
-        }
-      }
-
-      Object.keys(GL_FLAGS).forEach(function (flag) {
-        var cap = GL_FLAGS[flag];
-        var NEXT = common.def(NEXT_STATE, '.', flag);
-        var block = env.block();
-        block('if(', NEXT, '){',
-          GL, '.enable(', cap, ')}else{',
-          GL, '.disable(', cap, ')}',
-          CURRENT_STATE, '.', flag, '=', NEXT, ';');
-        refresh(block);
-        poll(
-          'if(', NEXT, '!==', CURRENT_STATE, '.', flag, '){',
-          block,
-          '}');
-      });
-
-      Object.keys(GL_VARIABLES).forEach(function (name) {
-        var func = GL_VARIABLES[name];
-        var init = currentState[name];
-        var NEXT, CURRENT;
-        var block = env.block();
-        block(GL, '.', func, '(');
-        if (isArrayLike(init)) {
-          var n = init.length;
-          NEXT = env.global.def(NEXT_STATE, '.', name);
-          CURRENT = env.global.def(CURRENT_STATE, '.', name);
-          block(
-            loop(n, function (i) {
-              return NEXT + '[' + i + ']'
-            }), ');',
-            loop(n, function (i) {
-              return CURRENT + '[' + i + ']=' + NEXT + '[' + i + '];'
-            }).join(''));
-          poll(
-            'if(', loop(n, function (i) {
-              return NEXT + '[' + i + ']!==' + CURRENT + '[' + i + ']'
-            }).join('||'), '){',
-            block,
-            '}');
-        } else {
-          NEXT = common.def(NEXT_STATE, '.', name);
-          CURRENT = common.def(CURRENT_STATE, '.', name);
-          block(
-            NEXT, ');',
-            CURRENT_STATE, '.', name, '=', NEXT, ';');
-          poll(
-            'if(', NEXT, '!==', CURRENT, '){',
-            block,
-            '}');
-        }
-        refresh(block);
-      });
-
-      return env.compile()
-    })(),
-    compile: compileCommand
-  }
-}
-
-function stats () {
-  return {
-    bufferCount: 0,
-    elementsCount: 0,
-    framebufferCount: 0,
-    shaderCount: 0,
-    textureCount: 0,
-    cubeCount: 0,
-    renderbufferCount: 0,
-
-    maxTextureUnits: 0
-  }
-}
-
-var GL_QUERY_RESULT_EXT = 0x8866;
-var GL_QUERY_RESULT_AVAILABLE_EXT = 0x8867;
-var GL_TIME_ELAPSED_EXT = 0x88BF;
-
-var createTimer = function (gl, extensions) {
-  var extTimer = extensions.ext_disjoint_timer_query;
-
-  if (!extTimer) {
-    return null
-  }
-
-  // QUERY POOL BEGIN
-  var queryPool = [];
-  function allocQuery () {
-    return queryPool.pop() || extTimer.createQueryEXT()
-  }
-  function freeQuery (query) {
-    queryPool.push(query);
-  }
-  // QUERY POOL END
-
-  var pendingQueries = [];
-  function beginQuery (stats) {
-    var query = allocQuery();
-    extTimer.beginQueryEXT(GL_TIME_ELAPSED_EXT, query);
-    pendingQueries.push(query);
-    pushScopeStats(pendingQueries.length - 1, pendingQueries.length, stats);
-  }
-
-  function endQuery () {
-    extTimer.endQueryEXT(GL_TIME_ELAPSED_EXT);
-  }
-
-  //
-  // Pending stats pool.
-  //
-  function PendingStats () {
-    this.startQueryIndex = -1;
-    this.endQueryIndex = -1;
-    this.sum = 0;
-    this.stats = null;
-  }
-  var pendingStatsPool = [];
-  function allocPendingStats () {
-    return pendingStatsPool.pop() || new PendingStats()
-  }
-  function freePendingStats (pendingStats) {
-    pendingStatsPool.push(pendingStats);
-  }
-  // Pending stats pool end
-
-  var pendingStats = [];
-  function pushScopeStats (start, end, stats) {
-    var ps = allocPendingStats();
-    ps.startQueryIndex = start;
-    ps.endQueryIndex = end;
-    ps.sum = 0;
-    ps.stats = stats;
-    pendingStats.push(ps);
-  }
-
-  // we should call this at the beginning of the frame,
-  // in order to update gpuTime
-  var timeSum = [];
-  var queryPtr = [];
-  function update () {
-    var ptr, i;
-
-    var n = pendingQueries.length;
-    if (n === 0) {
-      return
-    }
-
-    // Reserve space
-    queryPtr.length = Math.max(queryPtr.length, n + 1);
-    timeSum.length = Math.max(timeSum.length, n + 1);
-    timeSum[0] = 0;
-    queryPtr[0] = 0;
-
-    // Update all pending timer queries
-    var queryTime = 0;
-    ptr = 0;
-    for (i = 0; i < pendingQueries.length; ++i) {
-      var query = pendingQueries[i];
-      if (extTimer.getQueryObjectEXT(query, GL_QUERY_RESULT_AVAILABLE_EXT)) {
-        queryTime += extTimer.getQueryObjectEXT(query, GL_QUERY_RESULT_EXT);
-        freeQuery(query);
-      } else {
-        pendingQueries[ptr++] = query;
-      }
-      timeSum[i + 1] = queryTime;
-      queryPtr[i + 1] = ptr;
-    }
-    pendingQueries.length = ptr;
-
-    // Update all pending stat queries
-    ptr = 0;
-    for (i = 0; i < pendingStats.length; ++i) {
-      var stats = pendingStats[i];
-      var start = stats.startQueryIndex;
-      var end = stats.endQueryIndex;
-      stats.sum += timeSum[end] - timeSum[start];
-      var startPtr = queryPtr[start];
-      var endPtr = queryPtr[end];
-      if (endPtr === startPtr) {
-        stats.stats.gpuTime += stats.sum / 1e6;
-        freePendingStats(stats);
-      } else {
-        stats.startQueryIndex = startPtr;
-        stats.endQueryIndex = endPtr;
-        pendingStats[ptr++] = stats;
-      }
-    }
-    pendingStats.length = ptr;
-  }
-
-  return {
-    beginQuery: beginQuery,
-    endQuery: endQuery,
-    pushScopeStats: pushScopeStats,
-    update: update,
-    getNumPendingQueries: function () {
-      return pendingQueries.length
-    },
-    clear: function () {
-      queryPool.push.apply(queryPool, pendingQueries);
-      for (var i = 0; i < queryPool.length; i++) {
-        extTimer.deleteQueryEXT(queryPool[i]);
-      }
-      pendingQueries.length = 0;
-      queryPool.length = 0;
-    },
-    restore: function () {
-      pendingQueries.length = 0;
-      queryPool.length = 0;
-    }
-  }
-};
-
-var GL_COLOR_BUFFER_BIT = 16384;
-var GL_DEPTH_BUFFER_BIT = 256;
-var GL_STENCIL_BUFFER_BIT = 1024;
-
-var GL_ARRAY_BUFFER = 34962;
-
-var CONTEXT_LOST_EVENT = 'webglcontextlost';
-var CONTEXT_RESTORED_EVENT = 'webglcontextrestored';
-
-var DYN_PROP = 1;
-var DYN_CONTEXT = 2;
-var DYN_STATE = 3;
-
-function find (haystack, needle) {
-  for (var i = 0; i < haystack.length; ++i) {
-    if (haystack[i] === needle) {
-      return i
-    }
-  }
-  return -1
-}
-
-function wrapREGL (args) {
-  var config = parseArgs(args);
-  if (!config) {
-    return null
-  }
-
-  var gl = config.gl;
-  var glAttributes = gl.getContextAttributes();
-  var contextLost = gl.isContextLost();
-
-  var extensionState = createExtensionCache(gl, config);
-  if (!extensionState) {
-    return null
-  }
-
-  var stringStore = createStringStore();
-  var stats$$1 = stats();
-  var extensions = extensionState.extensions;
-  var timer = createTimer(gl, extensions);
-
-  var START_TIME = clock();
-  var WIDTH = gl.drawingBufferWidth;
-  var HEIGHT = gl.drawingBufferHeight;
-
-  var contextState = {
-    tick: 0,
-    time: 0,
-    viewportWidth: WIDTH,
-    viewportHeight: HEIGHT,
-    framebufferWidth: WIDTH,
-    framebufferHeight: HEIGHT,
-    drawingBufferWidth: WIDTH,
-    drawingBufferHeight: HEIGHT,
-    pixelRatio: config.pixelRatio
-  };
-  var uniformState = {};
-  var drawState = {
-    elements: null,
-    primitive: 4, // GL_TRIANGLES
-    count: -1,
-    offset: 0,
-    instances: -1
-  };
-
-  var limits = wrapLimits(gl, extensions);
-  var bufferState = wrapBufferState(gl, stats$$1, config);
-  var elementState = wrapElementsState(gl, extensions, bufferState, stats$$1);
-  var attributeState = wrapAttributeState(
-    gl,
-    extensions,
-    limits,
-    bufferState,
-    stringStore);
-  var shaderState = wrapShaderState(gl, stringStore, stats$$1, config);
-  var textureState = createTextureSet(
-    gl,
-    extensions,
-    limits,
-    function () { core.procs.poll(); },
-    contextState,
-    stats$$1,
-    config);
-  var renderbufferState = wrapRenderbuffers(gl, extensions, limits, stats$$1, config);
-  var framebufferState = wrapFBOState(
-    gl,
-    extensions,
-    limits,
-    textureState,
-    renderbufferState,
-    stats$$1);
-  var core = reglCore(
-    gl,
-    stringStore,
-    extensions,
-    limits,
-    bufferState,
-    elementState,
-    textureState,
-    framebufferState,
-    uniformState,
-    attributeState,
-    shaderState,
-    drawState,
-    contextState,
-    timer,
-    config);
-  var readPixels = wrapReadPixels(
-    gl,
-    framebufferState,
-    core.procs.poll,
-    contextState,
-    glAttributes, extensions);
-
-  var nextState = core.next;
-  var canvas = gl.canvas;
-
-  var rafCallbacks = [];
-  var lossCallbacks = [];
-  var restoreCallbacks = [];
-  var destroyCallbacks = [config.onDestroy];
-
-  var activeRAF = null;
-  function handleRAF () {
-    if (rafCallbacks.length === 0) {
-      if (timer) {
-        timer.update();
-      }
-      activeRAF = null;
-      return
-    }
-
-    // schedule next animation frame
-    activeRAF = raf.next(handleRAF);
-
-    // poll for changes
-    poll();
-
-    // fire a callback for all pending rafs
-    for (var i = rafCallbacks.length - 1; i >= 0; --i) {
-      var cb = rafCallbacks[i];
-      if (cb) {
-        cb(contextState, null, 0);
-      }
-    }
-
-    // flush all pending webgl calls
-    gl.flush();
-
-    // poll GPU timers *after* gl.flush so we don't delay command dispatch
-    if (timer) {
-      timer.update();
-    }
-  }
-
-  function startRAF () {
-    if (!activeRAF && rafCallbacks.length > 0) {
-      activeRAF = raf.next(handleRAF);
-    }
-  }
-
-  function stopRAF () {
-    if (activeRAF) {
-      raf.cancel(handleRAF);
-      activeRAF = null;
-    }
-  }
-
-  function handleContextLoss (event) {
-    event.preventDefault();
-
-    // set context lost flag
-    contextLost = true;
-
-    // pause request animation frame
-    stopRAF();
-
-    // lose context
-    lossCallbacks.forEach(function (cb) {
-      cb();
-    });
-  }
-
-  function handleContextRestored (event) {
-    // clear error code
-    gl.getError();
-
-    // clear context lost flag
-    contextLost = false;
-
-    // refresh state
-    extensionState.restore();
-    shaderState.restore();
-    bufferState.restore();
-    textureState.restore();
-    renderbufferState.restore();
-    framebufferState.restore();
-    if (timer) {
-      timer.restore();
-    }
-
-    // refresh state
-    core.procs.refresh();
-
-    // restart RAF
-    startRAF();
-
-    // restore context
-    restoreCallbacks.forEach(function (cb) {
-      cb();
-    });
-  }
-
-  if (canvas) {
-    canvas.addEventListener(CONTEXT_LOST_EVENT, handleContextLoss, false);
-    canvas.addEventListener(CONTEXT_RESTORED_EVENT, handleContextRestored, false);
-  }
-
-  function destroy () {
-    rafCallbacks.length = 0;
-    stopRAF();
-
-    if (canvas) {
-      canvas.removeEventListener(CONTEXT_LOST_EVENT, handleContextLoss);
-      canvas.removeEventListener(CONTEXT_RESTORED_EVENT, handleContextRestored);
-    }
-
-    shaderState.clear();
-    framebufferState.clear();
-    renderbufferState.clear();
-    textureState.clear();
-    elementState.clear();
-    bufferState.clear();
-
-    if (timer) {
-      timer.clear();
-    }
-
-    destroyCallbacks.forEach(function (cb) {
-      cb();
-    });
-  }
-
-  function compileProcedure (options) {
-    check$1(!!options, 'invalid args to regl({...})');
-    check$1.type(options, 'object', 'invalid args to regl({...})');
-
-    function flattenNestedOptions (options) {
-      var result = extend({}, options);
-      delete result.uniforms;
-      delete result.attributes;
-      delete result.context;
-
-      if ('stencil' in result && result.stencil.op) {
-        result.stencil.opBack = result.stencil.opFront = result.stencil.op;
-        delete result.stencil.op;
-      }
-
-      function merge (name) {
-        if (name in result) {
-          var child = result[name];
-          delete result[name];
-          Object.keys(child).forEach(function (prop) {
-            result[name + '.' + prop] = child[prop];
-          });
-        }
-      }
-      merge('blend');
-      merge('depth');
-      merge('cull');
-      merge('stencil');
-      merge('polygonOffset');
-      merge('scissor');
-      merge('sample');
-
-      return result
-    }
-
-    function separateDynamic (object) {
-      var staticItems = {};
-      var dynamicItems = {};
-      Object.keys(object).forEach(function (option) {
-        var value = object[option];
-        if (dynamic.isDynamic(value)) {
-          dynamicItems[option] = dynamic.unbox(value, option);
-        } else {
-          staticItems[option] = value;
-        }
-      });
-      return {
-        dynamic: dynamicItems,
-        static: staticItems
-      }
-    }
-
-    // Treat context variables separate from other dynamic variables
-    var context = separateDynamic(options.context || {});
-    var uniforms = separateDynamic(options.uniforms || {});
-    var attributes = separateDynamic(options.attributes || {});
-    var opts = separateDynamic(flattenNestedOptions(options));
-
-    var stats$$1 = {
-      gpuTime: 0.0,
-      cpuTime: 0.0,
-      count: 0
-    };
-
-    var compiled = core.compile(opts, attributes, uniforms, context, stats$$1);
-
-    var draw = compiled.draw;
-    var batch = compiled.batch;
-    var scope = compiled.scope;
-
-    // FIXME: we should modify code generation for batch commands so this
-    // isn't necessary
-    var EMPTY_ARRAY = [];
-    function reserve (count) {
-      while (EMPTY_ARRAY.length < count) {
-        EMPTY_ARRAY.push(null);
-      }
-      return EMPTY_ARRAY
-    }
-
-    function REGLCommand (args, body) {
-      var i;
-      if (contextLost) {
-        check$1.raise('context lost');
-      }
-      if (typeof args === 'function') {
-        return scope.call(this, null, args, 0)
-      } else if (typeof body === 'function') {
-        if (typeof args === 'number') {
-          for (i = 0; i < args; ++i) {
-            scope.call(this, null, body, i);
-          }
-          return
-        } else if (Array.isArray(args)) {
-          for (i = 0; i < args.length; ++i) {
-            scope.call(this, args[i], body, i);
-          }
-          return
-        } else {
-          return scope.call(this, args, body, 0)
-        }
-      } else if (typeof args === 'number') {
-        if (args > 0) {
-          return batch.call(this, reserve(args | 0), args | 0)
-        }
-      } else if (Array.isArray(args)) {
-        if (args.length) {
-          return batch.call(this, args, args.length)
-        }
-      } else {
-        return draw.call(this, args)
-      }
-    }
-
-    return extend(REGLCommand, {
-      stats: stats$$1
-    })
-  }
-
-  var setFBO = framebufferState.setFBO = compileProcedure({
-    framebuffer: dynamic.define.call(null, DYN_PROP, 'framebuffer')
-  });
-
-  function clearImpl (_, options) {
-    var clearFlags = 0;
-    core.procs.poll();
-
-    var c = options.color;
-    if (c) {
-      gl.clearColor(+c[0] || 0, +c[1] || 0, +c[2] || 0, +c[3] || 0);
-      clearFlags |= GL_COLOR_BUFFER_BIT;
-    }
-    if ('depth' in options) {
-      gl.clearDepth(+options.depth);
-      clearFlags |= GL_DEPTH_BUFFER_BIT;
-    }
-    if ('stencil' in options) {
-      gl.clearStencil(options.stencil | 0);
-      clearFlags |= GL_STENCIL_BUFFER_BIT;
-    }
-
-    check$1(!!clearFlags, 'called regl.clear with no buffer specified');
-    gl.clear(clearFlags);
-  }
-
-  function clear (options) {
-    check$1(
-      typeof options === 'object' && options,
-      'regl.clear() takes an object as input');
-    if ('framebuffer' in options) {
-      if (options.framebuffer &&
-          options.framebuffer_reglType === 'framebufferCube') {
-        for (var i = 0; i < 6; ++i) {
-          setFBO(extend({
-            framebuffer: options.framebuffer.faces[i]
-          }, options), clearImpl);
-        }
-      } else {
-        setFBO(options, clearImpl);
-      }
-    } else {
-      clearImpl(null, options);
-    }
-  }
-
-  function frame (cb) {
-    check$1.type(cb, 'function', 'regl.frame() callback must be a function');
-    rafCallbacks.push(cb);
-
-    function cancel () {
-      // FIXME:  should we check something other than equals cb here?
-      // what if a user calls frame twice with the same callback...
-      //
-      var i = find(rafCallbacks, cb);
-      check$1(i >= 0, 'cannot cancel a frame twice');
-      function pendingCancel () {
-        var index = find(rafCallbacks, pendingCancel);
-        rafCallbacks[index] = rafCallbacks[rafCallbacks.length - 1];
-        rafCallbacks.length -= 1;
-        if (rafCallbacks.length <= 0) {
-          stopRAF();
-        }
-      }
-      rafCallbacks[i] = pendingCancel;
-    }
-
-    startRAF();
-
-    return {
-      cancel: cancel
-    }
-  }
-
-  // poll viewport
-  function pollViewport () {
-    var viewport = nextState.viewport;
-    var scissorBox = nextState.scissor_box;
-    viewport[0] = viewport[1] = scissorBox[0] = scissorBox[1] = 0;
-    contextState.viewportWidth =
-      contextState.framebufferWidth =
-      contextState.drawingBufferWidth =
-      viewport[2] =
-      scissorBox[2] = gl.drawingBufferWidth;
-    contextState.viewportHeight =
-      contextState.framebufferHeight =
-      contextState.drawingBufferHeight =
-      viewport[3] =
-      scissorBox[3] = gl.drawingBufferHeight;
-  }
-
-  function poll () {
-    contextState.tick += 1;
-    contextState.time = now();
-    pollViewport();
-    core.procs.poll();
-  }
-
-  function refresh () {
-    pollViewport();
-    core.procs.refresh();
-    if (timer) {
-      timer.update();
-    }
-  }
-
-  function now () {
-    return (clock() - START_TIME) / 1000.0
-  }
-
-  refresh();
-
-  function addListener (event, callback) {
-    check$1.type(callback, 'function', 'listener callback must be a function');
-
-    var callbacks;
-    switch (event) {
-      case 'frame':
-        return frame(callback)
-      case 'lost':
-        callbacks = lossCallbacks;
-        break
-      case 'restore':
-        callbacks = restoreCallbacks;
-        break
-      case 'destroy':
-        callbacks = destroyCallbacks;
-        break
-      default:
-        check$1.raise('invalid event, must be one of frame,lost,restore,destroy');
-    }
-
-    callbacks.push(callback);
-    return {
-      cancel: function () {
-        for (var i = 0; i < callbacks.length; ++i) {
-          if (callbacks[i] === callback) {
-            callbacks[i] = callbacks[callbacks.length - 1];
-            callbacks.pop();
-            return
-          }
-        }
-      }
-    }
-  }
-
-  var regl = extend(compileProcedure, {
-    // Clear current FBO
-    clear: clear,
-
-    // Short cuts for dynamic variables
-    prop: dynamic.define.bind(null, DYN_PROP),
-    context: dynamic.define.bind(null, DYN_CONTEXT),
-    this: dynamic.define.bind(null, DYN_STATE),
-
-    // executes an empty draw command
-    draw: compileProcedure({}),
-
-    // Resources
-    buffer: function (options) {
-      return bufferState.create(options, GL_ARRAY_BUFFER, false, false)
-    },
-    elements: function (options) {
-      return elementState.create(options, false)
-    },
-    texture: textureState.create2D,
-    cube: textureState.createCube,
-    renderbuffer: renderbufferState.create,
-    framebuffer: framebufferState.create,
-    framebufferCube: framebufferState.createCube,
-
-    // Expose context attributes
-    attributes: glAttributes,
-
-    // Frame rendering
-    frame: frame,
-    on: addListener,
-
-    // System limits
-    limits: limits,
-    hasExtension: function (name) {
-      return limits.extensions.indexOf(name.toLowerCase()) >= 0
-    },
-
-    // Read pixels
-    read: readPixels,
-
-    // Destroy regl and all associated resources
-    destroy: destroy,
-
-    // Direct GL state manipulation
-    _gl: gl,
-    _refresh: refresh,
-
-    poll: function () {
-      poll();
-      if (timer) {
-        timer.update();
-      }
-    },
-
-    // Current time
-    now: now,
-
-    // regl Statistics Information
-    stats: stats$$1
-  });
-
-  config.onDone(null, regl);
-
-  return regl
-}
-
-return wrapREGL;
-
-})));
-
-
-},{}],41:[function(require,module,exports){
-var resolve = require('soundcloud-resolve')
-var fonts = require('google-fonts')
-var minstache = require('minstache')
-var insert = require('insert-css')
-var fs = require('fs')
-
-var icons = {
-    black: 'https://developers.soundcloud.com/assets/logo_black.png'
-  , white: 'https://developers.soundcloud.com/assets/logo_white.png'
-}
-
-module.exports = badge
-function noop(err){ if (err) throw err }
-
-var inserted = false
-var gwfadded = false
-var template = null
-
-function badge(options, callback) {
-  if (!inserted) insert(".npm-scb-wrap {\n  font-family: 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;\n  font-weight: 200;\n  position: absolute;\n  top: 0;\n  left: 0;\n  z-index: 999;\n}\n\n.npm-scb-wrap a {\n  text-decoration: none;\n  color: #000;\n}\n.npm-scb-white\n.npm-scb-wrap a {\n  color: #fff;\n}\n\n.npm-scb-inner {\n  position: absolute;\n  top: -120px; left: 0;\n  padding: 8px;\n  width: 100%;\n  height: 150px;\n  z-index: 2;\n  -webkit-transition: width 0.5s cubic-bezier(1, 0, 0, 1), top 0.5s;\n     -moz-transition: width 0.5s cubic-bezier(1, 0, 0, 1), top 0.5s;\n      -ms-transition: width 0.5s cubic-bezier(1, 0, 0, 1), top 0.5s;\n       -o-transition: width 0.5s cubic-bezier(1, 0, 0, 1), top 0.5s;\n          transition: width 0.5s cubic-bezier(1, 0, 0, 1), top 0.5s;\n}\n.npm-scb-wrap:hover\n.npm-scb-inner {\n  top: 0;\n}\n\n.npm-scb-artwork {\n  position: absolute;\n  top: 16px; left: 16px;\n  width: 104px; height: 104px;\n  box-shadow: 0 0 8px -3px #000;\n  outline: 1px solid rgba(0,0,0,0.1);\n  z-index: 2;\n}\n.npm-scb-white\n.npm-scb-artwork {\n  outline: 1px solid rgba(255,255,255,0.1);\n  box-shadow: 0 0 10px -2px rgba(255,255,255,0.9);\n}\n\n.npm-scb-info {\n  position: absolute;\n  top: 16px;\n  left: 120px;\n  width: 300px;\n  z-index: 1;\n}\n\n.npm-scb-info > a {\n  display: block;\n}\n\n.npm-scb-now-playing {\n  font-size: 12px;\n  line-height: 12px;\n  position: absolute;\n  width: 500px;\n  z-index: 1;\n  padding: 15px 0;\n  top: 0; left: 138px;\n  opacity: 1;\n  -webkit-transition: opacity 0.25s;\n     -moz-transition: opacity 0.25s;\n      -ms-transition: opacity 0.25s;\n       -o-transition: opacity 0.25s;\n          transition: opacity 0.25s;\n}\n\n.npm-scb-wrap:hover\n.npm-scb-now-playing {\n  opacity: 0;\n}\n\n.npm-scb-white\n.npm-scb-now-playing {\n  color: #fff;\n}\n.npm-scb-now-playing > a {\n  font-weight: bold;\n}\n\n.npm-scb-info > a > p {\n  margin: 0;\n  padding-bottom: 0.25em;\n  line-height: 1.35em;\n  margin-left: 1em;\n  font-size: 1em;\n}\n\n.npm-scb-title {\n  font-weight: bold;\n}\n\n.npm-scb-icon {\n  position: absolute;\n  top: 120px;\n  padding-top: 0.75em;\n  left: 16px;\n}\n"), inserted = true
-  if (!template) template = minstache.compile("<div class=\"npm-scb-wrap\">\n  <div class=\"npm-scb-inner\">\n    <a target=\"_blank\" href=\"{{!urls.song}}\">\n      <img class=\"npm-scb-icon\" src=\"{{!icon}}\">\n      <img class=\"npm-scb-artwork\" src=\"{{!artwork}}\">\n    </a>\n    <div class=\"npm-scb-info\">\n      <a target=\"_blank\" href=\"{{!urls.song}}\">\n        <p class=\"npm-scb-title\">{{!title}}</p>\n      </a>\n      <a target=\"_blank\" href=\"{{!urls.artist}}\">\n        <p class=\"npm-scb-artist\">{{!artist}}</p>\n      </a>\n    </div>\n  </div>\n  <div class=\"npm-scb-now-playing\">\n    Now Playing:\n    <a href=\"{{!urls.song}}\">{{!title}}</a>\n    by\n    <a href=\"{{!urls.artist}}\">{{!artist}}</a>\n  </div>\n</div>")
-
-  if (!gwfadded && options.getFonts) {
-    fonts.add({ 'Open Sans': [300, 600] })
-    gwfadded = true
-  }
-
-  options = options || {}
-  callback = callback || noop
-
-  var div   = options.el || document.createElement('div')
-  var icon  = !('dark' in options) || options.dark ? 'black' : 'white'
-  var id    = options.client_id
-  var song  = options.song
-
-  resolve(id, song, function(err, json) {
-    if (err) return callback(err)
-    if (json.kind !== 'track') throw new Error(
-      'soundcloud-badge only supports individual tracks at the moment'
-    )
-
-    div.classList[
-      icon === 'black' ? 'remove' : 'add'
-    ]('npm-scb-white')
-
-    div.innerHTML = template({
-        artwork: json.artwork_url || json.user.avatar_url
-      , artist: json.user.username
-      , title: json.title
-      , icon: icons[icon]
-      , urls: {
-          song: json.permalink_url
-        , artist: json.user.permalink_url
-      }
-    })
-
-    document.body.appendChild(div)
-
-    callback(null, json.stream_url + '?client_id=' + id, json, div)
-  })
-
-  return div
-}
-
-},{"fs":6,"google-fonts":16,"insert-css":19,"minstache":20,"soundcloud-resolve":42}],42:[function(require,module,exports){
-var qs  = require('querystring')
-var xhr = require('xhr')
-
-module.exports = resolve
-
-function resolve(id, goal, callback) {
-  var uri = 'https://api.soundcloud.com/resolve.json?' + qs.stringify({
-      url: goal
-    , client_id: id
-  })
-
-  xhr({
-      uri: uri
-    , method: 'GET'
-  }, function(err, res, body) {
-    if (err) return callback(err)
-    try {
-      body = JSON.parse(body)
-    } catch(e) {
-      return callback(e)
-    }
-    if (body.errors) return callback(new Error(
-      body.errors[0].error_message
-    ))
-
-    var stream_url = body.kind === 'track'
-      && body.stream_url + '?client_id=' + id
-
-    return callback(null, body, stream_url)
-  })
-}
-
-},{"querystring":38,"xhr":50}],43:[function(require,module,exports){
-'use strict'
-
-var parseUnit = require('parse-unit')
-
-module.exports = toPX
-
-var PIXELS_PER_INCH = 96
-
-function getPropertyInPX(element, prop) {
-  var parts = parseUnit(getComputedStyle(element).getPropertyValue(prop))
-  return parts[0] * toPX(parts[1], element)
-}
-
-//This brutal hack is needed
-function getSizeBrutal(unit, element) {
-  var testDIV = document.createElement('div')
-  testDIV.style['font-size'] = '128' + unit
-  element.appendChild(testDIV)
-  var size = getPropertyInPX(testDIV, 'font-size') / 128
-  element.removeChild(testDIV)
-  return size
-}
-
-function toPX(str, element) {
-  element = element || document.body
-  str = (str || 'px').trim().toLowerCase()
-  if(element === window || element === document) {
-    element = document.body 
-  }
-  switch(str) {
-    case '%':  //Ambiguous, not sure if we should use width or height
-      return element.clientHeight / 100.0
-    case 'ch':
-    case 'ex':
-      return getSizeBrutal(str, element)
-    case 'em':
-      return getPropertyInPX(element, 'font-size')
-    case 'rem':
-      return getPropertyInPX(document.body, 'font-size')
-    case 'vw':
-      return window.innerWidth/100
-    case 'vh':
-      return window.innerHeight/100
-    case 'vmin':
-      return Math.min(window.innerWidth, window.innerHeight) / 100
-    case 'vmax':
-      return Math.max(window.innerWidth, window.innerHeight) / 100
-    case 'in':
-      return PIXELS_PER_INCH
-    case 'cm':
-      return PIXELS_PER_INCH / 2.54
-    case 'mm':
-      return PIXELS_PER_INCH / 25.4
-    case 'pt':
-      return PIXELS_PER_INCH / 72
-    case 'pc':
-      return PIXELS_PER_INCH / 6
-  }
-  return 1
-}
-},{"parse-unit":34}],44:[function(require,module,exports){
+},{"object-assign":36,"util/":5}],3:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -12846,14 +664,14 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],45:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],46:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -13443,7 +1261,3114 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":45,"_process":35,"inherits":44}],47:[function(require,module,exports){
+},{"./support/isBuffer":4,"_process":40,"inherits":3}],6:[function(require,module,exports){
+var document = require('global/document')
+var hyperx = require('hyperx')
+var onload = require('on-load')
+
+var SVGNS = 'http://www.w3.org/2000/svg'
+var XLINKNS = 'http://www.w3.org/1999/xlink'
+
+var BOOL_PROPS = {
+  autofocus: 1,
+  checked: 1,
+  defaultchecked: 1,
+  disabled: 1,
+  formnovalidate: 1,
+  indeterminate: 1,
+  readonly: 1,
+  required: 1,
+  selected: 1,
+  willvalidate: 1
+}
+var COMMENT_TAG = '!--'
+var SVG_TAGS = [
+  'svg',
+  'altGlyph', 'altGlyphDef', 'altGlyphItem', 'animate', 'animateColor',
+  'animateMotion', 'animateTransform', 'circle', 'clipPath', 'color-profile',
+  'cursor', 'defs', 'desc', 'ellipse', 'feBlend', 'feColorMatrix',
+  'feComponentTransfer', 'feComposite', 'feConvolveMatrix', 'feDiffuseLighting',
+  'feDisplacementMap', 'feDistantLight', 'feFlood', 'feFuncA', 'feFuncB',
+  'feFuncG', 'feFuncR', 'feGaussianBlur', 'feImage', 'feMerge', 'feMergeNode',
+  'feMorphology', 'feOffset', 'fePointLight', 'feSpecularLighting',
+  'feSpotLight', 'feTile', 'feTurbulence', 'filter', 'font', 'font-face',
+  'font-face-format', 'font-face-name', 'font-face-src', 'font-face-uri',
+  'foreignObject', 'g', 'glyph', 'glyphRef', 'hkern', 'image', 'line',
+  'linearGradient', 'marker', 'mask', 'metadata', 'missing-glyph', 'mpath',
+  'path', 'pattern', 'polygon', 'polyline', 'radialGradient', 'rect',
+  'set', 'stop', 'switch', 'symbol', 'text', 'textPath', 'title', 'tref',
+  'tspan', 'use', 'view', 'vkern'
+]
+
+function belCreateElement (tag, props, children) {
+  var el
+
+  // If an svg tag, it needs a namespace
+  if (SVG_TAGS.indexOf(tag) !== -1) {
+    props.namespace = SVGNS
+  }
+
+  // If we are using a namespace
+  var ns = false
+  if (props.namespace) {
+    ns = props.namespace
+    delete props.namespace
+  }
+
+  // Create the element
+  if (ns) {
+    el = document.createElementNS(ns, tag)
+  } else if (tag === COMMENT_TAG) {
+    return document.createComment(props.comment)
+  } else {
+    el = document.createElement(tag)
+  }
+
+  // If adding onload events
+  if (props.onload || props.onunload) {
+    var load = props.onload || function () {}
+    var unload = props.onunload || function () {}
+    onload(el, function belOnload () {
+      load(el)
+    }, function belOnunload () {
+      unload(el)
+    },
+    // We have to use non-standard `caller` to find who invokes `belCreateElement`
+    belCreateElement.caller.caller.caller)
+    delete props.onload
+    delete props.onunload
+  }
+
+  // Create the properties
+  for (var p in props) {
+    if (props.hasOwnProperty(p)) {
+      var key = p.toLowerCase()
+      var val = props[p]
+      // Normalize className
+      if (key === 'classname') {
+        key = 'class'
+        p = 'class'
+      }
+      // The for attribute gets transformed to htmlFor, but we just set as for
+      if (p === 'htmlFor') {
+        p = 'for'
+      }
+      // If a property is boolean, set itself to the key
+      if (BOOL_PROPS[key]) {
+        if (val === 'true') val = key
+        else if (val === 'false') continue
+      }
+      // If a property prefers being set directly vs setAttribute
+      if (key.slice(0, 2) === 'on') {
+        el[p] = val
+      } else {
+        if (ns) {
+          if (p === 'xlink:href') {
+            el.setAttributeNS(XLINKNS, p, val)
+          } else if (/^xmlns($|:)/i.test(p)) {
+            // skip xmlns definitions
+          } else {
+            el.setAttributeNS(null, p, val)
+          }
+        } else {
+          el.setAttribute(p, val)
+        }
+      }
+    }
+  }
+
+  function appendChild (childs) {
+    if (!Array.isArray(childs)) return
+    for (var i = 0; i < childs.length; i++) {
+      var node = childs[i]
+      if (Array.isArray(node)) {
+        appendChild(node)
+        continue
+      }
+
+      if (typeof node === 'number' ||
+        typeof node === 'boolean' ||
+        typeof node === 'function' ||
+        node instanceof Date ||
+        node instanceof RegExp) {
+        node = node.toString()
+      }
+
+      if (typeof node === 'string') {
+        if (el.lastChild && el.lastChild.nodeName === '#text') {
+          el.lastChild.nodeValue += node
+          continue
+        }
+        node = document.createTextNode(node)
+      }
+
+      if (node && node.nodeType) {
+        el.appendChild(node)
+      }
+    }
+  }
+  appendChild(children)
+
+  return el
+}
+
+module.exports = hyperx(belCreateElement, {comments: true})
+module.exports.default = module.exports
+module.exports.createElement = belCreateElement
+
+},{"global/document":15,"hyperx":19,"on-load":37}],7:[function(require,module,exports){
+
+},{}],8:[function(require,module,exports){
+arguments[4][7][0].apply(exports,arguments)
+},{"dup":7}],9:[function(require,module,exports){
+module.exports = require('bel')
+
+},{"bel":6}],10:[function(require,module,exports){
+var documentReady = require('document-ready')
+var nanohistory = require('nanohistory')
+var nanorouter = require('nanorouter')
+var nanomount = require('nanomount')
+var nanomorph = require('nanomorph')
+var nanohref = require('nanohref')
+var nanoraf = require('nanoraf')
+var nanobus = require('nanobus')
+var assert = require('assert')
+
+module.exports = Choo
+
+function Choo (opts) {
+  opts = opts || {}
+
+  var routerOpts = {
+    default: opts.defaultRoute || '/404',
+    curry: true
+  }
+
+  var timingEnabled = opts.timing === undefined ? true : opts.timing
+  var hasWindow = typeof window !== 'undefined'
+  var hasPerformance = hasWindow && window.performance && window.performance.mark
+  var router = nanorouter(routerOpts)
+  var bus = nanobus()
+  var rerender = null
+  var tree = null
+  var state = {}
+
+  return {
+    toString: toString,
+    use: register,
+    mount: mount,
+    router: router,
+    route: route,
+    start: start
+  }
+
+  function route (route, handler) {
+    router.on(route, function (params) {
+      return function () {
+        state.params = params
+        return handler(state, emit)
+      }
+    })
+  }
+
+  function register (cb) {
+    cb(state, bus)
+  }
+
+  function start () {
+    if (opts.history !== false) {
+      nanohistory(function (href) {
+        bus.emit('pushState')
+      })
+
+      bus.prependListener('pushState', updateHistory.bind(null, 'push'))
+      bus.prependListener('replaceState', updateHistory.bind(null, 'replace'))
+
+      if (opts.href !== false) {
+        nanohref(function (location) {
+          var href = location.href
+          var currHref = window.location.href
+          if (href === currHref) return
+          bus.emit('pushState', href)
+        })
+      }
+    }
+
+    function updateHistory (mode, href) {
+      if (href) window.history[mode + 'State']({}, null, href)
+      bus.emit('render')
+      setTimeout(function () {
+        scrollIntoView()
+      }, 0)
+    }
+
+    rerender = nanoraf(function () {
+      if (hasPerformance && timingEnabled) {
+        window.performance.mark('choo:renderStart')
+      }
+      var newTree = router(createLocation())
+      tree = nanomorph(tree, newTree)
+      assert.notEqual(tree, newTree, 'choo.start: a different node type was returned as the root node on a rerender. Make sure that the root node is always the same type to prevent the application from being unmounted.')
+      if (hasPerformance && timingEnabled) {
+        window.performance.mark('choo:renderEnd')
+        window.performance.measure('choo:render', 'choo:renderStart', 'choo:renderEnd')
+      }
+    })
+
+    bus.prependListener('render', rerender)
+
+    documentReady(function () {
+      bus.emit('DOMContentLoaded')
+    })
+
+    tree = router(createLocation())
+
+    return tree
+  }
+
+  function emit (eventName, data) {
+    bus.emit(eventName, data)
+  }
+
+  function mount (selector) {
+    var newTree = start()
+    documentReady(function () {
+      var root = document.querySelector(selector)
+      assert.ok(root, 'choo.mount: could not query selector: ' + selector)
+      nanomount(root, newTree)
+      tree = root
+    })
+  }
+
+  function toString (location, _state) {
+    state = _state || {}
+    var html = router(location)
+    return html.toString()
+  }
+}
+
+function scrollIntoView () {
+  var hash = window.location.hash
+  if (hash) {
+    try {
+      var el = document.querySelector(hash)
+      if (el) el.scrollIntoView(true)
+    } catch (e) {}
+  }
+}
+
+function createLocation () {
+  var pathname = window.location.pathname.replace(/\/$/, '')
+  var hash = window.location.hash.replace(/^#/, '/')
+  return pathname + hash
+}
+
+},{"assert":2,"document-ready":11,"nanobus":26,"nanohistory":27,"nanohref":28,"nanomorph":29,"nanomount":32,"nanoraf":33,"nanorouter":34}],11:[function(require,module,exports){
+'use strict'
+
+module.exports = ready
+
+function ready (callback) {
+  if (typeof document === 'undefined') {
+    throw new Error('document-ready only runs in the browser')
+  }
+  var state = document.readyState
+  if (state === 'complete' || state === 'interactive') {
+    return setTimeout(callback, 0)
+  }
+
+  document.addEventListener('DOMContentLoaded', function onLoad () {
+    callback()
+  })
+}
+
+},{}],12:[function(require,module,exports){
+module.exports = identity;
+
+/**
+ * Set a mat4 to the identity matrix
+ *
+ * @param {mat4} out the receiving matrix
+ * @returns {mat4} out
+ */
+function identity(out) {
+    out[0] = 1;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = 1;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[10] = 1;
+    out[11] = 0;
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = 0;
+    out[15] = 1;
+    return out;
+};
+},{}],13:[function(require,module,exports){
+var identity = require('./identity');
+
+module.exports = lookAt;
+
+/**
+ * Generates a look-at matrix with the given eye position, focal point, and up axis
+ *
+ * @param {mat4} out mat4 frustum matrix will be written into
+ * @param {vec3} eye Position of the viewer
+ * @param {vec3} center Point the viewer is looking at
+ * @param {vec3} up vec3 pointing up
+ * @returns {mat4} out
+ */
+function lookAt(out, eye, center, up) {
+    var x0, x1, x2, y0, y1, y2, z0, z1, z2, len,
+        eyex = eye[0],
+        eyey = eye[1],
+        eyez = eye[2],
+        upx = up[0],
+        upy = up[1],
+        upz = up[2],
+        centerx = center[0],
+        centery = center[1],
+        centerz = center[2];
+
+    if (Math.abs(eyex - centerx) < 0.000001 &&
+        Math.abs(eyey - centery) < 0.000001 &&
+        Math.abs(eyez - centerz) < 0.000001) {
+        return identity(out);
+    }
+
+    z0 = eyex - centerx;
+    z1 = eyey - centery;
+    z2 = eyez - centerz;
+
+    len = 1 / Math.sqrt(z0 * z0 + z1 * z1 + z2 * z2);
+    z0 *= len;
+    z1 *= len;
+    z2 *= len;
+
+    x0 = upy * z2 - upz * z1;
+    x1 = upz * z0 - upx * z2;
+    x2 = upx * z1 - upy * z0;
+    len = Math.sqrt(x0 * x0 + x1 * x1 + x2 * x2);
+    if (!len) {
+        x0 = 0;
+        x1 = 0;
+        x2 = 0;
+    } else {
+        len = 1 / len;
+        x0 *= len;
+        x1 *= len;
+        x2 *= len;
+    }
+
+    y0 = z1 * x2 - z2 * x1;
+    y1 = z2 * x0 - z0 * x2;
+    y2 = z0 * x1 - z1 * x0;
+
+    len = Math.sqrt(y0 * y0 + y1 * y1 + y2 * y2);
+    if (!len) {
+        y0 = 0;
+        y1 = 0;
+        y2 = 0;
+    } else {
+        len = 1 / len;
+        y0 *= len;
+        y1 *= len;
+        y2 *= len;
+    }
+
+    out[0] = x0;
+    out[1] = y0;
+    out[2] = z0;
+    out[3] = 0;
+    out[4] = x1;
+    out[5] = y1;
+    out[6] = z1;
+    out[7] = 0;
+    out[8] = x2;
+    out[9] = y2;
+    out[10] = z2;
+    out[11] = 0;
+    out[12] = -(x0 * eyex + x1 * eyey + x2 * eyez);
+    out[13] = -(y0 * eyex + y1 * eyey + y2 * eyez);
+    out[14] = -(z0 * eyex + z1 * eyey + z2 * eyez);
+    out[15] = 1;
+
+    return out;
+};
+},{"./identity":12}],14:[function(require,module,exports){
+module.exports = perspective;
+
+/**
+ * Generates a perspective projection matrix with the given bounds
+ *
+ * @param {mat4} out mat4 frustum matrix will be written into
+ * @param {number} fovy Vertical field of view in radians
+ * @param {number} aspect Aspect ratio. typically viewport width/height
+ * @param {number} near Near bound of the frustum
+ * @param {number} far Far bound of the frustum
+ * @returns {mat4} out
+ */
+function perspective(out, fovy, aspect, near, far) {
+    var f = 1.0 / Math.tan(fovy / 2),
+        nf = 1 / (near - far);
+    out[0] = f / aspect;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = f;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[10] = (far + near) * nf;
+    out[11] = -1;
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = (2 * far * near) * nf;
+    out[15] = 0;
+    return out;
+};
+},{}],15:[function(require,module,exports){
+(function (global){
+var topLevel = typeof global !== 'undefined' ? global :
+    typeof window !== 'undefined' ? window : {}
+var minDoc = require('min-document');
+
+var doccy;
+
+if (typeof document !== 'undefined') {
+    doccy = document;
+} else {
+    doccy = topLevel['__GLOBAL_DOCUMENT_CACHE@4'];
+
+    if (!doccy) {
+        doccy = topLevel['__GLOBAL_DOCUMENT_CACHE@4'] = minDoc;
+    }
+}
+
+module.exports = doccy;
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"min-document":7}],16:[function(require,module,exports){
+(function (global){
+var win;
+
+if (typeof window !== "undefined") {
+    win = window;
+} else if (typeof global !== "undefined") {
+    win = global;
+} else if (typeof self !== "undefined"){
+    win = self;
+} else {
+    win = {};
+}
+
+module.exports = win;
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{}],17:[function(require,module,exports){
+module.exports = asString
+module.exports.add = append
+
+function asString(fonts) {
+  var href = getHref(fonts)
+  return '<link href="' + href + '" rel="stylesheet" type="text/css">'
+}
+
+function asElement(fonts) {
+  var href = getHref(fonts)
+  var link = document.createElement('link')
+  link.setAttribute('href', href)
+  link.setAttribute('rel', 'stylesheet')
+  link.setAttribute('type', 'text/css')
+  return link
+}
+
+function getHref(fonts) {
+  var family = Object.keys(fonts).map(function(name) {
+    var details = fonts[name]
+    name = name.replace(/\s+/, '+')
+    return typeof details === 'boolean'
+      ? name
+      : name + ':' + makeArray(details).join(',')
+  }).join('|')
+
+  return 'http://fonts.googleapis.com/css?family=' + family
+}
+
+function append(fonts) {
+  var link = asElement(fonts)
+  document.head.appendChild(link)
+  return link
+}
+
+function makeArray(arr) {
+  return Array.isArray(arr) ? arr : [arr]
+}
+
+},{}],18:[function(require,module,exports){
+module.exports = attributeToProperty
+
+var transform = {
+  'class': 'className',
+  'for': 'htmlFor',
+  'http-equiv': 'httpEquiv'
+}
+
+function attributeToProperty (h) {
+  return function (tagName, attrs, children) {
+    for (var attr in attrs) {
+      if (attr in transform) {
+        attrs[transform[attr]] = attrs[attr]
+        delete attrs[attr]
+      }
+    }
+    return h(tagName, attrs, children)
+  }
+}
+
+},{}],19:[function(require,module,exports){
+var attrToProp = require('hyperscript-attribute-to-property')
+
+var VAR = 0, TEXT = 1, OPEN = 2, CLOSE = 3, ATTR = 4
+var ATTR_KEY = 5, ATTR_KEY_W = 6
+var ATTR_VALUE_W = 7, ATTR_VALUE = 8
+var ATTR_VALUE_SQ = 9, ATTR_VALUE_DQ = 10
+var ATTR_EQ = 11, ATTR_BREAK = 12
+var COMMENT = 13
+
+module.exports = function (h, opts) {
+  if (!opts) opts = {}
+  var concat = opts.concat || function (a, b) {
+    return String(a) + String(b)
+  }
+  if (opts.attrToProp !== false) {
+    h = attrToProp(h)
+  }
+
+  return function (strings) {
+    var state = TEXT, reg = ''
+    var arglen = arguments.length
+    var parts = []
+
+    for (var i = 0; i < strings.length; i++) {
+      if (i < arglen - 1) {
+        var arg = arguments[i+1]
+        var p = parse(strings[i])
+        var xstate = state
+        if (xstate === ATTR_VALUE_DQ) xstate = ATTR_VALUE
+        if (xstate === ATTR_VALUE_SQ) xstate = ATTR_VALUE
+        if (xstate === ATTR_VALUE_W) xstate = ATTR_VALUE
+        if (xstate === ATTR) xstate = ATTR_KEY
+        if (xstate === OPEN) {
+          if (reg === '/') {
+            p.push([ OPEN, '/', arg ])
+            reg = ''
+          } else {
+            p.push([ OPEN, arg ])
+          }
+        } else if (xstate === COMMENT && opts.comments) {
+          reg += String(arg)
+        } else if (xstate !== COMMENT) {
+          p.push([ VAR, xstate, arg ])
+        }
+        parts.push.apply(parts, p)
+      } else parts.push.apply(parts, parse(strings[i]))
+    }
+
+    var tree = [null,{},[]]
+    var stack = [[tree,-1]]
+    for (var i = 0; i < parts.length; i++) {
+      var cur = stack[stack.length-1][0]
+      var p = parts[i], s = p[0]
+      if (s === OPEN && /^\//.test(p[1])) {
+        var ix = stack[stack.length-1][1]
+        if (stack.length > 1) {
+          stack.pop()
+          stack[stack.length-1][0][2][ix] = h(
+            cur[0], cur[1], cur[2].length ? cur[2] : undefined
+          )
+        }
+      } else if (s === OPEN) {
+        var c = [p[1],{},[]]
+        cur[2].push(c)
+        stack.push([c,cur[2].length-1])
+      } else if (s === ATTR_KEY || (s === VAR && p[1] === ATTR_KEY)) {
+        var key = ''
+        var copyKey
+        for (; i < parts.length; i++) {
+          if (parts[i][0] === ATTR_KEY) {
+            key = concat(key, parts[i][1])
+          } else if (parts[i][0] === VAR && parts[i][1] === ATTR_KEY) {
+            if (typeof parts[i][2] === 'object' && !key) {
+              for (copyKey in parts[i][2]) {
+                if (parts[i][2].hasOwnProperty(copyKey) && !cur[1][copyKey]) {
+                  cur[1][copyKey] = parts[i][2][copyKey]
+                }
+              }
+            } else {
+              key = concat(key, parts[i][2])
+            }
+          } else break
+        }
+        if (parts[i][0] === ATTR_EQ) i++
+        var j = i
+        for (; i < parts.length; i++) {
+          if (parts[i][0] === ATTR_VALUE || parts[i][0] === ATTR_KEY) {
+            if (!cur[1][key]) cur[1][key] = strfn(parts[i][1])
+            else parts[i][1]==="" || (cur[1][key] = concat(cur[1][key], parts[i][1]));
+          } else if (parts[i][0] === VAR
+          && (parts[i][1] === ATTR_VALUE || parts[i][1] === ATTR_KEY)) {
+            if (!cur[1][key]) cur[1][key] = strfn(parts[i][2])
+            else parts[i][2]==="" || (cur[1][key] = concat(cur[1][key], parts[i][2]));
+          } else {
+            if (key.length && !cur[1][key] && i === j
+            && (parts[i][0] === CLOSE || parts[i][0] === ATTR_BREAK)) {
+              // https://html.spec.whatwg.org/multipage/infrastructure.html#boolean-attributes
+              // empty string is falsy, not well behaved value in browser
+              cur[1][key] = key.toLowerCase()
+            }
+            if (parts[i][0] === CLOSE) {
+              i--
+            }
+            break
+          }
+        }
+      } else if (s === ATTR_KEY) {
+        cur[1][p[1]] = true
+      } else if (s === VAR && p[1] === ATTR_KEY) {
+        cur[1][p[2]] = true
+      } else if (s === CLOSE) {
+        if (selfClosing(cur[0]) && stack.length) {
+          var ix = stack[stack.length-1][1]
+          stack.pop()
+          stack[stack.length-1][0][2][ix] = h(
+            cur[0], cur[1], cur[2].length ? cur[2] : undefined
+          )
+        }
+      } else if (s === VAR && p[1] === TEXT) {
+        if (p[2] === undefined || p[2] === null) p[2] = ''
+        else if (!p[2]) p[2] = concat('', p[2])
+        if (Array.isArray(p[2][0])) {
+          cur[2].push.apply(cur[2], p[2])
+        } else {
+          cur[2].push(p[2])
+        }
+      } else if (s === TEXT) {
+        cur[2].push(p[1])
+      } else if (s === ATTR_EQ || s === ATTR_BREAK) {
+        // no-op
+      } else {
+        throw new Error('unhandled: ' + s)
+      }
+    }
+
+    if (tree[2].length > 1 && /^\s*$/.test(tree[2][0])) {
+      tree[2].shift()
+    }
+
+    if (tree[2].length > 2
+    || (tree[2].length === 2 && /\S/.test(tree[2][1]))) {
+      if (opts.createFragment) return opts.createFragment(tree[2])
+      throw new Error(
+        'multiple root elements must be wrapped in an enclosing tag'
+      )
+    }
+    if (Array.isArray(tree[2][0]) && typeof tree[2][0][0] === 'string'
+    && Array.isArray(tree[2][0][2])) {
+      tree[2][0] = h(tree[2][0][0], tree[2][0][1], tree[2][0][2])
+    }
+    return tree[2][0]
+
+    function parse (str) {
+      var res = []
+      if (state === ATTR_VALUE_W) state = ATTR
+      for (var i = 0; i < str.length; i++) {
+        var c = str.charAt(i)
+        if (state === TEXT && c === '<') {
+          if (reg.length) res.push([TEXT, reg])
+          reg = ''
+          state = OPEN
+        } else if (c === '>' && !quot(state) && state !== COMMENT) {
+          if (state === OPEN && reg.length) {
+            res.push([OPEN,reg])
+          } else if (state === ATTR_KEY) {
+            res.push([ATTR_KEY,reg])
+          } else if (state === ATTR_VALUE && reg.length) {
+            res.push([ATTR_VALUE,reg])
+          }
+          res.push([CLOSE])
+          reg = ''
+          state = TEXT
+        } else if (state === COMMENT && /-$/.test(reg) && c === '-') {
+          if (opts.comments) {
+            res.push([ATTR_VALUE,reg.substr(0, reg.length - 1)])
+          }
+          reg = ''
+          state = TEXT
+        } else if (state === OPEN && /^!--$/.test(reg)) {
+          if (opts.comments) {
+            res.push([OPEN, reg],[ATTR_KEY,'comment'],[ATTR_EQ])
+          }
+          reg = c
+          state = COMMENT
+        } else if (state === TEXT || state === COMMENT) {
+          reg += c
+        } else if (state === OPEN && c === '/' && reg.length) {
+          // no-op, self closing tag without a space <br/>
+        } else if (state === OPEN && /\s/.test(c)) {
+          if (reg.length) {
+            res.push([OPEN, reg])
+          }
+          reg = ''
+          state = ATTR
+        } else if (state === OPEN) {
+          reg += c
+        } else if (state === ATTR && /[^\s"'=/]/.test(c)) {
+          state = ATTR_KEY
+          reg = c
+        } else if (state === ATTR && /\s/.test(c)) {
+          if (reg.length) res.push([ATTR_KEY,reg])
+          res.push([ATTR_BREAK])
+        } else if (state === ATTR_KEY && /\s/.test(c)) {
+          res.push([ATTR_KEY,reg])
+          reg = ''
+          state = ATTR_KEY_W
+        } else if (state === ATTR_KEY && c === '=') {
+          res.push([ATTR_KEY,reg],[ATTR_EQ])
+          reg = ''
+          state = ATTR_VALUE_W
+        } else if (state === ATTR_KEY) {
+          reg += c
+        } else if ((state === ATTR_KEY_W || state === ATTR) && c === '=') {
+          res.push([ATTR_EQ])
+          state = ATTR_VALUE_W
+        } else if ((state === ATTR_KEY_W || state === ATTR) && !/\s/.test(c)) {
+          res.push([ATTR_BREAK])
+          if (/[\w-]/.test(c)) {
+            reg += c
+            state = ATTR_KEY
+          } else state = ATTR
+        } else if (state === ATTR_VALUE_W && c === '"') {
+          state = ATTR_VALUE_DQ
+        } else if (state === ATTR_VALUE_W && c === "'") {
+          state = ATTR_VALUE_SQ
+        } else if (state === ATTR_VALUE_DQ && c === '"') {
+          res.push([ATTR_VALUE,reg],[ATTR_BREAK])
+          reg = ''
+          state = ATTR
+        } else if (state === ATTR_VALUE_SQ && c === "'") {
+          res.push([ATTR_VALUE,reg],[ATTR_BREAK])
+          reg = ''
+          state = ATTR
+        } else if (state === ATTR_VALUE_W && !/\s/.test(c)) {
+          state = ATTR_VALUE
+          i--
+        } else if (state === ATTR_VALUE && /\s/.test(c)) {
+          res.push([ATTR_VALUE,reg],[ATTR_BREAK])
+          reg = ''
+          state = ATTR
+        } else if (state === ATTR_VALUE || state === ATTR_VALUE_SQ
+        || state === ATTR_VALUE_DQ) {
+          reg += c
+        }
+      }
+      if (state === TEXT && reg.length) {
+        res.push([TEXT,reg])
+        reg = ''
+      } else if (state === ATTR_VALUE && reg.length) {
+        res.push([ATTR_VALUE,reg])
+        reg = ''
+      } else if (state === ATTR_VALUE_DQ && reg.length) {
+        res.push([ATTR_VALUE,reg])
+        reg = ''
+      } else if (state === ATTR_VALUE_SQ && reg.length) {
+        res.push([ATTR_VALUE,reg])
+        reg = ''
+      } else if (state === ATTR_KEY) {
+        res.push([ATTR_KEY,reg])
+        reg = ''
+      }
+      return res
+    }
+  }
+
+  function strfn (x) {
+    if (typeof x === 'function') return x
+    else if (typeof x === 'string') return x
+    else if (x && typeof x === 'object') return x
+    else if (x === null || x === undefined) return x
+    else return concat('', x)
+  }
+}
+
+function quot (state) {
+  return state === ATTR_VALUE_SQ || state === ATTR_VALUE_DQ
+}
+
+var closeRE = RegExp('^(' + [
+  'area', 'base', 'basefont', 'bgsound', 'br', 'col', 'command', 'embed',
+  'frame', 'hr', 'img', 'input', 'isindex', 'keygen', 'link', 'meta', 'param',
+  'source', 'track', 'wbr', '!--',
+  // SVG TAGS
+  'animate', 'animateTransform', 'circle', 'cursor', 'desc', 'ellipse',
+  'feBlend', 'feColorMatrix', 'feComposite',
+  'feConvolveMatrix', 'feDiffuseLighting', 'feDisplacementMap',
+  'feDistantLight', 'feFlood', 'feFuncA', 'feFuncB', 'feFuncG', 'feFuncR',
+  'feGaussianBlur', 'feImage', 'feMergeNode', 'feMorphology',
+  'feOffset', 'fePointLight', 'feSpecularLighting', 'feSpotLight', 'feTile',
+  'feTurbulence', 'font-face-format', 'font-face-name', 'font-face-uri',
+  'glyph', 'glyphRef', 'hkern', 'image', 'line', 'missing-glyph', 'mpath',
+  'path', 'polygon', 'polyline', 'rect', 'set', 'stop', 'tref', 'use', 'view',
+  'vkern'
+].join('|') + ')(?:[\.#][a-zA-Z0-9\u007F-\uFFFF_:-]+)*$')
+function selfClosing (tag) { return closeRE.test(tag) }
+
+},{"hyperscript-attribute-to-property":18}],20:[function(require,module,exports){
+var inserted = [];
+
+module.exports = function (css) {
+    if (inserted.indexOf(css) >= 0) return;
+    inserted.push(css);
+    
+    var elem = document.createElement('style');
+    var text = document.createTextNode(css);
+    elem.appendChild(text);
+    
+    if (document.head.childNodes.length) {
+        document.head.insertBefore(elem, document.head.childNodes[0]);
+    }
+    else {
+        document.head.appendChild(elem);
+    }
+};
+
+},{}],21:[function(require,module,exports){
+
+/**
+ * Expose `render()`.`
+ */
+
+exports = module.exports = render;
+
+/**
+ * Expose `compile()`.
+ */
+
+exports.compile = compile;
+
+/**
+ * Render the given mustache `str` with `obj`.
+ *
+ * @param {String} str
+ * @param {Object} obj
+ * @return {String}
+ * @api public
+ */
+
+function render(str, obj) {
+  obj = obj || {};
+  var fn = compile(str);
+  return fn(obj);
+}
+
+/**
+ * Compile the given `str` to a `Function`.
+ *
+ * @param {String} str
+ * @return {Function}
+ * @api public
+ */
+
+function compile(str) {
+  var js = [];
+  var toks = parse(str);
+  var tok;
+
+  for (var i = 0; i < toks.length; ++i) {
+    tok = toks[i];
+    if (i % 2 == 0) {
+      js.push('"' + tok.replace(/"/g, '\\"') + '"');
+    } else {
+      switch (tok[0]) {
+        case '/':
+          tok = tok.slice(1);
+          js.push(') + ');
+          break;
+        case '^':
+          tok = tok.slice(1);
+          assertProperty(tok);
+          js.push(' + section(obj, "' + tok + '", true, ');
+          break;
+        case '#':
+          tok = tok.slice(1);
+          assertProperty(tok);
+          js.push(' + section(obj, "' + tok + '", false, ');
+          break;
+        case '!':
+          tok = tok.slice(1);
+          assertProperty(tok);
+          js.push(' + obj.' + tok + ' + ');
+          break;
+        default:
+          assertProperty(tok);
+          js.push(' + escape(obj.' + tok + ') + ');
+      }
+    }
+  }
+
+  js = '\n'
+    + indent(escape.toString()) + ';\n\n'
+    + indent(section.toString()) + ';\n\n'
+    + '  return ' + js.join('').replace(/\n/g, '\\n');
+
+  return new Function('obj', js);
+}
+
+/**
+ * Assert that `prop` is a valid property.
+ *
+ * @param {String} prop
+ * @api private
+ */
+
+function assertProperty(prop) {
+  if (!prop.match(/^[\w.]+$/)) throw new Error('invalid property "' + prop + '"');
+}
+
+/**
+ * Parse `str`.
+ *
+ * @param {String} str
+ * @return {Array}
+ * @api private
+ */
+
+function parse(str) {
+  return str.split(/\{\{|\}\}/);
+}
+
+/**
+ * Indent `str`.
+ *
+ * @param {String} str
+ * @return {String}
+ * @api private
+ */
+
+function indent(str) {
+  return str.replace(/^/gm, '  ');
+}
+
+/**
+ * Section handler.
+ *
+ * @param {Object} context obj
+ * @param {String} prop
+ * @param {String} str
+ * @param {Boolean} negate
+ * @api private
+ */
+
+function section(obj, prop, negate, str) {
+  var val = obj[prop];
+  if ('function' == typeof val) return val.call(obj, str);
+  if (negate) val = !val;
+  if (val) return str;
+  return '';
+}
+
+/**
+ * Escape the given `html`.
+ *
+ * @param {String} html
+ * @return {String}
+ * @api private
+ */
+
+function escape(html) {
+  return String(html)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+},{}],22:[function(require,module,exports){
+'use strict'
+
+module.exports = mouseListen
+
+var mouse = require('mouse-event')
+
+function mouseListen (element, callback) {
+  if (!callback) {
+    callback = element
+    element = window
+  }
+
+  var buttonState = 0
+  var x = 0
+  var y = 0
+  var mods = {
+    shift: false,
+    alt: false,
+    control: false,
+    meta: false
+  }
+  var attached = false
+
+  function updateMods (ev) {
+    var changed = false
+    if ('altKey' in ev) {
+      changed = changed || ev.altKey !== mods.alt
+      mods.alt = !!ev.altKey
+    }
+    if ('shiftKey' in ev) {
+      changed = changed || ev.shiftKey !== mods.shift
+      mods.shift = !!ev.shiftKey
+    }
+    if ('ctrlKey' in ev) {
+      changed = changed || ev.ctrlKey !== mods.control
+      mods.control = !!ev.ctrlKey
+    }
+    if ('metaKey' in ev) {
+      changed = changed || ev.metaKey !== mods.meta
+      mods.meta = !!ev.metaKey
+    }
+    return changed
+  }
+
+  function handleEvent (nextButtons, ev) {
+    var nextX = mouse.x(ev)
+    var nextY = mouse.y(ev)
+    if ('buttons' in ev) {
+      nextButtons = ev.buttons | 0
+    }
+    if (nextButtons !== buttonState ||
+      nextX !== x ||
+      nextY !== y ||
+      updateMods(ev)) {
+      buttonState = nextButtons | 0
+      x = nextX || 0
+      y = nextY || 0
+      callback && callback(buttonState, x, y, mods)
+    }
+  }
+
+  function clearState (ev) {
+    handleEvent(0, ev)
+  }
+
+  function handleBlur () {
+    if (buttonState ||
+      x ||
+      y ||
+      mods.shift ||
+      mods.alt ||
+      mods.meta ||
+      mods.control) {
+      x = y = 0
+      buttonState = 0
+      mods.shift = mods.alt = mods.control = mods.meta = false
+      callback && callback(0, 0, 0, mods)
+    }
+  }
+
+  function handleMods (ev) {
+    if (updateMods(ev)) {
+      callback && callback(buttonState, x, y, mods)
+    }
+  }
+
+  function handleMouseMove (ev) {
+    if (mouse.buttons(ev) === 0) {
+      handleEvent(0, ev)
+    } else {
+      handleEvent(buttonState, ev)
+    }
+  }
+
+  function handleMouseDown (ev) {
+    handleEvent(buttonState | mouse.buttons(ev), ev)
+  }
+
+  function handleMouseUp (ev) {
+    handleEvent(buttonState & ~mouse.buttons(ev), ev)
+  }
+
+  function attachListeners () {
+    if (attached) {
+      return
+    }
+    attached = true
+
+    element.addEventListener('mousemove', handleMouseMove)
+
+    element.addEventListener('mousedown', handleMouseDown)
+
+    element.addEventListener('mouseup', handleMouseUp)
+
+    element.addEventListener('mouseleave', clearState)
+    element.addEventListener('mouseenter', clearState)
+    element.addEventListener('mouseout', clearState)
+    element.addEventListener('mouseover', clearState)
+
+    element.addEventListener('blur', handleBlur)
+
+    element.addEventListener('keyup', handleMods)
+    element.addEventListener('keydown', handleMods)
+    element.addEventListener('keypress', handleMods)
+
+    if (element !== window) {
+      window.addEventListener('blur', handleBlur)
+
+      window.addEventListener('keyup', handleMods)
+      window.addEventListener('keydown', handleMods)
+      window.addEventListener('keypress', handleMods)
+    }
+  }
+
+  function detachListeners () {
+    if (!attached) {
+      return
+    }
+    attached = false
+
+    element.removeEventListener('mousemove', handleMouseMove)
+
+    element.removeEventListener('mousedown', handleMouseDown)
+
+    element.removeEventListener('mouseup', handleMouseUp)
+
+    element.removeEventListener('mouseleave', clearState)
+    element.removeEventListener('mouseenter', clearState)
+    element.removeEventListener('mouseout', clearState)
+    element.removeEventListener('mouseover', clearState)
+
+    element.removeEventListener('blur', handleBlur)
+
+    element.removeEventListener('keyup', handleMods)
+    element.removeEventListener('keydown', handleMods)
+    element.removeEventListener('keypress', handleMods)
+
+    if (element !== window) {
+      window.removeEventListener('blur', handleBlur)
+
+      window.removeEventListener('keyup', handleMods)
+      window.removeEventListener('keydown', handleMods)
+      window.removeEventListener('keypress', handleMods)
+    }
+  }
+
+  // Attach listeners
+  attachListeners()
+
+  var result = {
+    element: element
+  }
+
+  Object.defineProperties(result, {
+    enabled: {
+      get: function () { return attached },
+      set: function (f) {
+        if (f) {
+          attachListeners()
+        } else {
+          detachListeners()
+        }
+      },
+      enumerable: true
+    },
+    buttons: {
+      get: function () { return buttonState },
+      enumerable: true
+    },
+    x: {
+      get: function () { return x },
+      enumerable: true
+    },
+    y: {
+      get: function () { return y },
+      enumerable: true
+    },
+    mods: {
+      get: function () { return mods },
+      enumerable: true
+    }
+  })
+
+  return result
+}
+
+},{"mouse-event":23}],23:[function(require,module,exports){
+'use strict'
+
+function mouseButtons(ev) {
+  if(typeof ev === 'object') {
+    if('buttons' in ev) {
+      return ev.buttons
+    } else if('which' in ev) {
+      var b = ev.which
+      if(b === 2) {
+        return 4
+      } else if(b === 3) {
+        return 2
+      } else if(b > 0) {
+        return 1<<(b-1)
+      }
+    } else if('button' in ev) {
+      var b = ev.button
+      if(b === 1) {
+        return 4
+      } else if(b === 2) {
+        return 2
+      } else if(b >= 0) {
+        return 1<<b
+      }
+    }
+  }
+  return 0
+}
+exports.buttons = mouseButtons
+
+function mouseElement(ev) {
+  return ev.target || ev.srcElement || window
+}
+exports.element = mouseElement
+
+function mouseRelativeX(ev) {
+  if(typeof ev === 'object') {
+    if('offsetX' in ev) {
+      return ev.offsetX
+    }
+    var target = mouseElement(ev)
+    var bounds = target.getBoundingClientRect()
+    return ev.clientX - bounds.left
+  }
+  return 0
+}
+exports.x = mouseRelativeX
+
+function mouseRelativeY(ev) {
+  if(typeof ev === 'object') {
+    if('offsetY' in ev) {
+      return ev.offsetY
+    }
+    var target = mouseElement(ev)
+    var bounds = target.getBoundingClientRect()
+    return ev.clientY - bounds.top
+  }
+  return 0
+}
+exports.y = mouseRelativeY
+
+},{}],24:[function(require,module,exports){
+'use strict'
+
+var toPX = require('to-px')
+
+module.exports = mouseWheelListen
+
+function mouseWheelListen(element, callback, noScroll) {
+  if(typeof element === 'function') {
+    noScroll = !!callback
+    callback = element
+    element = window
+  }
+  var lineHeight = toPX('ex', element)
+  var listener = function(ev) {
+    if(noScroll) {
+      ev.preventDefault()
+    }
+    var dx = ev.deltaX || 0
+    var dy = ev.deltaY || 0
+    var dz = ev.deltaZ || 0
+    var mode = ev.deltaMode
+    var scale = 1
+    switch(mode) {
+      case 1:
+        scale = lineHeight
+      break
+      case 2:
+        scale = window.innerHeight
+      break
+    }
+    dx *= scale
+    dy *= scale
+    dz *= scale
+    if(dx || dy || dz) {
+      return callback(dx, dy, dz, ev)
+    }
+  }
+  element.addEventListener('wheel', listener)
+  return listener
+}
+
+},{"to-px":48}],25:[function(require,module,exports){
+assert.notEqual = notEqual
+assert.notOk = notOk
+assert.equal = equal
+assert.ok = assert
+
+module.exports = assert
+
+function equal (a, b, m) {
+  assert(a == b, m) // eslint-disable-line eqeqeq
+}
+
+function notEqual (a, b, m) {
+  assert(a != b, m) // eslint-disable-line eqeqeq
+}
+
+function notOk (t, m) {
+  assert(!t, m)
+}
+
+function assert (t, m) {
+  if (!t) throw new Error(m || 'AssertionError')
+}
+
+},{}],26:[function(require,module,exports){
+var nanotiming = require('nanotiming')
+var assert = require('assert')
+
+module.exports = Nanobus
+
+function Nanobus (name) {
+  if (!(this instanceof Nanobus)) return new Nanobus(name)
+
+  this._name = name || 'nanobus'
+  this._starListeners = []
+  this._listeners = {}
+
+  this._timing = nanotiming(this._name)
+}
+
+Nanobus.prototype.emit = function (eventName, data) {
+  assert.equal(typeof eventName, 'string', 'nanobus.emit: eventName should be type string')
+
+  this._timing.start(eventName)
+  var listeners = this._listeners[eventName]
+  if (listeners && listeners.length > 0) {
+    this._emit(this._listeners[eventName], data)
+  }
+
+  if (this._starListeners.length > 0) {
+    this._emit(this._starListeners, eventName, data)
+  }
+  this._timing.end(eventName)
+
+  return this
+}
+
+Nanobus.prototype.on = Nanobus.prototype.addListener = function (eventName, listener) {
+  assert.equal(typeof eventName, 'string', 'nanobus.on: eventName should be type string')
+  assert.equal(typeof listener, 'function', 'nanobus.on: listener should be type function')
+
+  if (eventName === '*') {
+    this._starListeners.push(listener)
+  } else {
+    if (!this._listeners[eventName]) this._listeners[eventName] = []
+    this._listeners[eventName].push(listener)
+  }
+  return this
+}
+
+Nanobus.prototype.prependListener = function (eventName, listener) {
+  assert.equal(typeof eventName, 'string', 'nanobus.prependListener: eventName should be type string')
+  assert.equal(typeof listener, 'function', 'nanobus.prependListener: listener should be type function')
+
+  if (eventName === '*') {
+    this._starListeners.unshift(listener)
+  } else {
+    if (!this._listeners[eventName]) this._listeners[eventName] = []
+    this._listeners[eventName].unshift(listener)
+  }
+  return this
+}
+
+Nanobus.prototype.once = function (eventName, listener) {
+  assert.equal(typeof eventName, 'string', 'nanobus.once: eventName should be type string')
+  assert.equal(typeof listener, 'function', 'nanobus.once: listener should be type function')
+
+  var self = this
+  this.on(eventName, once)
+  function once () {
+    listener.apply(self, arguments)
+    self.removeListener(eventName, once)
+  }
+  return this
+}
+
+Nanobus.prototype.prependOnceListener = function (eventName, listener) {
+  assert.equal(typeof eventName, 'string', 'nanobus.prependOnceListener: eventName should be type string')
+  assert.equal(typeof listener, 'function', 'nanobus.prependOnceListener: listener should be type function')
+
+  var self = this
+  this.prependListener(eventName, once)
+  function once () {
+    listener.apply(self, arguments)
+    self.removeListener(eventName, once)
+  }
+  return this
+}
+
+Nanobus.prototype.removeListener = function (eventName, listener) {
+  assert.equal(typeof eventName, 'string', 'nanobus.removeListener: eventName should be type string')
+  assert.equal(typeof listener, 'function', 'nanobus.removeListener: listener should be type function')
+
+  if (eventName === '*') {
+    this._starListeners = this._starListeners.slice()
+    return remove(this._starListeners, listener)
+  } else {
+    if (typeof this._listeners[eventName] !== 'undefined') {
+      this._listeners[eventName] = this._listeners[eventName].slice()
+    }
+
+    return remove(this._listeners[eventName], listener)
+  }
+
+  function remove (arr, listener) {
+    if (!arr) return
+    var index = arr.indexOf(listener)
+    if (index !== -1) {
+      arr.splice(index, 1)
+      return true
+    }
+  }
+}
+
+Nanobus.prototype.removeAllListeners = function (eventName) {
+  if (eventName) {
+    if (eventName === '*') {
+      this._starListeners = []
+    } else {
+      this._listeners[eventName] = []
+    }
+  } else {
+    this._starListeners = []
+    this._listeners = {}
+  }
+  return this
+}
+
+Nanobus.prototype.listeners = function (eventName) {
+  var listeners = (eventName !== '*') ? this._listeners[eventName] : this._starListeners
+  var ret = []
+  if (listeners) {
+    var ilength = listeners.length
+    for (var i = 0; i < ilength; i++) ret.push(listeners[i])
+  }
+  return ret
+}
+
+Nanobus.prototype._emit = function (arr, eventName, data) {
+  if (typeof arr === 'undefined') return
+  if (!data) {
+    data = eventName
+    eventName = null
+  }
+  var length = arr.length
+  for (var i = 0; i < length; i++) {
+    var listener = arr[i]
+    if (eventName) listener(eventName, data)
+    else listener(data)
+  }
+}
+
+},{"assert":2,"nanotiming":35}],27:[function(require,module,exports){
+var assert = require('assert')
+
+module.exports = history
+
+// listen to html5 pushstate events
+// and update router accordingly
+function history (cb) {
+  assert.equal(typeof cb, 'function', 'nanohistory: cb must be type function')
+  window.onpopstate = function () {
+    cb(document.location)
+  }
+}
+
+},{"assert":2}],28:[function(require,module,exports){
+var assert = require('assert')
+
+module.exports = href
+
+var noRoutingAttrName = 'data-no-routing'
+
+// handle a click if is anchor tag with an href
+// and url lives on the same domain. Replaces
+// trailing '#' so empty links work as expected.
+// (fn(str), obj?) -> undefined
+function href (cb, root) {
+  assert.equal(typeof cb, 'function', 'nanohref: cb must be type function')
+  root = root || window.document
+
+  window.onclick = function (e) {
+    if ((e.button && e.button !== 0) || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return
+
+    var node = (function traverse (node) {
+      if (!node || node === root) return
+      if (node.localName !== 'a') return traverse(node.parentNode)
+      if (node.href === undefined) return traverse(node.parentNode)
+      if (window.location.host !== node.host) return traverse(node.parentNode)
+      return node
+    })(e.target)
+
+    if (!node) return
+
+    var isRoutingDisabled = node.hasAttribute(noRoutingAttrName)
+    if (isRoutingDisabled) return
+
+    e.preventDefault()
+    cb(node)
+  }
+}
+
+},{"assert":2}],29:[function(require,module,exports){
+var assert = require('assert')
+var morph = require('./lib/morph')
+var rootLabelRegex = /^data-onloadid/
+
+var ELEMENT_NODE = 1
+
+module.exports = nanomorph
+
+// morph one tree into another tree
+// (obj, obj) -> obj
+// no parent
+//   -> same: diff and walk children
+//   -> not same: replace and return
+// old node doesn't exist
+//   -> insert new node
+// new node doesn't exist
+//   -> delete old node
+// nodes are not the same
+//   -> diff nodes and apply patch to old node
+// nodes are the same
+//   -> walk all child nodes and append to old node
+function nanomorph (oldTree, newTree) {
+  assert.equal(typeof oldTree, 'object', 'nanomorph: oldTree should be an object')
+  assert.equal(typeof newTree, 'object', 'nanomorph: newTree should be an object')
+
+  persistStatefulRoot(newTree, oldTree)
+  var tree = walk(newTree, oldTree)
+  return tree
+}
+
+// walk and morph a dom tree
+// (obj, obj) -> obj
+function walk (newNode, oldNode) {
+  if (!oldNode) {
+    return newNode
+  } else if (!newNode) {
+    return null
+  } else if (newNode.isSameNode && newNode.isSameNode(oldNode)) {
+    return oldNode
+  } else if (newNode.tagName !== oldNode.tagName) {
+    return newNode
+  } else {
+    morph(newNode, oldNode)
+    updateChildren(newNode, oldNode)
+    return oldNode
+  }
+}
+
+// update the children of elements
+// (obj, obj) -> null
+function updateChildren (newNode, oldNode) {
+  if (!newNode.childNodes || !oldNode.childNodes) return
+
+  var newLength = newNode.childNodes.length
+  var oldLength = oldNode.childNodes.length
+  var length = Math.max(oldLength, newLength)
+
+  var iNew = 0
+  var iOld = 0
+  for (var i = 0; i < length; i++, iNew++, iOld++) {
+    var newChildNode = newNode.childNodes[iNew]
+    var oldChildNode = oldNode.childNodes[iOld]
+    var retChildNode = walk(newChildNode, oldChildNode)
+    if (!retChildNode) {
+      if (oldChildNode) {
+        oldNode.removeChild(oldChildNode)
+        iOld--
+      }
+    } else if (!oldChildNode) {
+      if (retChildNode) {
+        oldNode.appendChild(retChildNode)
+        iNew--
+      }
+    } else if (retChildNode !== oldChildNode) {
+      oldNode.replaceChild(retChildNode, oldChildNode)
+      iNew--
+    }
+  }
+}
+
+function persistStatefulRoot (newNode, oldNode) {
+  if (!newNode || !oldNode || oldNode.nodeType !== ELEMENT_NODE || newNode.nodeType !== ELEMENT_NODE) return
+  var oldAttrs = oldNode.attributes
+  var attr, name
+  for (var i = 0, len = oldAttrs.length; i < len; i++) {
+    attr = oldAttrs[i]
+    name = attr.name
+    if (rootLabelRegex.test(name)) {
+      newNode.setAttribute(name, attr.value)
+      break
+    }
+  }
+}
+
+},{"./lib/morph":31,"assert":2}],30:[function(require,module,exports){
+module.exports = [
+  // attribute events (can be set with attributes)
+  'onclick',
+  'ondblclick',
+  'onmousedown',
+  'onmouseup',
+  'onmouseover',
+  'onmousemove',
+  'onmouseout',
+  'onmouseenter',
+  'onmouseleave',
+  'ondragstart',
+  'ondrag',
+  'ondragenter',
+  'ondragleave',
+  'ondragover',
+  'ondrop',
+  'ondragend',
+  'onkeydown',
+  'onkeypress',
+  'onkeyup',
+  'onunload',
+  'onabort',
+  'onerror',
+  'onresize',
+  'onscroll',
+  'onselect',
+  'onchange',
+  'onsubmit',
+  'onreset',
+  'onfocus',
+  'onblur',
+  'oninput',
+  // other common events
+  'oncontextmenu',
+  'onfocusin',
+  'onfocusout'
+]
+
+},{}],31:[function(require,module,exports){
+var events = require('./events')
+var eventsLength = events.length
+
+var ELEMENT_NODE = 1
+var TEXT_NODE = 3
+var COMMENT_NODE = 8
+
+module.exports = morph
+
+// diff elements and apply the resulting patch to the old node
+// (obj, obj) -> null
+function morph (newNode, oldNode) {
+  var nodeType = newNode.nodeType
+  var nodeName = newNode.nodeName
+
+  if (nodeType === ELEMENT_NODE) {
+    copyAttrs(newNode, oldNode)
+  }
+
+  if (nodeType === TEXT_NODE || nodeType === COMMENT_NODE) {
+    oldNode.nodeValue = newNode.nodeValue
+  }
+
+  // Some DOM nodes are weird
+  // https://github.com/patrick-steele-idem/morphdom/blob/master/src/specialElHandlers.js
+  if (nodeName === 'INPUT') updateInput(newNode, oldNode)
+  else if (nodeName === 'OPTION') updateOption(newNode, oldNode)
+  else if (nodeName === 'TEXTAREA') updateTextarea(newNode, oldNode)
+  else if (nodeName === 'SELECT') updateSelect(newNode, oldNode)
+
+  copyEvents(newNode, oldNode)
+}
+
+function copyAttrs (newNode, oldNode) {
+  var oldAttrs = oldNode.attributes
+  var newAttrs = newNode.attributes
+  var attrNamespaceURI = null
+  var attrValue = null
+  var fromValue = null
+  var attrName = null
+  var attr = null
+
+  for (var i = newAttrs.length - 1; i >= 0; --i) {
+    attr = newAttrs[i]
+    attrName = attr.name
+    attrNamespaceURI = attr.namespaceURI
+    attrValue = attr.value
+
+    if (attrNamespaceURI) {
+      attrName = attr.localName || attrName
+      fromValue = oldNode.getAttributeNS(attrNamespaceURI, attrName)
+
+      if (fromValue !== attrValue) {
+        oldNode.setAttributeNS(attrNamespaceURI, attrName, attrValue)
+      }
+    } else {
+      fromValue = oldNode.getAttribute(attrName)
+
+      if (fromValue !== attrValue) {
+        // apparently values are always cast to strings, ah well
+        if (attrValue === 'null' || attrValue === 'undefined') {
+          oldNode.removeAttribute(attrName)
+        } else {
+          oldNode.setAttribute(attrName, attrValue)
+        }
+      }
+    }
+  }
+
+  // Remove any extra attributes found on the original DOM element that
+  // weren't found on the target element.
+  for (var j = oldAttrs.length - 1; j >= 0; --j) {
+    attr = oldAttrs[j]
+    if (attr.specified !== false) {
+      attrName = attr.name
+      attrNamespaceURI = attr.namespaceURI
+
+      if (attrNamespaceURI) {
+        attrName = attr.localName || attrName
+        if (!newNode.hasAttributeNS(attrNamespaceURI, attrName)) {
+          oldNode.removeAttributeNS(attrNamespaceURI, attrName)
+        }
+      } else {
+        if (!newNode.hasAttributeNS(null, attrName)) {
+          oldNode.removeAttribute(attrName)
+        }
+      }
+    }
+  }
+}
+
+function copyEvents (newNode, oldNode) {
+  for (var i = 0; i < eventsLength; i++) {
+    var ev = events[i]
+    if (newNode[ev]) {           // if new element has a whitelisted attribute
+      oldNode[ev] = newNode[ev]  // update existing element
+    } else if (oldNode[ev]) {    // if existing element has it and new one doesnt
+      oldNode[ev] = undefined    // remove it from existing element
+    }
+  }
+}
+
+function updateOption (newNode, oldNode) {
+  updateAttribute(newNode, oldNode, 'selected')
+}
+
+// The "value" attribute is special for the <input> element since it sets the
+// initial value. Changing the "value" attribute without changing the "value"
+// property will have no effect since it is only used to the set the initial
+// value. Similar for the "checked" attribute, and "disabled".
+function updateInput (newNode, oldNode) {
+  var newValue = newNode.value
+  var oldValue = oldNode.value
+
+  updateAttribute(newNode, oldNode, 'checked')
+  updateAttribute(newNode, oldNode, 'disabled')
+
+  if (!newNode.hasAttributeNS(null, 'value') || newValue === 'null') {
+    oldNode.value = ''
+    oldNode.removeAttribute('value')
+  } else if (newValue !== oldValue) {
+    oldNode.setAttribute('value', newValue)
+    oldNode.value = newValue
+  } else if (oldNode.type === 'range') {
+    // this is so elements like slider move their UI thingy
+    oldNode.value = newValue
+  }
+}
+
+function updateTextarea (newNode, oldNode) {
+  var newValue = newNode.value
+  if (newValue !== oldNode.value) {
+    oldNode.value = newValue
+  }
+
+  if (oldNode.firstChild) {
+    // Needed for IE. Apparently IE sets the placeholder as the
+    // node value and vise versa. This ignores an empty update.
+    if (newValue === '' && oldNode.firstChild.nodeValue === oldNode.placeholder) {
+      return
+    }
+
+    oldNode.firstChild.nodeValue = newValue
+  }
+}
+
+function updateSelect (newNode, oldNode) {
+  if (!oldNode.hasAttributeNS(null, 'multiple')) {
+    var i = 0
+    var curChild = oldNode.firstChild
+    while (curChild) {
+      var nodeName = curChild.nodeName
+      if (nodeName && nodeName.toUpperCase() === 'OPTION') {
+        if (curChild.hasAttributeNS(null, 'selected')) break
+        i++
+      }
+      curChild = curChild.nextSibling
+    }
+
+    newNode.selectedIndex = i
+  }
+}
+
+function updateAttribute (newNode, oldNode, name) {
+  if (newNode[name] !== oldNode[name]) {
+    oldNode[name] = newNode[name]
+    if (newNode[name]) {
+      oldNode.setAttribute(name, '')
+    } else {
+      oldNode.removeAttribute(name, '')
+    }
+  }
+}
+
+},{"./events":30}],32:[function(require,module,exports){
+var nanomorph = require('nanomorph')
+var assert = require('assert')
+
+module.exports = nanomount
+
+function nanomount (target, newTree) {
+  if (target.nodeName === 'BODY') {
+    var children = target.childNodes
+    for (var i = 0; i < children.length; i++) {
+      if (children[i].nodeName === 'SCRIPT') {
+        newTree.appendChild(children[i].cloneNode(true))
+      }
+    }
+  }
+
+  var tree = nanomorph(target, newTree)
+  assert.equal(tree, target, 'nanomount: The target node ' +
+    tree.outerHTML.nodeName + ' is not the same type as the new node ' +
+    target.outerHTML.nodeName + '.')
+}
+
+},{"assert":2,"nanomorph":29}],33:[function(require,module,exports){
+'use strict'
+
+var assert = require('assert')
+
+module.exports = nanoraf
+
+// Only call RAF when needed
+// (fn, fn?) -> fn
+function nanoraf (render, raf) {
+  assert.equal(typeof render, 'function', 'nanoraf: render should be a function')
+  assert.ok(typeof raf === 'function' || typeof raf === 'undefined', 'nanoraf: raf should be a function or undefined')
+
+  if (!raf) raf = window.requestAnimationFrame
+  var redrawScheduled = false
+  var args = null
+
+  return function frame () {
+    if (args === null && !redrawScheduled) {
+      redrawScheduled = true
+
+      raf(function redraw () {
+        redrawScheduled = false
+
+        var length = args.length
+        var _args = new Array(length)
+        for (var i = 0; i < length; i++) _args[i] = args[i]
+
+        render.apply(render, _args)
+        args = null
+      })
+    }
+
+    args = arguments
+  }
+}
+
+},{"assert":25}],34:[function(require,module,exports){
+var wayfarer = require('wayfarer')
+
+var isLocalFile = (/file:\/\//.test(typeof window === 'object' &&
+  window.location && window.location.origin)) // electron support
+
+/* eslint-disable no-useless-escape */
+var electron = '^(file:\/\/|\/)(.*\.html?\/?)?'
+var protocol = '^(http(s)?(:\/\/))?(www\.)?'
+var domain = '[a-zA-Z0-9-_\.]+(:[0-9]{1,5})?(\/{1})?'
+var qs = '[\?].*$'
+/* eslint-enable no-useless-escape */
+
+var stripElectron = new RegExp(electron)
+var prefix = new RegExp(protocol + domain)
+var normalize = new RegExp('#')
+var suffix = new RegExp(qs)
+
+module.exports = Nanorouter
+
+function Nanorouter (opts) {
+  opts = opts || {}
+
+  var router = wayfarer(opts.default || '/404')
+  var curry = opts.curry || false
+  var prevCallback = null
+  var prevRoute = null
+
+  emit.router = router
+  emit.on = on
+  emit.match = match
+  return emit
+
+  function on (routename, listener) {
+    routename = routename.replace(/^[#/]/, '')
+    router.on(routename, listener)
+  }
+
+  function emit (route) {
+    if (!curry) {
+      return router(route)
+    } else {
+      route = pathname(route, isLocalFile)
+      if (route === prevRoute) {
+        return prevCallback()
+      } else {
+        prevRoute = route
+        prevCallback = router(route)
+        return prevCallback()
+      }
+    }
+  }
+
+  function match (route) {
+    route = pathname(route, isLocalFile)
+    return router.match(route)
+  }
+}
+
+// replace everything in a route but the pathname and hash
+function pathname (route, isElectron) {
+  if (isElectron) route = route.replace(stripElectron, '')
+  else route = route.replace(prefix, '')
+  return route.replace(suffix, '').replace(normalize, '/')
+}
+
+},{"wayfarer":49}],35:[function(require,module,exports){
+var assert = require('assert')
+
+module.exports = Nanotiming
+
+function Nanotiming (name) {
+  if (!(this instanceof Nanotiming)) return new Nanotiming(name)
+  assert.equal(typeof name, 'string', 'Nanotiming: name should be type string')
+  this._name = name
+  this._enabled = typeof window !== 'undefined' &&
+    window.performance && window.performance.mark
+}
+
+Nanotiming.prototype.start = function (partial) {
+  if (!this._enabled) return
+  var name = partial ? this._name + ':' + partial : this._name
+  window.performance.mark(name + '-start')
+}
+
+Nanotiming.prototype.end = function (partial) {
+  if (!this._enabled) return
+  var name = partial ? this._name + ':' + partial : this._name
+  window.performance.mark(name + '-end')
+  window.performance.measure(name, name + '-start', name + '-end')
+}
+
+},{"assert":2}],36:[function(require,module,exports){
+/*
+object-assign
+(c) Sindre Sorhus
+@license MIT
+*/
+
+'use strict';
+/* eslint-disable no-unused-vars */
+var getOwnPropertySymbols = Object.getOwnPropertySymbols;
+var hasOwnProperty = Object.prototype.hasOwnProperty;
+var propIsEnumerable = Object.prototype.propertyIsEnumerable;
+
+function toObject(val) {
+	if (val === null || val === undefined) {
+		throw new TypeError('Object.assign cannot be called with null or undefined');
+	}
+
+	return Object(val);
+}
+
+function shouldUseNative() {
+	try {
+		if (!Object.assign) {
+			return false;
+		}
+
+		// Detect buggy property enumeration order in older V8 versions.
+
+		// https://bugs.chromium.org/p/v8/issues/detail?id=4118
+		var test1 = new String('abc');  // eslint-disable-line no-new-wrappers
+		test1[5] = 'de';
+		if (Object.getOwnPropertyNames(test1)[0] === '5') {
+			return false;
+		}
+
+		// https://bugs.chromium.org/p/v8/issues/detail?id=3056
+		var test2 = {};
+		for (var i = 0; i < 10; i++) {
+			test2['_' + String.fromCharCode(i)] = i;
+		}
+		var order2 = Object.getOwnPropertyNames(test2).map(function (n) {
+			return test2[n];
+		});
+		if (order2.join('') !== '0123456789') {
+			return false;
+		}
+
+		// https://bugs.chromium.org/p/v8/issues/detail?id=3056
+		var test3 = {};
+		'abcdefghijklmnopqrst'.split('').forEach(function (letter) {
+			test3[letter] = letter;
+		});
+		if (Object.keys(Object.assign({}, test3)).join('') !==
+				'abcdefghijklmnopqrst') {
+			return false;
+		}
+
+		return true;
+	} catch (err) {
+		// We don't expect any of the above to throw, but better to be safe.
+		return false;
+	}
+}
+
+module.exports = shouldUseNative() ? Object.assign : function (target, source) {
+	var from;
+	var to = toObject(target);
+	var symbols;
+
+	for (var s = 1; s < arguments.length; s++) {
+		from = Object(arguments[s]);
+
+		for (var key in from) {
+			if (hasOwnProperty.call(from, key)) {
+				to[key] = from[key];
+			}
+		}
+
+		if (getOwnPropertySymbols) {
+			symbols = getOwnPropertySymbols(from);
+			for (var i = 0; i < symbols.length; i++) {
+				if (propIsEnumerable.call(from, symbols[i])) {
+					to[symbols[i]] = from[symbols[i]];
+				}
+			}
+		}
+	}
+
+	return to;
+};
+
+},{}],37:[function(require,module,exports){
+/* global MutationObserver */
+var document = require('global/document')
+var window = require('global/window')
+var assert = require('assert')
+var watch = Object.create(null)
+var KEY_ID = 'onloadid' + (new Date() % 9e6).toString(36)
+var KEY_ATTR = 'data-' + KEY_ID
+var INDEX = 0
+
+if (window && window.MutationObserver) {
+  var observer = new MutationObserver(function (mutations) {
+    if (Object.keys(watch).length < 1) return
+    for (var i = 0; i < mutations.length; i++) {
+      if (mutations[i].attributeName === KEY_ATTR) {
+        eachAttr(mutations[i], turnon, turnoff)
+        continue
+      }
+      eachMutation(mutations[i].removedNodes, turnoff)
+      eachMutation(mutations[i].addedNodes, turnon)
+    }
+  })
+  if (document.body) {
+    beginObserve(observer)
+  } else {
+    document.addEventListener('DOMContentLoaded', function (event) {
+      beginObserve(observer)
+    })
+  }
+}
+
+function beginObserve (observer) {
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeOldValue: true,
+    attributeFilter: [KEY_ATTR]
+  })
+}
+
+module.exports = function onload (el, on, off, caller) {
+  assert(document.body, 'on-load: will not work prior to DOMContentLoaded')
+  on = on || function () {}
+  off = off || function () {}
+  el.setAttribute(KEY_ATTR, 'o' + INDEX)
+  watch['o' + INDEX] = [on, off, 0, caller || onload.caller]
+  INDEX += 1
+  return el
+}
+
+module.exports.KEY_ATTR = KEY_ATTR
+module.exports.KEY_ID = KEY_ID
+
+function turnon (index, el) {
+  if (watch[index][0] && watch[index][2] === 0) {
+    watch[index][0](el)
+    watch[index][2] = 1
+  }
+}
+
+function turnoff (index, el) {
+  if (watch[index][1] && watch[index][2] === 1) {
+    watch[index][1](el)
+    watch[index][2] = 0
+  }
+}
+
+function eachAttr (mutation, on, off) {
+  var newValue = mutation.target.getAttribute(KEY_ATTR)
+  if (sameOrigin(mutation.oldValue, newValue)) {
+    watch[newValue] = watch[mutation.oldValue]
+    return
+  }
+  if (watch[mutation.oldValue]) {
+    off(mutation.oldValue, mutation.target)
+  }
+  if (watch[newValue]) {
+    on(newValue, mutation.target)
+  }
+}
+
+function sameOrigin (oldValue, newValue) {
+  if (!oldValue || !newValue) return false
+  return watch[oldValue][3] === watch[newValue][3]
+}
+
+function eachMutation (nodes, fn) {
+  var keys = Object.keys(watch)
+  for (var i = 0; i < nodes.length; i++) {
+    if (nodes[i] && nodes[i].getAttribute && nodes[i].getAttribute(KEY_ATTR)) {
+      var onloadid = nodes[i].getAttribute(KEY_ATTR)
+      keys.forEach(function (k) {
+        if (onloadid === k) {
+          fn(k, nodes[i])
+        }
+      })
+    }
+    if (nodes[i].childNodes.length > 0) {
+      eachMutation(nodes[i].childNodes, fn)
+    }
+  }
+}
+
+},{"assert":25,"global/document":15,"global/window":16}],38:[function(require,module,exports){
+module.exports = once
+
+once.proto = once(function () {
+  Object.defineProperty(Function.prototype, 'once', {
+    value: function () {
+      return once(this)
+    },
+    configurable: true
+  })
+})
+
+function once (fn) {
+  var called = false
+  return function () {
+    if (called) return
+    called = true
+    return fn.apply(this, arguments)
+  }
+}
+
+},{}],39:[function(require,module,exports){
+module.exports = function parseUnit(str, out) {
+    if (!out)
+        out = [ 0, '' ]
+
+    str = String(str)
+    var num = parseFloat(str, 10)
+    out[0] = num
+    out[1] = str.match(/[\d.\-\+]*\s*(.*)/)[1] || ''
+    return out
+}
+},{}],40:[function(require,module,exports){
+// shim for using process in browser
+var process = module.exports = {};
+
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
+
+var cachedSetTimeout;
+var cachedClearTimeout;
+
+function defaultSetTimout() {
+    throw new Error('setTimeout has not been defined');
+}
+function defaultClearTimeout () {
+    throw new Error('clearTimeout has not been defined');
+}
+(function () {
+    try {
+        if (typeof setTimeout === 'function') {
+            cachedSetTimeout = setTimeout;
+        } else {
+            cachedSetTimeout = defaultSetTimout;
+        }
+    } catch (e) {
+        cachedSetTimeout = defaultSetTimout;
+    }
+    try {
+        if (typeof clearTimeout === 'function') {
+            cachedClearTimeout = clearTimeout;
+        } else {
+            cachedClearTimeout = defaultClearTimeout;
+        }
+    } catch (e) {
+        cachedClearTimeout = defaultClearTimeout;
+    }
+} ())
+function runTimeout(fun) {
+    if (cachedSetTimeout === setTimeout) {
+        //normal enviroments in sane situations
+        return setTimeout(fun, 0);
+    }
+    // if setTimeout wasn't available but was latter defined
+    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+        cachedSetTimeout = setTimeout;
+        return setTimeout(fun, 0);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedSetTimeout(fun, 0);
+    } catch(e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+            return cachedSetTimeout.call(null, fun, 0);
+        } catch(e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+            return cachedSetTimeout.call(this, fun, 0);
+        }
+    }
+
+
+}
+function runClearTimeout(marker) {
+    if (cachedClearTimeout === clearTimeout) {
+        //normal enviroments in sane situations
+        return clearTimeout(marker);
+    }
+    // if clearTimeout wasn't available but was latter defined
+    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+        cachedClearTimeout = clearTimeout;
+        return clearTimeout(marker);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedClearTimeout(marker);
+    } catch (e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+            return cachedClearTimeout.call(null, marker);
+        } catch (e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+            return cachedClearTimeout.call(this, marker);
+        }
+    }
+
+
+
+}
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
+
+function cleanUpNextTick() {
+    if (!draining || !currentQueue) {
+        return;
+    }
+    draining = false;
+    if (currentQueue.length) {
+        queue = currentQueue.concat(queue);
+    } else {
+        queueIndex = -1;
+    }
+    if (queue.length) {
+        drainQueue();
+    }
+}
+
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    var timeout = runTimeout(cleanUpNextTick);
+    draining = true;
+
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        while (++queueIndex < len) {
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
+        }
+        queueIndex = -1;
+        len = queue.length;
+    }
+    currentQueue = null;
+    draining = false;
+    runClearTimeout(timeout);
+}
+
+process.nextTick = function (fun) {
+    var args = new Array(arguments.length - 1);
+    if (arguments.length > 1) {
+        for (var i = 1; i < arguments.length; i++) {
+            args[i - 1] = arguments[i];
+        }
+    }
+    queue.push(new Item(fun, args));
+    if (queue.length === 1 && !draining) {
+        runTimeout(drainQueue);
+    }
+};
+
+// v8 likes predictible objects
+function Item(fun, array) {
+    this.fun = fun;
+    this.array = array;
+}
+Item.prototype.run = function () {
+    this.fun.apply(null, this.array);
+};
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+process.versions = {};
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+process.prependListener = noop;
+process.prependOnceListener = noop;
+
+process.listeners = function (name) { return [] }
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+};
+
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+process.umask = function() { return 0; };
+
+},{}],41:[function(require,module,exports){
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+'use strict';
+
+// If obj.hasOwnProperty has been overridden, then calling
+// obj.hasOwnProperty(prop) will break.
+// See: https://github.com/joyent/node/issues/1707
+function hasOwnProperty(obj, prop) {
+  return Object.prototype.hasOwnProperty.call(obj, prop);
+}
+
+module.exports = function(qs, sep, eq, options) {
+  sep = sep || '&';
+  eq = eq || '=';
+  var obj = {};
+
+  if (typeof qs !== 'string' || qs.length === 0) {
+    return obj;
+  }
+
+  var regexp = /\+/g;
+  qs = qs.split(sep);
+
+  var maxKeys = 1000;
+  if (options && typeof options.maxKeys === 'number') {
+    maxKeys = options.maxKeys;
+  }
+
+  var len = qs.length;
+  // maxKeys <= 0 means that we should not limit keys count
+  if (maxKeys > 0 && len > maxKeys) {
+    len = maxKeys;
+  }
+
+  for (var i = 0; i < len; ++i) {
+    var x = qs[i].replace(regexp, '%20'),
+        idx = x.indexOf(eq),
+        kstr, vstr, k, v;
+
+    if (idx >= 0) {
+      kstr = x.substr(0, idx);
+      vstr = x.substr(idx + 1);
+    } else {
+      kstr = x;
+      vstr = '';
+    }
+
+    k = decodeURIComponent(kstr);
+    v = decodeURIComponent(vstr);
+
+    if (!hasOwnProperty(obj, k)) {
+      obj[k] = v;
+    } else if (isArray(obj[k])) {
+      obj[k].push(v);
+    } else {
+      obj[k] = [obj[k], v];
+    }
+  }
+
+  return obj;
+};
+
+var isArray = Array.isArray || function (xs) {
+  return Object.prototype.toString.call(xs) === '[object Array]';
+};
+
+},{}],42:[function(require,module,exports){
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+'use strict';
+
+var stringifyPrimitive = function(v) {
+  switch (typeof v) {
+    case 'string':
+      return v;
+
+    case 'boolean':
+      return v ? 'true' : 'false';
+
+    case 'number':
+      return isFinite(v) ? v : '';
+
+    default:
+      return '';
+  }
+};
+
+module.exports = function(obj, sep, eq, name) {
+  sep = sep || '&';
+  eq = eq || '=';
+  if (obj === null) {
+    obj = undefined;
+  }
+
+  if (typeof obj === 'object') {
+    return map(objectKeys(obj), function(k) {
+      var ks = encodeURIComponent(stringifyPrimitive(k)) + eq;
+      if (isArray(obj[k])) {
+        return map(obj[k], function(v) {
+          return ks + encodeURIComponent(stringifyPrimitive(v));
+        }).join(sep);
+      } else {
+        return ks + encodeURIComponent(stringifyPrimitive(obj[k]));
+      }
+    }).join(sep);
+
+  }
+
+  if (!name) return '';
+  return encodeURIComponent(stringifyPrimitive(name)) + eq +
+         encodeURIComponent(stringifyPrimitive(obj));
+};
+
+var isArray = Array.isArray || function (xs) {
+  return Object.prototype.toString.call(xs) === '[object Array]';
+};
+
+function map (xs, f) {
+  if (xs.map) return xs.map(f);
+  var res = [];
+  for (var i = 0; i < xs.length; i++) {
+    res.push(f(xs[i], i));
+  }
+  return res;
+}
+
+var objectKeys = Object.keys || function (obj) {
+  var res = [];
+  for (var key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) res.push(key);
+  }
+  return res;
+};
+
+},{}],43:[function(require,module,exports){
+'use strict';
+
+exports.decode = exports.parse = require('./decode');
+exports.encode = exports.stringify = require('./encode');
+
+},{"./decode":41,"./encode":42}],44:[function(require,module,exports){
+var mouseChange = require('mouse-change')
+var mouseWheel = require('mouse-wheel')
+var identity = require('gl-mat4/identity')
+var perspective = require('gl-mat4/perspective')
+var lookAt = require('gl-mat4/lookAt')
+
+module.exports = createCamera
+
+var isBrowser = typeof window !== 'undefined'
+
+function createCamera (regl, props_) {
+  var props = props_ || {}
+  var cameraState = {
+    view: identity(new Float32Array(16)),
+    projection: identity(new Float32Array(16)),
+    center: new Float32Array(props.center || 3),
+    theta: props.theta || 0,
+    phi: props.phi || 0,
+    distance: Math.log(props.distance || 10.0),
+    eye: new Float32Array(3),
+    up: new Float32Array(props.up || [0, 1, 0]),
+    fovy: props.fovy || Math.PI / 4.0,
+    near: typeof props.near !== 'undefined' ? props.near : 0.01,
+    far: typeof props.far !== 'undefined' ? props.far : 1000.0,
+    preventDefault: typeof props.preventDefault !== 'undefined' ? props.preventDefault : false,
+    flipY: !!props.flipY,
+    dtheta: 0,
+    dphi: 0
+  }
+
+  var element = regl._gl.canvas
+  element.addEventListener('mousewheel', function (e) {
+    if (cameraState.preventDefault) e.preventDefault()
+  })
+
+  var damping = typeof props.damping !== 'undefined' ? props.damping : 0.9
+
+  var right = new Float32Array([1, 0, 0])
+  var front = new Float32Array([0, 0, 1])
+
+  var minDistance = Math.log('minDistance' in props ? props.minDistance : 0.1)
+  var maxDistance = Math.log('maxDistance' in props ? props.maxDistance : 1000)
+
+  var ddistance = 0
+
+  var prevX = 0
+  var prevY = 0
+
+  if (isBrowser && props.mouse !== false) {
+    mouseChange(function (buttons, x, y) {
+      if (buttons & 1) {
+        var dx = (x - prevX) / window.innerWidth
+        var dy = (y - prevY) / window.innerHeight
+        var w = Math.max(cameraState.distance, 0.5)
+
+        cameraState.dtheta += w * dx
+        cameraState.dphi += w * dy
+      }
+      prevX = x
+      prevY = y
+    })
+    mouseWheel(function (dx, dy) {
+      ddistance += dy / window.innerHeight
+    })
+  }
+
+  function damp (x) {
+    var xd = x * damping
+    if (Math.abs(xd) < 0.1) {
+      return 0
+    }
+    return xd
+  }
+
+  function clamp (x, lo, hi) {
+    return Math.min(Math.max(x, lo), hi)
+  }
+
+  function updateCamera (props) {
+    Object.keys(props).forEach(function (prop) {
+      cameraState[prop] = props[prop]
+    })
+
+    var center = cameraState.center
+    var eye = cameraState.eye
+    var up = cameraState.up
+    var dtheta = cameraState.dtheta
+    var dphi = cameraState.dphi
+
+    cameraState.theta += dtheta
+    cameraState.phi = clamp(
+      cameraState.phi + dphi,
+      -Math.PI / 2.0,
+      Math.PI / 2.0)
+    cameraState.distance = clamp(
+      cameraState.distance + ddistance,
+      minDistance,
+      maxDistance)
+
+    cameraState.dtheta = damp(dtheta)
+    cameraState.dphi = damp(dphi)
+    ddistance = damp(ddistance)
+
+    var theta = cameraState.theta
+    var phi = cameraState.phi
+    var r = Math.exp(cameraState.distance)
+
+    var vf = r * Math.sin(theta) * Math.cos(phi)
+    var vr = r * Math.cos(theta) * Math.cos(phi)
+    var vu = r * Math.sin(phi)
+
+    for (var i = 0; i < 3; ++i) {
+      eye[i] = center[i] + vf * front[i] + vr * right[i] + vu * up[i]
+    }
+
+    lookAt(cameraState.view, eye, center, up)
+  }
+
+  var injectContext = regl({
+    context: Object.assign({}, cameraState, {
+      projection: function (context) {
+        perspective(cameraState.projection,
+          cameraState.fovy,
+          context.viewportWidth / context.viewportHeight,
+          cameraState.near,
+          cameraState.far)
+        if (cameraState.flipY) { cameraState.projection[5] *= -1 }
+        return cameraState.projection
+      }
+    }),
+    uniforms: Object.keys(cameraState).reduce(function (uniforms, name) {
+      uniforms[name] = regl.context(name)
+      return uniforms
+    }, {})
+  })
+
+  function setupCamera (props, block) {
+    if (!block) {
+      block = props
+      props = {}
+    }
+    updateCamera(props)
+    injectContext(block)
+  }
+
+  Object.keys(cameraState).forEach(function (name) {
+    setupCamera[name] = cameraState[name]
+  })
+
+  return setupCamera
+}
+
+},{"gl-mat4/identity":12,"gl-mat4/lookAt":13,"gl-mat4/perspective":14,"mouse-change":22,"mouse-wheel":24}],45:[function(require,module,exports){
+(function(aa,ia){"object"===typeof exports&&"undefined"!==typeof module?module.exports=ia():"function"===typeof define&&define.amd?define(ia):aa.createREGL=ia()})(this,function(){function aa(a,b){this.id=Ab++;this.type=a;this.data=b}function ia(a){if(0===a.length)return[];var b=a.charAt(0),c=a.charAt(a.length-1);if(1<a.length&&b===c&&('"'===b||"'"===b))return['"'+a.substr(1,a.length-2).replace(/\\/g,"\\\\").replace(/"/g,'\\"')+'"'];if(b=/\[(false|true|null|\d+|'[^']*'|"[^"]*")\]/.exec(a))return ia(a.substr(0,
+b.index)).concat(ia(b[1])).concat(ia(a.substr(b.index+b[0].length)));b=a.split(".");if(1===b.length)return['"'+a.replace(/\\/g,"\\\\").replace(/"/g,'\\"')+'"'];a=[];for(c=0;c<b.length;++c)a=a.concat(ia(b[c]));return a}function Za(a){return"["+ia(a).join("][")+"]"}function Bb(){var a={"":0},b=[""];return{id:function(c){var e=a[c];if(e)return e;e=a[c]=b.length;b.push(c);return e},str:function(a){return b[a]}}}function Cb(a,b,c){function e(){var b=window.innerWidth,e=window.innerHeight;a!==document.body&&
+(e=a.getBoundingClientRect(),b=e.right-e.left,e=e.bottom-e.top);g.width=c*b;g.height=c*e;E(g.style,{width:b+"px",height:e+"px"})}var g=document.createElement("canvas");E(g.style,{border:0,margin:0,padding:0,top:0,left:0});a.appendChild(g);a===document.body&&(g.style.position="absolute",E(a.style,{margin:0,padding:0}));window.addEventListener("resize",e,!1);e();return{canvas:g,onDestroy:function(){window.removeEventListener("resize",e);a.removeChild(g)}}}function Db(a,b){function c(c){try{return a.getContext(c,
+b)}catch(g){return null}}return c("webgl")||c("experimental-webgl")||c("webgl-experimental")}function $a(a){return"string"===typeof a?a.split():a}function ab(a){return"string"===typeof a?document.querySelector(a):a}function Eb(a){var b=a||{},c,e,g,d;a={};var p=[],f=[],r="undefined"===typeof window?1:window.devicePixelRatio,q=!1,t=function(a){},m=function(){};"string"===typeof b?c=document.querySelector(b):"object"===typeof b&&("string"===typeof b.nodeName&&"function"===typeof b.appendChild&&"function"===
+typeof b.getBoundingClientRect?c=b:"function"===typeof b.drawArrays||"function"===typeof b.drawElements?(d=b,g=d.canvas):("gl"in b?d=b.gl:"canvas"in b?g=ab(b.canvas):"container"in b&&(e=ab(b.container)),"attributes"in b&&(a=b.attributes),"extensions"in b&&(p=$a(b.extensions)),"optionalExtensions"in b&&(f=$a(b.optionalExtensions)),"onDone"in b&&(t=b.onDone),"profile"in b&&(q=!!b.profile),"pixelRatio"in b&&(r=+b.pixelRatio)));c&&("canvas"===c.nodeName.toLowerCase()?g=c:e=c);if(!d){if(!g){c=Cb(e||document.body,
+t,r);if(!c)return null;g=c.canvas;m=c.onDestroy}d=Db(g,a)}return d?{gl:d,canvas:g,container:e,extensions:p,optionalExtensions:f,pixelRatio:r,profile:q,onDone:t,onDestroy:m}:(m(),t("webgl not supported, try upgrading your browser or graphics drivers http://get.webgl.org"),null)}function Fb(a,b){function c(b){b=b.toLowerCase();var c;try{c=e[b]=a.getExtension(b)}catch(g){}return!!c}for(var e={},g=0;g<b.extensions.length;++g){var d=b.extensions[g];if(!c(d))return b.onDestroy(),b.onDone('"'+d+'" extension is not supported by the current WebGL context, try upgrading your system or a different browser'),
+null}b.optionalExtensions.forEach(c);return{extensions:e,restore:function(){Object.keys(e).forEach(function(a){if(e[a]&&!c(a))throw Error("(regl): error restoring extension "+a);})}}}function J(a,b){for(var c=Array(a),e=0;e<a;++e)c[e]=b(e);return c}function bb(a){var b,c;b=(65535<a)<<4;a>>>=b;c=(255<a)<<3;a>>>=c;b|=c;c=(15<a)<<2;a>>>=c;b|=c;c=(3<a)<<1;return b|c|a>>>c>>1}function cb(){function a(a){a:{for(var b=16;268435456>=b;b*=16)if(a<=b){a=b;break a}a=0}b=c[bb(a)>>2];return 0<b.length?b.pop():
+new ArrayBuffer(a)}function b(a){c[bb(a.byteLength)>>2].push(a)}var c=J(8,function(){return[]});return{alloc:a,free:b,allocType:function(b,c){var d=null;switch(b){case 5120:d=new Int8Array(a(c),0,c);break;case 5121:d=new Uint8Array(a(c),0,c);break;case 5122:d=new Int16Array(a(2*c),0,c);break;case 5123:d=new Uint16Array(a(2*c),0,c);break;case 5124:d=new Int32Array(a(4*c),0,c);break;case 5125:d=new Uint32Array(a(4*c),0,c);break;case 5126:d=new Float32Array(a(4*c),0,c);break;default:return null}return d.length!==
+c?d.subarray(0,c):d},freeType:function(a){b(a.buffer)}}}function ma(a){return!!a&&"object"===typeof a&&Array.isArray(a.shape)&&Array.isArray(a.stride)&&"number"===typeof a.offset&&a.shape.length===a.stride.length&&(Array.isArray(a.data)||M(a.data))}function db(a,b,c,e,g,d){for(var p=0;p<b;++p)for(var f=a[p],r=0;r<c;++r)for(var q=f[r],t=0;t<e;++t)g[d++]=q[t]}function eb(a,b,c,e,g){for(var d=1,p=c+1;p<b.length;++p)d*=b[p];var f=b[c];if(4===b.length-c){var r=b[c+1],q=b[c+2];b=b[c+3];for(p=0;p<f;++p)db(a[p],
+r,q,b,e,g),g+=d}else for(p=0;p<f;++p)eb(a[p],b,c+1,e,g),g+=d}function Ha(a){return Ia[Object.prototype.toString.call(a)]|0}function fb(a,b){for(var c=0;c<b.length;++c)a[c]=b[c]}function gb(a,b,c,e,g,d,p){for(var f=0,r=0;r<c;++r)for(var q=0;q<e;++q)a[f++]=b[g*r+d*q+p]}function Gb(a,b,c,e){function g(b){this.id=r++;this.buffer=a.createBuffer();this.type=b;this.usage=35044;this.byteLength=0;this.dimension=1;this.dtype=5121;this.persistentData=null;c.profile&&(this.stats={size:0})}function d(b,c,k){b.byteLength=
+c.byteLength;a.bufferData(b.type,c,k)}function p(a,b,c,h,l,e){a.usage=c;if(Array.isArray(b)){if(a.dtype=h||5126,0<b.length)if(Array.isArray(b[0])){l=hb(b);for(var v=h=1;v<l.length;++v)h*=l[v];a.dimension=h;b=Qa(b,l,a.dtype);d(a,b,c);e?a.persistentData=b:x.freeType(b)}else"number"===typeof b[0]?(a.dimension=l,l=x.allocType(a.dtype,b.length),fb(l,b),d(a,l,c),e?a.persistentData=l:x.freeType(l)):M(b[0])&&(a.dimension=b[0].length,a.dtype=h||Ha(b[0])||5126,b=Qa(b,[b.length,b[0].length],a.dtype),d(a,b,c),
+e?a.persistentData=b:x.freeType(b))}else if(M(b))a.dtype=h||Ha(b),a.dimension=l,d(a,b,c),e&&(a.persistentData=new Uint8Array(new Uint8Array(b.buffer)));else if(ma(b)){l=b.shape;var g=b.stride,v=b.offset,f=0,q=0,r=0,t=0;1===l.length?(f=l[0],q=1,r=g[0],t=0):2===l.length&&(f=l[0],q=l[1],r=g[0],t=g[1]);a.dtype=h||Ha(b.data)||5126;a.dimension=q;l=x.allocType(a.dtype,f*q);gb(l,b.data,f,q,r,t,v);d(a,l,c);e?a.persistentData=l:x.freeType(l)}else b instanceof ArrayBuffer&&(a.dtype=5121,a.dimension=l,d(a,b,
+c),e&&(a.persistentData=new Uint8Array(new Uint8Array(b))))}function f(c){b.bufferCount--;for(var d=0;d<e.state.length;++d){var k=e.state[d];k.buffer===c&&(a.disableVertexAttribArray(d),k.buffer=null)}a.deleteBuffer(c.buffer);c.buffer=null;delete q[c.id]}var r=0,q={};g.prototype.bind=function(){a.bindBuffer(this.type,this.buffer)};g.prototype.destroy=function(){f(this)};var t=[];c.profile&&(b.getTotalBufferSize=function(){var a=0;Object.keys(q).forEach(function(b){a+=q[b].stats.size});return a});
+return{create:function(m,e,d,h){function l(b){var m=35044,e=null,d=0,k=0,g=1;Array.isArray(b)||M(b)||ma(b)||b instanceof ArrayBuffer?e=b:"number"===typeof b?d=b|0:b&&("data"in b&&(e=b.data),"usage"in b&&(m=jb[b.usage]),"type"in b&&(k=Ra[b.type]),"dimension"in b&&(g=b.dimension|0),"length"in b&&(d=b.length|0));u.bind();e?p(u,e,m,k,g,h):(d&&a.bufferData(u.type,d,m),u.dtype=k||5121,u.usage=m,u.dimension=g,u.byteLength=d);c.profile&&(u.stats.size=u.byteLength*ja[u.dtype]);return l}b.bufferCount++;var u=
+new g(e);q[u.id]=u;d||l(m);l._reglType="buffer";l._buffer=u;l.subdata=function(b,c){var m=(c||0)|0,e;u.bind();if(M(b)||b instanceof ArrayBuffer)a.bufferSubData(u.type,m,b);else if(Array.isArray(b)){if(0<b.length)if("number"===typeof b[0]){var d=x.allocType(u.dtype,b.length);fb(d,b);a.bufferSubData(u.type,m,d);x.freeType(d)}else if(Array.isArray(b[0])||M(b[0]))e=hb(b),d=Qa(b,e,u.dtype),a.bufferSubData(u.type,m,d),x.freeType(d)}else if(ma(b)){e=b.shape;var h=b.stride,k=d=0,g=0,F=0;1===e.length?(d=e[0],
+k=1,g=h[0],F=0):2===e.length&&(d=e[0],k=e[1],g=h[0],F=h[1]);e=Array.isArray(b.data)?u.dtype:Ha(b.data);e=x.allocType(e,d*k);gb(e,b.data,d,k,g,F,b.offset);a.bufferSubData(u.type,m,e);x.freeType(e)}return l};c.profile&&(l.stats=u.stats);l.destroy=function(){f(u)};return l},createStream:function(a,b){var c=t.pop();c||(c=new g(a));c.bind();p(c,b,35040,0,1,!1);return c},destroyStream:function(a){t.push(a)},clear:function(){S(q).forEach(f);t.forEach(f)},getBuffer:function(a){return a&&a._buffer instanceof
+g?a._buffer:null},restore:function(){S(q).forEach(function(b){b.buffer=a.createBuffer();a.bindBuffer(b.type,b.buffer);a.bufferData(b.type,b.persistentData||b.byteLength,b.usage)})},_initBuffer:p}}function Hb(a,b,c,e){function g(a){this.id=r++;f[this.id]=this;this.buffer=a;this.primType=4;this.type=this.vertCount=0}function d(e,d,g,h,l,u,v){e.buffer.bind();if(d){var f=v;v||M(d)&&(!ma(d)||M(d.data))||(f=b.oes_element_index_uint?5125:5123);c._initBuffer(e.buffer,d,g,f,3)}else a.bufferData(34963,u,g),
+e.buffer.dtype=f||5121,e.buffer.usage=g,e.buffer.dimension=3,e.buffer.byteLength=u;f=v;if(!v){switch(e.buffer.dtype){case 5121:case 5120:f=5121;break;case 5123:case 5122:f=5123;break;case 5125:case 5124:f=5125}e.buffer.dtype=f}e.type=f;d=l;0>d&&(d=e.buffer.byteLength,5123===f?d>>=1:5125===f&&(d>>=2));e.vertCount=d;d=h;0>h&&(d=4,h=e.buffer.dimension,1===h&&(d=0),2===h&&(d=1),3===h&&(d=4));e.primType=d}function p(a){e.elementsCount--;delete f[a.id];a.buffer.destroy();a.buffer=null}var f={},r=0,q={uint8:5121,
+uint16:5123};b.oes_element_index_uint&&(q.uint32=5125);g.prototype.bind=function(){this.buffer.bind()};var t=[];return{create:function(a,b){function k(a){if(a)if("number"===typeof a)h(a),l.primType=4,l.vertCount=a|0,l.type=5121;else{var b=null,c=35044,e=-1,g=-1,f=0,m=0;if(Array.isArray(a)||M(a)||ma(a))b=a;else if("data"in a&&(b=a.data),"usage"in a&&(c=jb[a.usage]),"primitive"in a&&(e=Sa[a.primitive]),"count"in a&&(g=a.count|0),"type"in a&&(m=q[a.type]),"length"in a)f=a.length|0;else if(f=g,5123===
+m||5122===m)f*=2;else if(5125===m||5124===m)f*=4;d(l,b,c,e,g,f,m)}else h(),l.primType=4,l.vertCount=0,l.type=5121;return k}var h=c.create(null,34963,!0),l=new g(h._buffer);e.elementsCount++;k(a);k._reglType="elements";k._elements=l;k.subdata=function(a,b){h.subdata(a,b);return k};k.destroy=function(){p(l)};return k},createStream:function(a){var b=t.pop();b||(b=new g(c.create(null,34963,!0,!1)._buffer));d(b,a,35040,-1,-1,0,0);return b},destroyStream:function(a){t.push(a)},getElements:function(a){return"function"===
+typeof a&&a._elements instanceof g?a._elements:null},clear:function(){S(f).forEach(p)}}}function kb(a){for(var b=x.allocType(5123,a.length),c=0;c<a.length;++c)if(isNaN(a[c]))b[c]=65535;else if(Infinity===a[c])b[c]=31744;else if(-Infinity===a[c])b[c]=64512;else{lb[0]=a[c];var e=Ib[0],g=e>>>31<<15,d=(e<<1>>>24)-127,e=e>>13&1023;b[c]=-24>d?g:-14>d?g+(e+1024>>-14-d):15<d?g+31744:g+(d+15<<10)+e}return b}function pa(a){return Array.isArray(a)||M(a)}function Ea(a){return"[object "+a+"]"}function mb(a){return Array.isArray(a)&&
+(0===a.length||"number"===typeof a[0])}function nb(a){return Array.isArray(a)&&0!==a.length&&pa(a[0])?!0:!1}function na(a){return Object.prototype.toString.call(a)}function Ta(a){if(!a)return!1;var b=na(a);return 0<=Jb.indexOf(b)?!0:mb(a)||nb(a)||ma(a)}function ob(a,b){36193===a.type?(a.data=kb(b),x.freeType(b)):a.data=b}function Ja(a,b,c,e,g,d){a="undefined"!==typeof z[a]?z[a]:L[a]*qa[b];d&&(a*=6);if(g){for(e=0;1<=c;)e+=a*c*c,c/=2;return e}return a*c*e}function Kb(a,b,c,e,g,d,p){function f(){this.format=
+this.internalformat=6408;this.type=5121;this.flipY=this.premultiplyAlpha=this.compressed=!1;this.unpackAlignment=1;this.colorSpace=37444;this.channels=this.height=this.width=0}function r(a,b){a.internalformat=b.internalformat;a.format=b.format;a.type=b.type;a.compressed=b.compressed;a.premultiplyAlpha=b.premultiplyAlpha;a.flipY=b.flipY;a.unpackAlignment=b.unpackAlignment;a.colorSpace=b.colorSpace;a.width=b.width;a.height=b.height;a.channels=b.channels}function q(a,b){if("object"===typeof b&&b){"premultiplyAlpha"in
+b&&(a.premultiplyAlpha=b.premultiplyAlpha);"flipY"in b&&(a.flipY=b.flipY);"alignment"in b&&(a.unpackAlignment=b.alignment);"colorSpace"in b&&(a.colorSpace=wa[b.colorSpace]);"type"in b&&(a.type=G[b.type]);var c=a.width,e=a.height,d=a.channels,h=!1;"shape"in b?(c=b.shape[0],e=b.shape[1],3===b.shape.length&&(d=b.shape[2],h=!0)):("radius"in b&&(c=e=b.radius),"width"in b&&(c=b.width),"height"in b&&(e=b.height),"channels"in b&&(d=b.channels,h=!0));a.width=c|0;a.height=e|0;a.channels=d|0;c=!1;"format"in
+b&&(c=b.format,e=a.internalformat=U[c],a.format=Lb[e],c in G&&!("type"in b)&&(a.type=G[c]),c in W&&(a.compressed=!0),c=!0);!h&&c?a.channels=L[a.format]:h&&!c&&a.channels!==La[a.format]&&(a.format=a.internalformat=La[a.channels])}}function t(b){a.pixelStorei(37440,b.flipY);a.pixelStorei(37441,b.premultiplyAlpha);a.pixelStorei(37443,b.colorSpace);a.pixelStorei(3317,b.unpackAlignment)}function m(){f.call(this);this.yOffset=this.xOffset=0;this.data=null;this.needsFree=!1;this.element=null;this.needsCopy=
+!1}function C(a,b){var c=null;Ta(b)?c=b:b&&(q(a,b),"x"in b&&(a.xOffset=b.x|0),"y"in b&&(a.yOffset=b.y|0),Ta(b.data)&&(c=b.data));if(b.copy){var e=g.viewportWidth,d=g.viewportHeight;a.width=a.width||e-a.xOffset;a.height=a.height||d-a.yOffset;a.needsCopy=!0}else if(!c)a.width=a.width||1,a.height=a.height||1,a.channels=a.channels||4;else if(M(c))a.channels=a.channels||4,a.data=c,"type"in b||5121!==a.type||(a.type=Ia[Object.prototype.toString.call(c)]|0);else if(mb(c)){a.channels=a.channels||4;e=c;d=
+e.length;switch(a.type){case 5121:case 5123:case 5125:case 5126:d=x.allocType(a.type,d);d.set(e);a.data=d;break;case 36193:a.data=kb(e)}a.alignment=1;a.needsFree=!0}else if(ma(c)){e=c.data;Array.isArray(e)||5121!==a.type||(a.type=Ia[Object.prototype.toString.call(e)]|0);var d=c.shape,h=c.stride,f,l,n,w;3===d.length?(n=d[2],w=h[2]):w=n=1;f=d[0];l=d[1];d=h[0];h=h[1];a.alignment=1;a.width=f;a.height=l;a.channels=n;a.format=a.internalformat=La[n];a.needsFree=!0;f=w;c=c.offset;n=a.width;w=a.height;l=a.channels;
+for(var y=x.allocType(36193===a.type?5126:a.type,n*w*l),I=0,fa=0;fa<w;++fa)for(var ga=0;ga<n;++ga)for(var xa=0;xa<l;++xa)y[I++]=e[d*ga+h*fa+f*xa+c];ob(a,y)}else if(na(c)===Ua||na(c)===pb)na(c)===Ua?a.element=c:a.element=c.canvas,a.width=a.element.width,a.height=a.element.height,a.channels=4;else if(na(c)===qb)a.element=c,a.width=c.width,a.height=c.height,a.channels=4;else if(na(c)===rb)a.element=c,a.width=c.naturalWidth,a.height=c.naturalHeight,a.channels=4;else if(na(c)===sb)a.element=c,a.width=
+c.videoWidth,a.height=c.videoHeight,a.channels=4;else if(nb(c)){e=a.width||c[0].length;d=a.height||c.length;h=a.channels;h=pa(c[0][0])?h||c[0][0].length:h||1;f=Ma.shape(c);n=1;for(w=0;w<f.length;++w)n*=f[w];n=x.allocType(36193===a.type?5126:a.type,n);Ma.flatten(c,f,"",n);ob(a,n);a.alignment=1;a.width=e;a.height=d;a.channels=h;a.format=a.internalformat=La[h];a.needsFree=!0}}function k(b,c,d,h,f){var g=b.element,l=b.data,k=b.internalformat,n=b.format,w=b.type,y=b.width,I=b.height;t(b);g?a.texSubImage2D(c,
+f,d,h,n,w,g):b.compressed?a.compressedTexSubImage2D(c,f,d,h,k,y,I,l):b.needsCopy?(e(),a.copyTexSubImage2D(c,f,d,h,b.xOffset,b.yOffset,y,I)):a.texSubImage2D(c,f,d,h,y,I,n,w,l)}function h(){return P.pop()||new m}function l(a){a.needsFree&&x.freeType(a.data);m.call(a);P.push(a)}function u(){f.call(this);this.genMipmaps=!1;this.mipmapHint=4352;this.mipmask=0;this.images=Array(16)}function v(a,b,c){var d=a.images[0]=h();a.mipmask=1;d.width=a.width=b;d.height=a.height=c;d.channels=a.channels=4}function N(a,
+b){var c=null;if(Ta(b))c=a.images[0]=h(),r(c,a),C(c,b),a.mipmask=1;else if(q(a,b),Array.isArray(b.mipmap))for(var d=b.mipmap,e=0;e<d.length;++e)c=a.images[e]=h(),r(c,a),c.width>>=e,c.height>>=e,C(c,d[e]),a.mipmask|=1<<e;else c=a.images[0]=h(),r(c,a),C(c,b),a.mipmask=1;r(a,a.images[0])}function B(b,c){for(var d=b.images,h=0;h<d.length&&d[h];++h){var f=d[h],g=c,l=h,k=f.element,n=f.data,w=f.internalformat,y=f.format,I=f.type,fa=f.width,ga=f.height,xa=f.channels;t(f);k?a.texImage2D(g,l,y,y,I,k):f.compressed?
+a.compressedTexImage2D(g,l,w,fa,ga,0,n):f.needsCopy?(e(),a.copyTexImage2D(g,l,y,f.xOffset,f.yOffset,fa,ga,0)):((f=!n)&&(n=x.zero.allocType(I,fa*ga*xa)),a.texImage2D(g,l,y,fa,ga,0,y,I,n),f&&n&&x.zero.freeType(n))}}function D(){var a=tb.pop()||new u;f.call(a);for(var b=a.mipmask=0;16>b;++b)a.images[b]=null;return a}function ib(a){for(var b=a.images,c=0;c<b.length;++c)b[c]&&l(b[c]),b[c]=null;tb.push(a)}function z(){this.magFilter=this.minFilter=9728;this.wrapT=this.wrapS=33071;this.anisotropic=1;this.genMipmaps=
+!1;this.mipmapHint=4352}function O(a,b){"min"in b&&(a.minFilter=Va[b.min],0<=Mb.indexOf(a.minFilter)&&!("faces"in b)&&(a.genMipmaps=!0));"mag"in b&&(a.magFilter=V[b.mag]);var c=a.wrapS,d=a.wrapT;if("wrap"in b){var e=b.wrap;"string"===typeof e?c=d=K[e]:Array.isArray(e)&&(c=K[e[0]],d=K[e[1]])}else"wrapS"in b&&(c=K[b.wrapS]),"wrapT"in b&&(d=K[b.wrapT]);a.wrapS=c;a.wrapT=d;"anisotropic"in b&&(a.anisotropic=b.anisotropic);if("mipmap"in b){c=!1;switch(typeof b.mipmap){case "string":a.mipmapHint=ua[b.mipmap];
+c=a.genMipmaps=!0;break;case "boolean":c=a.genMipmaps=b.mipmap;break;case "object":a.genMipmaps=!1,c=!0}!c||"min"in b||(a.minFilter=9984)}}function R(c,d){a.texParameteri(d,10241,c.minFilter);a.texParameteri(d,10240,c.magFilter);a.texParameteri(d,10242,c.wrapS);a.texParameteri(d,10243,c.wrapT);b.ext_texture_filter_anisotropic&&a.texParameteri(d,34046,c.anisotropic);c.genMipmaps&&(a.hint(33170,c.mipmapHint),a.generateMipmap(d))}function F(b){f.call(this);this.mipmask=0;this.internalformat=6408;this.id=
+ya++;this.refCount=1;this.target=b;this.texture=a.createTexture();this.unit=-1;this.bindCount=0;this.texInfo=new z;p.profile&&(this.stats={size:0})}function T(b){a.activeTexture(33984);a.bindTexture(b.target,b.texture)}function Aa(){var b=ha[0];b?a.bindTexture(b.target,b.texture):a.bindTexture(3553,null)}function A(b){var c=b.texture,e=b.unit,h=b.target;0<=e&&(a.activeTexture(33984+e),a.bindTexture(h,null),ha[e]=null);a.deleteTexture(c);b.texture=null;b.params=null;b.pixels=null;b.refCount=0;delete X[b.id];
+d.textureCount--}var ua={"don't care":4352,"dont care":4352,nice:4354,fast:4353},K={repeat:10497,clamp:33071,mirror:33648},V={nearest:9728,linear:9729},Va=E({mipmap:9987,"nearest mipmap nearest":9984,"linear mipmap nearest":9985,"nearest mipmap linear":9986,"linear mipmap linear":9987},V),wa={none:0,browser:37444},G={uint8:5121,rgba4:32819,rgb565:33635,"rgb5 a1":32820},U={alpha:6406,luminance:6409,"luminance alpha":6410,rgb:6407,rgba:6408,rgba4:32854,"rgb5 a1":32855,rgb565:36194},W={};b.ext_srgb&&
+(U.srgb=35904,U.srgba=35906);b.oes_texture_float&&(G.float32=G["float"]=5126);b.oes_texture_half_float&&(G.float16=G["half float"]=36193);b.webgl_depth_texture&&(E(U,{depth:6402,"depth stencil":34041}),E(G,{uint16:5123,uint32:5125,"depth stencil":34042}));b.webgl_compressed_texture_s3tc&&E(W,{"rgb s3tc dxt1":33776,"rgba s3tc dxt1":33777,"rgba s3tc dxt3":33778,"rgba s3tc dxt5":33779});b.webgl_compressed_texture_atc&&E(W,{"rgb atc":35986,"rgba atc explicit alpha":35987,"rgba atc interpolated alpha":34798});
+b.webgl_compressed_texture_pvrtc&&E(W,{"rgb pvrtc 4bppv1":35840,"rgb pvrtc 2bppv1":35841,"rgba pvrtc 4bppv1":35842,"rgba pvrtc 2bppv1":35843});b.webgl_compressed_texture_etc1&&(W["rgb etc1"]=36196);var Nb=Array.prototype.slice.call(a.getParameter(34467));Object.keys(W).forEach(function(a){var b=W[a];0<=Nb.indexOf(b)&&(U[a]=b)});var ca=Object.keys(U);c.textureFormats=ca;var J=[];Object.keys(U).forEach(function(a){J[U[a]]=a});var da=[];Object.keys(G).forEach(function(a){da[G[a]]=a});var oa=[];Object.keys(V).forEach(function(a){oa[V[a]]=
+a});var za=[];Object.keys(Va).forEach(function(a){za[Va[a]]=a});var ka=[];Object.keys(K).forEach(function(a){ka[K[a]]=a});var Lb=ca.reduce(function(a,b){var c=U[b];6409===c||6406===c||6409===c||6410===c||6402===c||34041===c?a[c]=c:32855===c||0<=b.indexOf("rgba")?a[c]=6408:a[c]=6407;return a},{}),P=[],tb=[],ya=0,X={},ea=c.maxTextureUnits,ha=Array(ea).map(function(){return null});E(F.prototype,{bind:function(){this.bindCount+=1;var b=this.unit;if(0>b){for(var c=0;c<ea;++c){var e=ha[c];if(e){if(0<e.bindCount)continue;
+e.unit=-1}ha[c]=this;b=c;break}p.profile&&d.maxTextureUnits<b+1&&(d.maxTextureUnits=b+1);this.unit=b;a.activeTexture(33984+b);a.bindTexture(this.target,this.texture)}return b},unbind:function(){--this.bindCount},decRef:function(){0>=--this.refCount&&A(this)}});p.profile&&(d.getTotalTextureSize=function(){var a=0;Object.keys(X).forEach(function(b){a+=X[b].stats.size});return a});return{create2D:function(b,c){function e(a,b){var c=f.texInfo;z.call(c);var d=D();"number"===typeof a?"number"===typeof b?
+v(d,a|0,b|0):v(d,a|0,a|0):a?(O(c,a),N(d,a)):v(d,1,1);c.genMipmaps&&(d.mipmask=(d.width<<1)-1);f.mipmask=d.mipmask;r(f,d);f.internalformat=d.internalformat;e.width=d.width;e.height=d.height;T(f);B(d,3553);R(c,3553);Aa();ib(d);p.profile&&(f.stats.size=Ja(f.internalformat,f.type,d.width,d.height,c.genMipmaps,!1));e.format=J[f.internalformat];e.type=da[f.type];e.mag=oa[c.magFilter];e.min=za[c.minFilter];e.wrapS=ka[c.wrapS];e.wrapT=ka[c.wrapT];return e}var f=new F(3553);X[f.id]=f;d.textureCount++;e(b,
+c);e.subimage=function(a,b,c,d){b|=0;c|=0;d|=0;var n=h();r(n,f);n.width=0;n.height=0;C(n,a);n.width=n.width||(f.width>>d)-b;n.height=n.height||(f.height>>d)-c;T(f);k(n,3553,b,c,d);Aa();l(n);return e};e.resize=function(b,c){var d=b|0,h=c|0||d;if(d===f.width&&h===f.height)return e;e.width=f.width=d;e.height=f.height=h;T(f);for(var n,w=f.channels,y=f.type,I=0;f.mipmask>>I;++I){var fa=d>>I,ga=h>>I;if(!fa||!ga)break;n=x.zero.allocType(y,fa*ga*w);a.texImage2D(3553,I,f.format,fa,ga,0,f.format,f.type,n);
+n&&x.zero.freeType(n)}Aa();p.profile&&(f.stats.size=Ja(f.internalformat,f.type,d,h,!1,!1));return e};e._reglType="texture2d";e._texture=f;p.profile&&(e.stats=f.stats);e.destroy=function(){f.decRef()};return e},createCube:function(b,c,e,f,g,ua){function A(a,b,c,d,e,f){var H,Y=m.texInfo;z.call(Y);for(H=0;6>H;++H)n[H]=D();if("number"===typeof a||!a)for(a=a|0||1,H=0;6>H;++H)v(n[H],a,a);else if("object"===typeof a)if(b)N(n[0],a),N(n[1],b),N(n[2],c),N(n[3],d),N(n[4],e),N(n[5],f);else if(O(Y,a),q(m,a),"faces"in
+a)for(a=a.faces,H=0;6>H;++H)r(n[H],m),N(n[H],a[H]);else for(H=0;6>H;++H)N(n[H],a);r(m,n[0]);m.mipmask=Y.genMipmaps?(n[0].width<<1)-1:n[0].mipmask;m.internalformat=n[0].internalformat;A.width=n[0].width;A.height=n[0].height;T(m);for(H=0;6>H;++H)B(n[H],34069+H);R(Y,34067);Aa();p.profile&&(m.stats.size=Ja(m.internalformat,m.type,A.width,A.height,Y.genMipmaps,!0));A.format=J[m.internalformat];A.type=da[m.type];A.mag=oa[Y.magFilter];A.min=za[Y.minFilter];A.wrapS=ka[Y.wrapS];A.wrapT=ka[Y.wrapT];for(H=0;6>
+H;++H)ib(n[H]);return A}var m=new F(34067);X[m.id]=m;d.cubeCount++;var n=Array(6);A(b,c,e,f,g,ua);A.subimage=function(a,b,c,n,d){c|=0;n|=0;d|=0;var e=h();r(e,m);e.width=0;e.height=0;C(e,b);e.width=e.width||(m.width>>d)-c;e.height=e.height||(m.height>>d)-n;T(m);k(e,34069+a,c,n,d);Aa();l(e);return A};A.resize=function(b){b|=0;if(b!==m.width){A.width=m.width=b;A.height=m.height=b;T(m);for(var c=0;6>c;++c)for(var n=0;m.mipmask>>n;++n)a.texImage2D(34069+c,n,m.format,b>>n,b>>n,0,m.format,m.type,null);Aa();
+p.profile&&(m.stats.size=Ja(m.internalformat,m.type,A.width,A.height,!1,!0));return A}};A._reglType="textureCube";A._texture=m;p.profile&&(A.stats=m.stats);A.destroy=function(){m.decRef()};return A},clear:function(){for(var b=0;b<ea;++b)a.activeTexture(33984+b),a.bindTexture(3553,null),ha[b]=null;S(X).forEach(A);d.cubeCount=0;d.textureCount=0},getTexture:function(a){return null},restore:function(){for(var b=0;b<ea;++b){var c=ha[b];c&&(c.bindCount=0,c.unit=-1,ha[b]=null)}S(X).forEach(function(b){b.texture=
+a.createTexture();a.bindTexture(b.target,b.texture);for(var c=0;32>c;++c)if(0!==(b.mipmask&1<<c))if(3553===b.target)a.texImage2D(3553,c,b.internalformat,b.width>>c,b.height>>c,0,b.internalformat,b.type,null);else for(var d=0;6>d;++d)a.texImage2D(34069+d,c,b.internalformat,b.width>>c,b.height>>c,0,b.internalformat,b.type,null);R(b.texInfo,b.target)})}}}function Ob(a,b,c,e,g,d){function p(a,b,c){this.target=a;this.texture=b;this.renderbuffer=c;var d=a=0;b?(a=b.width,d=b.height):c&&(a=c.width,d=c.height);
+this.width=a;this.height=d}function f(a){a&&(a.texture&&a.texture._texture.decRef(),a.renderbuffer&&a.renderbuffer._renderbuffer.decRef())}function r(a,b,c){a&&(a.texture?a.texture._texture.refCount+=1:a.renderbuffer._renderbuffer.refCount+=1)}function q(b,c){c&&(c.texture?a.framebufferTexture2D(36160,b,c.target,c.texture._texture.texture,0):a.framebufferRenderbuffer(36160,b,36161,c.renderbuffer._renderbuffer.renderbuffer))}function t(a){var b=3553,c=null,d=null,e=a;"object"===typeof a&&(e=a.data,
+"target"in a&&(b=a.target|0));a=e._reglType;"texture2d"===a?c=e:"textureCube"===a?c=e:"renderbuffer"===a&&(d=e,b=36161);return new p(b,c,d)}function m(a,b,c,d,f){if(c)return a=e.create2D({width:a,height:b,format:d,type:f}),a._texture.refCount=0,new p(3553,a,null);a=g.create({width:a,height:b,format:d});a._renderbuffer.refCount=0;return new p(36161,null,a)}function C(a){return a&&(a.texture||a.renderbuffer)}function k(a,b,c){a&&(a.texture?a.texture.resize(b,c):a.renderbuffer&&a.renderbuffer.resize(b,
+c),a.width=b,a.height=c)}function h(){this.id=O++;R[this.id]=this;this.framebuffer=a.createFramebuffer();this.height=this.width=0;this.colorAttachments=[];this.depthStencilAttachment=this.stencilAttachment=this.depthAttachment=null}function l(a){a.colorAttachments.forEach(f);f(a.depthAttachment);f(a.stencilAttachment);f(a.depthStencilAttachment)}function u(b){a.deleteFramebuffer(b.framebuffer);b.framebuffer=null;d.framebufferCount--;delete R[b.id]}function v(b){var d;a.bindFramebuffer(36160,b.framebuffer);
+var e=b.colorAttachments;for(d=0;d<e.length;++d)q(36064+d,e[d]);for(d=e.length;d<c.maxColorAttachments;++d)a.framebufferTexture2D(36160,36064+d,3553,null,0);a.framebufferTexture2D(36160,33306,3553,null,0);a.framebufferTexture2D(36160,36096,3553,null,0);a.framebufferTexture2D(36160,36128,3553,null,0);q(36096,b.depthAttachment);q(36128,b.stencilAttachment);q(33306,b.depthStencilAttachment);a.checkFramebufferStatus(36160);a.isContextLost();a.bindFramebuffer(36160,B.next?B.next.framebuffer:null);B.cur=
+B.next;a.getError()}function N(a,b){function c(a,b){var d,f=0,h=0,g=!0,k=!0;d=null;var q=!0,u="rgba",p="uint8",N=1,da=null,oa=null,B=null,ka=!1;if("number"===typeof a)f=a|0,h=b|0||f;else if(a){"shape"in a?(h=a.shape,f=h[0],h=h[1]):("radius"in a&&(f=h=a.radius),"width"in a&&(f=a.width),"height"in a&&(h=a.height));if("color"in a||"colors"in a)d=a.color||a.colors,Array.isArray(d);if(!d){"colorCount"in a&&(N=a.colorCount|0);"colorTexture"in a&&(q=!!a.colorTexture,u="rgba4");if("colorType"in a&&(p=a.colorType,
+!q))if("half float"===p||"float16"===p)u="rgba16f";else if("float"===p||"float32"===p)u="rgba32f";"colorFormat"in a&&(u=a.colorFormat,0<=x.indexOf(u)?q=!0:0<=D.indexOf(u)&&(q=!1))}if("depthTexture"in a||"depthStencilTexture"in a)ka=!(!a.depthTexture&&!a.depthStencilTexture);"depth"in a&&("boolean"===typeof a.depth?g=a.depth:(da=a.depth,k=!1));"stencil"in a&&("boolean"===typeof a.stencil?k=a.stencil:(oa=a.stencil,g=!1));"depthStencil"in a&&("boolean"===typeof a.depthStencil?g=k=a.depthStencil:(B=a.depthStencil,
+k=g=!1))}else f=h=1;var F=null,z=null,E=null,T=null;if(Array.isArray(d))F=d.map(t);else if(d)F=[t(d)];else for(F=Array(N),d=0;d<N;++d)F[d]=m(f,h,q,u,p);f=f||F[0].width;h=h||F[0].height;da?z=t(da):g&&!k&&(z=m(f,h,ka,"depth","uint32"));oa?E=t(oa):k&&!g&&(E=m(f,h,!1,"stencil","uint8"));B?T=t(B):!da&&!oa&&k&&g&&(T=m(f,h,ka,"depth stencil","depth stencil"));g=null;for(d=0;d<F.length;++d)r(F[d],f,h),F[d]&&F[d].texture&&(k=Wa[F[d].texture._texture.format]*Na[F[d].texture._texture.type],null===g&&(g=k));
+r(z,f,h);r(E,f,h);r(T,f,h);l(e);e.width=f;e.height=h;e.colorAttachments=F;e.depthAttachment=z;e.stencilAttachment=E;e.depthStencilAttachment=T;c.color=F.map(C);c.depth=C(z);c.stencil=C(E);c.depthStencil=C(T);c.width=e.width;c.height=e.height;v(e);return c}var e=new h;d.framebufferCount++;c(a,b);return E(c,{resize:function(a,b){var d=Math.max(a|0,1),f=Math.max(b|0||d,1);if(d===e.width&&f===e.height)return c;for(var h=e.colorAttachments,g=0;g<h.length;++g)k(h[g],d,f);k(e.depthAttachment,d,f);k(e.stencilAttachment,
+d,f);k(e.depthStencilAttachment,d,f);e.width=c.width=d;e.height=c.height=f;v(e);return c},_reglType:"framebuffer",_framebuffer:e,destroy:function(){u(e);l(e)},use:function(a){B.setFBO({framebuffer:c},a)}})}var B={cur:null,next:null,dirty:!1,setFBO:null},x=["rgba"],D=["rgba4","rgb565","rgb5 a1"];b.ext_srgb&&D.push("srgba");b.ext_color_buffer_half_float&&D.push("rgba16f","rgb16f");b.webgl_color_buffer_float&&D.push("rgba32f");var z=["uint8"];b.oes_texture_half_float&&z.push("half float","float16");
+b.oes_texture_float&&z.push("float","float32");var O=0,R={};return E(B,{getFramebuffer:function(a){return"function"===typeof a&&"framebuffer"===a._reglType&&(a=a._framebuffer,a instanceof h)?a:null},create:N,createCube:function(a){function b(a){var d,f={color:null},h=0,g=null;d="rgba";var l="uint8",m=1;if("number"===typeof a)h=a|0;else if(a){"shape"in a?h=a.shape[0]:("radius"in a&&(h=a.radius|0),"width"in a?h=a.width|0:"height"in a&&(h=a.height|0));if("color"in a||"colors"in a)g=a.color||a.colors,
+Array.isArray(g);g||("colorCount"in a&&(m=a.colorCount|0),"colorType"in a&&(l=a.colorType),"colorFormat"in a&&(d=a.colorFormat));"depth"in a&&(f.depth=a.depth);"stencil"in a&&(f.stencil=a.stencil);"depthStencil"in a&&(f.depthStencil=a.depthStencil)}else h=1;if(g)if(Array.isArray(g))for(a=[],d=0;d<g.length;++d)a[d]=g[d];else a=[g];else for(a=Array(m),g={radius:h,format:d,type:l},d=0;d<m;++d)a[d]=e.createCube(g);f.color=Array(a.length);for(d=0;d<a.length;++d)m=a[d],h=h||m.width,f.color[d]={target:34069,
+data:a[d]};for(d=0;6>d;++d){for(m=0;m<a.length;++m)f.color[m].target=34069+d;0<d&&(f.depth=c[0].depth,f.stencil=c[0].stencil,f.depthStencil=c[0].depthStencil);if(c[d])c[d](f);else c[d]=N(f)}return E(b,{width:h,height:h,color:a})}var c=Array(6);b(a);return E(b,{faces:c,resize:function(a){var d=a|0;if(d===b.width)return b;var e=b.color;for(a=0;a<e.length;++a)e[a].resize(d);for(a=0;6>a;++a)c[a].resize(d);b.width=b.height=d;return b},_reglType:"framebufferCube",destroy:function(){c.forEach(function(a){a.destroy()})}})},
+clear:function(){S(R).forEach(u)},restore:function(){B.cur=null;B.next=null;B.dirty=!0;S(R).forEach(function(b){b.framebuffer=a.createFramebuffer();v(b)})}})}function ub(){this.w=this.z=this.y=this.x=this.state=0;this.buffer=null;this.size=0;this.normalized=!1;this.type=5126;this.divisor=this.stride=this.offset=0}function Pb(a,b,c,e){a=c.maxAttributes;b=Array(a);for(c=0;c<a;++c)b[c]=new ub;return{Record:ub,scope:{},state:b}}function Qb(a,b,c,e){function g(a,b,c,d){this.name=a;this.id=b;this.location=
+c;this.info=d}function d(a,b){for(var c=0;c<a.length;++c)if(a[c].id===b.id){a[c].location=b.location;return}a.push(b)}function p(c,d,e){e=35632===c?q:t;var f=e[d];if(!f){var g=b.str(d),f=a.createShader(c);a.shaderSource(f,g);a.compileShader(f);e[d]=f}return f}function f(a,b){this.id=k++;this.fragId=a;this.vertId=b;this.program=null;this.uniforms=[];this.attributes=[];e.profile&&(this.stats={uniformsCount:0,attributesCount:0})}function r(c,f){var m,k;m=p(35632,c.fragId);k=p(35633,c.vertId);var q=c.program=
+a.createProgram();a.attachShader(q,m);a.attachShader(q,k);a.linkProgram(q);var r=a.getProgramParameter(q,35718);e.profile&&(c.stats.uniformsCount=r);var t=c.uniforms;for(m=0;m<r;++m)if(k=a.getActiveUniform(q,m))if(1<k.size)for(var C=0;C<k.size;++C){var z=k.name.replace("[0]","["+C+"]");d(t,new g(z,b.id(z),a.getUniformLocation(q,z),k))}else d(t,new g(k.name,b.id(k.name),a.getUniformLocation(q,k.name),k));r=a.getProgramParameter(q,35721);e.profile&&(c.stats.attributesCount=r);t=c.attributes;for(m=0;m<
+r;++m)(k=a.getActiveAttrib(q,m))&&d(t,new g(k.name,b.id(k.name),a.getAttribLocation(q,k.name),k))}var q={},t={},m={},C=[],k=0;e.profile&&(c.getMaxUniformsCount=function(){var a=0;C.forEach(function(b){b.stats.uniformsCount>a&&(a=b.stats.uniformsCount)});return a},c.getMaxAttributesCount=function(){var a=0;C.forEach(function(b){b.stats.attributesCount>a&&(a=b.stats.attributesCount)});return a});return{clear:function(){var b=a.deleteShader.bind(a);S(q).forEach(b);q={};S(t).forEach(b);t={};C.forEach(function(b){a.deleteProgram(b.program)});
+C.length=0;m={};c.shaderCount=0},program:function(a,b,d){var e=m[b];e||(e=m[b]={});var g=e[a];g||(g=new f(b,a),c.shaderCount++,r(g,d),e[a]=g,C.push(g));return g},restore:function(){q={};t={};for(var a=0;a<C.length;++a)r(C[a])},shader:p,frag:-1,vert:-1}}function Rb(a,b,c,e,g,d,p){function f(d){var f;f=null===b.next?5121:b.next.colorAttachments[0].texture._texture.type;var g=0,r=0,k=e.framebufferWidth,h=e.framebufferHeight,l=null;M(d)?l=d:d&&(g=d.x|0,r=d.y|0,k=(d.width||e.framebufferWidth-g)|0,h=(d.height||
+e.framebufferHeight-r)|0,l=d.data||null);c();d=k*h*4;l||(5121===f?l=new Uint8Array(d):5126===f&&(l=l||new Float32Array(d)));a.pixelStorei(3333,4);a.readPixels(g,r,k,h,6408,f,l);return l}function r(a){var c;b.setFBO({framebuffer:a.framebuffer},function(){c=f(a)});return c}return function(a){return a&&"framebuffer"in a?r(a):f(a)}}function Ba(a){return Array.prototype.slice.call(a)}function Ca(a){return Ba(a).join("")}function Sb(){function a(){var a=[],b=[];return E(function(){a.push.apply(a,Ba(arguments))},
+{def:function(){var d="v"+c++;b.push(d);0<arguments.length&&(a.push(d,"="),a.push.apply(a,Ba(arguments)),a.push(";"));return d},toString:function(){return Ca([0<b.length?"var "+b.join(",")+";":"",Ca(a)])}})}function b(){function b(a,e){d(a,e,"=",c.def(a,e),";")}var c=a(),d=a(),e=c.toString,g=d.toString;return E(function(){c.apply(c,Ba(arguments))},{def:c.def,entry:c,exit:d,save:b,set:function(a,d,e){b(a,d);c(a,d,"=",e,";")},toString:function(){return e()+g()}})}var c=0,e=[],g=[],d=a(),p={};return{global:d,
+link:function(a){for(var b=0;b<g.length;++b)if(g[b]===a)return e[b];b="g"+c++;e.push(b);g.push(a);return b},block:a,proc:function(a,c){function d(){var a="a"+e.length;e.push(a);return a}var e=[];c=c||0;for(var g=0;g<c;++g)d();var g=b(),C=g.toString;return p[a]=E(g,{arg:d,toString:function(){return Ca(["function(",e.join(),"){",C(),"}"])}})},scope:b,cond:function(){var a=Ca(arguments),c=b(),d=b(),e=c.toString,g=d.toString;return E(c,{then:function(){c.apply(c,Ba(arguments));return this},"else":function(){d.apply(d,
+Ba(arguments));return this},toString:function(){var b=g();b&&(b="else{"+b+"}");return Ca(["if(",a,"){",e(),"}",b])}})},compile:function(){var a=['"use strict";',d,"return {"];Object.keys(p).forEach(function(b){a.push('"',b,'":',p[b].toString(),",")});a.push("}");var b=Ca(a).replace(/;/g,";\n").replace(/}/g,"}\n").replace(/{/g,"{\n");return Function.apply(null,e.concat(b)).apply(null,g)}}}function Oa(a){return Array.isArray(a)||M(a)||ma(a)}function vb(a){return a.sort(function(a,c){return"viewport"===
+a?-1:"viewport"===c?1:a<c?-1:1})}function Z(a,b,c,e){this.thisDep=a;this.contextDep=b;this.propDep=c;this.append=e}function va(a){return a&&!(a.thisDep||a.contextDep||a.propDep)}function D(a){return new Z(!1,!1,!1,a)}function P(a,b){var c=a.type;return 0===c?(c=a.data.length,new Z(!0,1<=c,2<=c,b)):4===c?(c=a.data,new Z(c.thisDep,c.contextDep,c.propDep,b)):new Z(3===c,2===c,1===c,b)}function Tb(a,b,c,e,g,d,p,f,r,q,t,m,C,k,h){function l(a){return a.replace(".","_")}function u(a,b,c){var d=l(a);Ka.push(a);
+Fa[d]=ra[d]=!!c;sa[d]=b}function v(a,b,c){var d=l(a);Ka.push(a);Array.isArray(c)?(ra[d]=c.slice(),Fa[d]=c.slice()):ra[d]=Fa[d]=c;ta[d]=b}function N(){var a=Sb(),c=a.link,d=a.global;a.id=qa++;a.batchId="0";var e=c(na),f=a.shared={props:"a0"};Object.keys(na).forEach(function(a){f[a]=d.def(e,".",a)});var g=a.next={},xa=a.current={};Object.keys(ta).forEach(function(a){Array.isArray(ra[a])&&(g[a]=d.def(f.next,".",a),xa[a]=d.def(f.current,".",a))});var H=a.constants={};Object.keys(aa).forEach(function(a){H[a]=
+d.def(JSON.stringify(aa[a]))});a.invoke=function(b,d){switch(d.type){case 0:var e=["this",f.context,f.props,a.batchId];return b.def(c(d.data),".call(",e.slice(0,Math.max(d.data.length+1,4)),")");case 1:return b.def(f.props,d.data);case 2:return b.def(f.context,d.data);case 3:return b.def("this",d.data);case 4:return d.data.append(a,b),d.data.ref}};a.attribCache={};var Y={};a.scopeAttrib=function(a){a=b.id(a);if(a in Y)return Y[a];var d=q.scope[a];d||(d=q.scope[a]=new ya);return Y[a]=c(d)};return a}
+function B(a){var b=a["static"];a=a.dynamic;var c;if("profile"in b){var d=!!b.profile;c=D(function(a,b){return d});c.enable=d}else if("profile"in a){var e=a.profile;c=P(e,function(a,b){return a.invoke(b,e)})}return c}function z(a,b){var c=a["static"],d=a.dynamic;if("framebuffer"in c){var e=c.framebuffer;return e?(e=f.getFramebuffer(e),D(function(a,b){var c=a.link(e),d=a.shared;b.set(d.framebuffer,".next",c);d=d.context;b.set(d,".framebufferWidth",c+".width");b.set(d,".framebufferHeight",c+".height");
+return c})):D(function(a,b){var c=a.shared;b.set(c.framebuffer,".next","null");c=c.context;b.set(c,".framebufferWidth",c+".drawingBufferWidth");b.set(c,".framebufferHeight",c+".drawingBufferHeight");return"null"})}if("framebuffer"in d){var g=d.framebuffer;return P(g,function(a,b){var c=a.invoke(b,g),d=a.shared,e=d.framebuffer,c=b.def(e,".getFramebuffer(",c,")");b.set(e,".next",c);d=d.context;b.set(d,".framebufferWidth",c+"?"+c+".width:"+d+".drawingBufferWidth");b.set(d,".framebufferHeight",c+"?"+
+c+".height:"+d+".drawingBufferHeight");return c})}return null}function x(a,b,c){function d(a){if(a in e){var c=e[a];a=!0;var n=c.x|0,ba=c.y|0,g,h;"width"in c?g=c.width|0:a=!1;"height"in c?h=c.height|0:a=!1;return new Z(!a&&b&&b.thisDep,!a&&b&&b.contextDep,!a&&b&&b.propDep,function(a,b){var d=a.shared.context,e=g;"width"in c||(e=b.def(d,".","framebufferWidth","-",n));var f=h;"height"in c||(f=b.def(d,".","framebufferHeight","-",ba));return[n,ba,e,f]})}if(a in f){var y=f[a];a=P(y,function(a,b){var c=
+a.invoke(b,y),d=a.shared.context,e=b.def(c,".x|0"),n=b.def(c,".y|0"),Y=b.def('"width" in ',c,"?",c,".width|0:","(",d,".","framebufferWidth","-",e,")"),c=b.def('"height" in ',c,"?",c,".height|0:","(",d,".","framebufferHeight","-",n,")");return[e,n,Y,c]});b&&(a.thisDep=a.thisDep||b.thisDep,a.contextDep=a.contextDep||b.contextDep,a.propDep=a.propDep||b.propDep);return a}return b?new Z(b.thisDep,b.contextDep,b.propDep,function(a,b){var c=a.shared.context;return[0,0,b.def(c,".","framebufferWidth"),b.def(c,
+".","framebufferHeight")]}):null}var e=a["static"],f=a.dynamic;if(a=d("viewport")){var g=a;a=new Z(a.thisDep,a.contextDep,a.propDep,function(a,b){var c=g.append(a,b),d=a.shared.context;b.set(d,".viewportWidth",c[2]);b.set(d,".viewportHeight",c[3]);return c})}return{viewport:a,scissor_box:d("scissor.box")}}function E(a){function c(a){if(a in d){var n=b.id(d[a]);a=D(function(){return n});a.id=n;return a}if(a in e){var f=e[a];return P(f,function(a,b){var c=a.invoke(b,f);return b.def(a.shared.strings,
+".id(",c,")")})}return null}var d=a["static"],e=a.dynamic,f=c("frag"),g=c("vert"),h=null;va(f)&&va(g)?(h=t.program(g.id,f.id),a=D(function(a,b){return a.link(h)})):a=new Z(f&&f.thisDep||g&&g.thisDep,f&&f.contextDep||g&&g.contextDep,f&&f.propDep||g&&g.propDep,function(a,b){var c=a.shared.shader,d;d=f?f.append(a,b):b.def(c,".","frag");var e;e=g?g.append(a,b):b.def(c,".","vert");return b.def(c+".program("+e+","+d+")")});return{frag:f,vert:g,progVar:a,program:h}}function O(a,b){function c(a,b){if(a in
+e){var d=e[a]|0;return D(function(a,c){b&&(a.OFFSET=d);return d})}if(a in f){var n=f[a];return P(n,function(a,c){var d=a.invoke(c,n);b&&(a.OFFSET=d);return d})}return b&&g?D(function(a,b){a.OFFSET="0";return 0}):null}var e=a["static"],f=a.dynamic,g=function(){if("elements"in e){var a=e.elements;Oa(a)?a=d.getElements(d.create(a,!0)):a&&(a=d.getElements(a));var b=D(function(b,c){if(a){var d=b.link(a);return b.ELEMENTS=d}return b.ELEMENTS=null});b.value=a;return b}if("elements"in f){var c=f.elements;
+return P(c,function(a,b){var d=a.shared,e=d.isBufferArgs,d=d.elements,n=a.invoke(b,c),f=b.def("null"),e=b.def(e,"(",n,")"),n=a.cond(e).then(f,"=",d,".createStream(",n,");")["else"](f,"=",d,".getElements(",n,");");b.entry(n);b.exit(a.cond(e).then(d,".destroyStream(",f,");"));return a.ELEMENTS=f})}return null}(),h=c("offset",!0);return{elements:g,primitive:function(){if("primitive"in e){var a=e.primitive;return D(function(b,c){return Sa[a]})}if("primitive"in f){var b=f.primitive;return P(b,function(a,
+c){var d=a.constants.primTypes,e=a.invoke(c,b);return c.def(d,"[",e,"]")})}return g?va(g)?g.value?D(function(a,b){return b.def(a.ELEMENTS,".primType")}):D(function(){return 4}):new Z(g.thisDep,g.contextDep,g.propDep,function(a,b){var c=a.ELEMENTS;return b.def(c,"?",c,".primType:",4)}):null}(),count:function(){if("count"in e){var a=e.count|0;return D(function(){return a})}if("count"in f){var b=f.count;return P(b,function(a,c){return a.invoke(c,b)})}return g?va(g)?g?h?new Z(h.thisDep,h.contextDep,h.propDep,
+function(a,b){return b.def(a.ELEMENTS,".vertCount-",a.OFFSET)}):D(function(a,b){return b.def(a.ELEMENTS,".vertCount")}):D(function(){return-1}):new Z(g.thisDep||h.thisDep,g.contextDep||h.contextDep,g.propDep||h.propDep,function(a,b){var c=a.ELEMENTS;return a.OFFSET?b.def(c,"?",c,".vertCount-",a.OFFSET,":-1"):b.def(c,"?",c,".vertCount:-1")}):null}(),instances:c("instances",!1),offset:h}}function R(a,b){var c=a["static"],d=a.dynamic,e={};Ka.forEach(function(a){function b(f,g){if(a in c){var w=f(c[a]);
+e[n]=D(function(){return w})}else if(a in d){var h=d[a];e[n]=P(h,function(a,b){return g(a,b,a.invoke(b,h))})}}var n=l(a);switch(a){case "cull.enable":case "blend.enable":case "dither":case "stencil.enable":case "depth.enable":case "scissor.enable":case "polygonOffset.enable":case "sample.alpha":case "sample.enable":case "depth.mask":return b(function(a){return a},function(a,b,c){return c});case "depth.func":return b(function(a){return Xa[a]},function(a,b,c){return b.def(a.constants.compareFuncs,"[",
+c,"]")});case "depth.range":return b(function(a){return a},function(a,b,c){a=b.def("+",c,"[0]");b=b.def("+",c,"[1]");return[a,b]});case "blend.func":return b(function(a){return[Ga["srcRGB"in a?a.srcRGB:a.src],Ga["dstRGB"in a?a.dstRGB:a.dst],Ga["srcAlpha"in a?a.srcAlpha:a.src],Ga["dstAlpha"in a?a.dstAlpha:a.dst]]},function(a,b,c){function d(a,e){return b.def('"',a,e,'" in ',c,"?",c,".",a,e,":",c,".",a)}a=a.constants.blendFuncs;var e=d("src","RGB"),n=d("dst","RGB"),e=b.def(a,"[",e,"]"),f=b.def(a,"[",
+d("src","Alpha"),"]"),n=b.def(a,"[",n,"]");a=b.def(a,"[",d("dst","Alpha"),"]");return[e,n,f,a]});case "blend.equation":return b(function(a){if("string"===typeof a)return[X[a],X[a]];if("object"===typeof a)return[X[a.rgb],X[a.alpha]]},function(a,b,c){var d=a.constants.blendEquations,e=b.def(),n=b.def();a=a.cond("typeof ",c,'==="string"');a.then(e,"=",n,"=",d,"[",c,"];");a["else"](e,"=",d,"[",c,".rgb];",n,"=",d,"[",c,".alpha];");b(a);return[e,n]});case "blend.color":return b(function(a){return J(4,function(b){return+a[b]})},
+function(a,b,c){return J(4,function(a){return b.def("+",c,"[",a,"]")})});case "stencil.mask":return b(function(a){return a|0},function(a,b,c){return b.def(c,"|0")});case "stencil.func":return b(function(a){return[Xa[a.cmp||"keep"],a.ref||0,"mask"in a?a.mask:-1]},function(a,b,c){a=b.def('"cmp" in ',c,"?",a.constants.compareFuncs,"[",c,".cmp]",":",7680);var d=b.def(c,".ref|0");b=b.def('"mask" in ',c,"?",c,".mask|0:-1");return[a,d,b]});case "stencil.opFront":case "stencil.opBack":return b(function(b){return["stencil.opBack"===
+a?1029:1028,Pa[b.fail||"keep"],Pa[b.zfail||"keep"],Pa[b.zpass||"keep"]]},function(b,c,d){function e(a){return c.def('"',a,'" in ',d,"?",n,"[",d,".",a,"]:",7680)}var n=b.constants.stencilOps;return["stencil.opBack"===a?1029:1028,e("fail"),e("zfail"),e("zpass")]});case "polygonOffset.offset":return b(function(a){return[a.factor|0,a.units|0]},function(a,b,c){a=b.def(c,".factor|0");b=b.def(c,".units|0");return[a,b]});case "cull.face":return b(function(a){var b=0;"front"===a?b=1028:"back"===a&&(b=1029);
+return b},function(a,b,c){return b.def(c,'==="front"?',1028,":",1029)});case "lineWidth":return b(function(a){return a},function(a,b,c){return c});case "frontFace":return b(function(a){return wb[a]},function(a,b,c){return b.def(c+'==="cw"?2304:2305')});case "colorMask":return b(function(a){return a.map(function(a){return!!a})},function(a,b,c){return J(4,function(a){return"!!"+c+"["+a+"]"})});case "sample.coverage":return b(function(a){return["value"in a?a.value:1,!!a.invert]},function(a,b,c){a=b.def('"value" in ',
+c,"?+",c,".value:1");b=b.def("!!",c,".invert");return[a,b]})}});return e}function F(a,b){var c=a["static"],d=a.dynamic,e={};Object.keys(c).forEach(function(a){var b=c[a],d;if("number"===typeof b||"boolean"===typeof b)d=D(function(){return b});else if("function"===typeof b){var n=b._reglType;if("texture2d"===n||"textureCube"===n)d=D(function(a){return a.link(b)});else if("framebuffer"===n||"framebufferCube"===n)d=D(function(a){return a.link(b.color[0])})}else pa(b)&&(d=D(function(a){return a.global.def("[",
+J(b.length,function(a){return b[a]}),"]")}));d.value=b;e[a]=d});Object.keys(d).forEach(function(a){var b=d[a];e[a]=P(b,function(a,c){return a.invoke(c,b)})});return e}function T(a,c){var d=a["static"],e=a.dynamic,f={};Object.keys(d).forEach(function(a){var c=d[a],e=b.id(a),n=new ya;if(Oa(c))n.state=1,n.buffer=g.getBuffer(g.create(c,34962,!1,!0)),n.type=0;else{var w=g.getBuffer(c);if(w)n.state=1,n.buffer=w,n.type=0;else if("constant"in c){var h=c.constant;n.buffer="null";n.state=2;"number"===typeof h?
+n.x=h:Da.forEach(function(a,b){b<h.length&&(n[a]=h[b])})}else{var w=Oa(c.buffer)?g.getBuffer(g.create(c.buffer,34962,!1,!0)):g.getBuffer(c.buffer),k=c.offset|0,m=c.stride|0,I=c.size|0,l=!!c.normalized,p=0;"type"in c&&(p=Ra[c.type]);c=c.divisor|0;n.buffer=w;n.state=1;n.size=I;n.normalized=l;n.type=p||w.dtype;n.offset=k;n.stride=m;n.divisor=c}}f[a]=D(function(a,b){var c=a.attribCache;if(e in c)return c[e];var d={isStream:!1};Object.keys(n).forEach(function(a){d[a]=n[a]});n.buffer&&(d.buffer=a.link(n.buffer),
+d.type=d.type||d.buffer+".dtype");return c[e]=d})});Object.keys(e).forEach(function(a){var b=e[a];f[a]=P(b,function(a,c){function d(a){c(w[a],"=",e,".",a,"|0;")}var e=a.invoke(c,b),n=a.shared,f=a.constants,g=n.isBufferArgs,n=n.buffer,w={isStream:c.def(!1)},h=new ya;h.state=1;Object.keys(h).forEach(function(a){w[a]=c.def(""+h[a])});var y=w.buffer,k=w.type;c("if(",g,"(",e,")){",w.isStream,"=true;",y,"=",n,".createStream(",34962,",",e,");",k,"=",y,".dtype;","}else{",y,"=",n,".getBuffer(",e,");","if(",
+y,"){",k,"=",y,".dtype;",'}else if("constant" in ',e,"){",w.state,"=",2,";","if(typeof "+e+'.constant === "number"){',w[Da[0]],"=",e,".constant;",Da.slice(1).map(function(a){return w[a]}).join("="),"=0;","}else{",Da.map(function(a,b){return w[a]+"="+e+".constant.length>"+b+"?"+e+".constant["+b+"]:0;"}).join(""),"}}else{","if(",g,"(",e,".buffer)){",y,"=",n,".createStream(",34962,",",e,".buffer);","}else{",y,"=",n,".getBuffer(",e,".buffer);","}",k,'="type" in ',e,"?",f.glTypes,"[",e,".type]:",y,".dtype;",
+w.normalized,"=!!",e,".normalized;");d("size");d("offset");d("stride");d("divisor");c("}}");c.exit("if(",w.isStream,"){",n,".destroyStream(",y,");","}");return w})});return f}function M(a){var b=a["static"],c=a.dynamic,d={};Object.keys(b).forEach(function(a){var c=b[a];d[a]=D(function(a,b){return"number"===typeof c||"boolean"===typeof c?""+c:a.link(c)})});Object.keys(c).forEach(function(a){var b=c[a];d[a]=P(b,function(a,c){return a.invoke(c,b)})});return d}function A(a,b,c,d,e){var f=z(a,e),g=x(a,
+f,e),h=O(a,e),k=R(a,e),m=E(a,e),ba=g.viewport;ba&&(k.viewport=ba);ba=l("scissor.box");(g=g[ba])&&(k[ba]=g);g=0<Object.keys(k).length;f={framebuffer:f,draw:h,shader:m,state:k,dirty:g};f.profile=B(a,e);f.uniforms=F(c,e);f.attributes=T(b,e);f.context=M(d,e);return f}function ua(a,b,c){var d=a.shared.context,e=a.scope();Object.keys(c).forEach(function(f){b.save(d,"."+f);e(d,".",f,"=",c[f].append(a,b),";")});b(e)}function K(a,b,c,d){var e=a.shared,f=e.gl,g=e.framebuffer,h;ha&&(h=b.def(e.extensions,".webgl_draw_buffers"));
+var k=a.constants,e=k.drawBuffer,k=k.backBuffer;a=c?c.append(a,b):b.def(g,".next");d||b("if(",a,"!==",g,".cur){");b("if(",a,"){",f,".bindFramebuffer(",36160,",",a,".framebuffer);");ha&&b(h,".drawBuffersWEBGL(",e,"[",a,".colorAttachments.length]);");b("}else{",f,".bindFramebuffer(",36160,",null);");ha&&b(h,".drawBuffersWEBGL(",k,");");b("}",g,".cur=",a,";");d||b("}")}function V(a,b,c){var d=a.shared,e=d.gl,f=a.current,g=a.next,h=d.current,k=d.next,m=a.cond(h,".dirty");Ka.forEach(function(b){b=l(b);
+if(!(b in c.state)){var d,w;if(b in g){d=g[b];w=f[b];var I=J(ra[b].length,function(a){return m.def(d,"[",a,"]")});m(a.cond(I.map(function(a,b){return a+"!=="+w+"["+b+"]"}).join("||")).then(e,".",ta[b],"(",I,");",I.map(function(a,b){return w+"["+b+"]="+a}).join(";"),";"))}else d=m.def(k,".",b),I=a.cond(d,"!==",h,".",b),m(I),b in sa?I(a.cond(d).then(e,".enable(",sa[b],");")["else"](e,".disable(",sa[b],");"),h,".",b,"=",d,";"):I(e,".",ta[b],"(",d,");",h,".",b,"=",d,";")}});0===Object.keys(c.state).length&&
+m(h,".dirty=false;");b(m)}function Q(a,b,c,d){var e=a.shared,f=a.current,g=e.current,h=e.gl;vb(Object.keys(c)).forEach(function(e){var k=c[e];if(!d||d(k)){var m=k.append(a,b);if(sa[e]){var l=sa[e];va(k)?m?b(h,".enable(",l,");"):b(h,".disable(",l,");"):b(a.cond(m).then(h,".enable(",l,");")["else"](h,".disable(",l,");"));b(g,".",e,"=",m,";")}else if(pa(m)){var p=f[e];b(h,".",ta[e],"(",m,");",m.map(function(a,b){return p+"["+b+"]="+a}).join(";"),";")}else b(h,".",ta[e],"(",m,");",g,".",e,"=",m,";")}})}
+function wa(a,b){ea&&(a.instancing=b.def(a.shared.extensions,".angle_instanced_arrays"))}function G(a,b,c,d,e){function f(){return"undefined"===typeof performance?"Date.now()":"performance.now()"}function g(a){t=b.def();a(t,"=",f(),";");"string"===typeof e?a(ba,".count+=",e,";"):a(ba,".count++;");k&&(d?(r=b.def(),a(r,"=",q,".getNumPendingQueries();")):a(q,".beginQuery(",ba,");"))}function h(a){a(ba,".cpuTime+=",f(),"-",t,";");k&&(d?a(q,".pushScopeStats(",r,",",q,".getNumPendingQueries(),",ba,");"):
+a(q,".endQuery();"))}function m(a){var c=b.def(p,".profile");b(p,".profile=",a,";");b.exit(p,".profile=",c,";")}var l=a.shared,ba=a.stats,p=l.current,q=l.timer;c=c.profile;var t,r;if(c){if(va(c)){c.enable?(g(b),h(b.exit),m("true")):m("false");return}c=c.append(a,b);m(c)}else c=b.def(p,".profile");l=a.block();g(l);b("if(",c,"){",l,"}");a=a.block();h(a);b.exit("if(",c,"){",a,"}")}function U(a,b,c,d,e){function f(a){switch(a){case 35664:case 35667:case 35671:return 2;case 35665:case 35668:case 35672:return 3;
+case 35666:case 35669:case 35673:return 4;default:return 1}}function g(c,d,e){function f(){b("if(!",y,".buffer){",k,".enableVertexAttribArray(",l,");}");var c=e.type,g;g=e.size?b.def(e.size,"||",d):d;b("if(",y,".type!==",c,"||",y,".size!==",g,"||",q.map(function(a){return y+"."+a+"!=="+e[a]}).join("||"),"){",k,".bindBuffer(",34962,",",I,".buffer);",k,".vertexAttribPointer(",[l,g,c,e.normalized,e.stride,e.offset],");",y,".type=",c,";",y,".size=",g,";",q.map(function(a){return y+"."+a+"="+e[a]+";"}).join(""),
+"}");ea&&(c=e.divisor,b("if(",y,".divisor!==",c,"){",a.instancing,".vertexAttribDivisorANGLE(",[l,c],");",y,".divisor=",c,";}"))}function m(){b("if(",y,".buffer){",k,".disableVertexAttribArray(",l,");",y,".buffer=null;","}if(",Da.map(function(a,b){return y+"."+a+"!=="+p[b]}).join("||"),"){",k,".vertexAttrib4f(",l,",",p,");",Da.map(function(a,b){return y+"."+a+"="+p[b]+";"}).join(""),"}")}var k=h.gl,l=b.def(c,".location"),y=b.def(h.attributes,"[",l,"]");c=e.state;var I=e.buffer,p=[e.x,e.y,e.z,e.w],
+q=["buffer","normalized","offset","stride"];1===c?f():2===c?m():(b("if(",c,"===",1,"){"),f(),b("}else{"),m(),b("}"))}var h=a.shared;d.forEach(function(d){var h=d.name,k=c.attributes[h],m;if(k){if(!e(k))return;m=k.append(a,b)}else{if(!e(xb))return;var l=a.scopeAttrib(h);m={};Object.keys(new ya).forEach(function(a){m[a]=b.def(l,".",a)})}g(a.link(d),f(d.info.type),m)})}function W(a,c,d,e,f){for(var g=a.shared,h=g.gl,k,m=0;m<e.length;++m){var l=e[m],p=l.name,q=l.info.type,t=d.uniforms[p],l=a.link(l)+
+".location",r;if(t){if(!f(t))continue;if(va(t)){p=t.value;if(35678===q||35680===q)q=a.link(p._texture||p.color[0]._texture),c(h,".uniform1i(",l,",",q+".bind());"),c.exit(q,".unbind();");else if(35674===q||35675===q||35676===q)p=a.global.def("new Float32Array(["+Array.prototype.slice.call(p)+"])"),t=2,35675===q?t=3:35676===q&&(t=4),c(h,".uniformMatrix",t,"fv(",l,",false,",p,");");else{switch(q){case 5126:k="1f";break;case 35664:k="2f";break;case 35665:k="3f";break;case 35666:k="4f";break;case 35670:k=
+"1i";break;case 5124:k="1i";break;case 35671:k="2i";break;case 35667:k="2i";break;case 35672:k="3i";break;case 35668:k="3i";break;case 35673:k="4i";break;case 35669:k="4i"}c(h,".uniform",k,"(",l,",",pa(p)?Array.prototype.slice.call(p):p,");")}continue}else r=t.append(a,c)}else{if(!f(xb))continue;r=c.def(g.uniforms,"[",b.id(p),"]")}35678===q?c("if(",r,"&&",r,'._reglType==="framebuffer"){',r,"=",r,".color[0];","}"):35680===q&&c("if(",r,"&&",r,'._reglType==="framebufferCube"){',r,"=",r,".color[0];",
+"}");p=1;switch(q){case 35678:case 35680:q=c.def(r,"._texture");c(h,".uniform1i(",l,",",q,".bind());");c.exit(q,".unbind();");continue;case 5124:case 35670:k="1i";break;case 35667:case 35671:k="2i";p=2;break;case 35668:case 35672:k="3i";p=3;break;case 35669:case 35673:k="4i";p=4;break;case 5126:k="1f";break;case 35664:k="2f";p=2;break;case 35665:k="3f";p=3;break;case 35666:k="4f";p=4;break;case 35674:k="Matrix2fv";break;case 35675:k="Matrix3fv";break;case 35676:k="Matrix4fv"}c(h,".uniform",k,"(",
+l,",");if("M"===k.charAt(0)){var l=Math.pow(q-35674+2,2),v=a.global.def("new Float32Array(",l,")");c("false,(Array.isArray(",r,")||",r," instanceof Float32Array)?",r,":(",J(l,function(a){return v+"["+a+"]="+r+"["+a+"]"}),",",v,")")}else 1<p?c(J(p,function(a){return r+"["+a+"]"})):c(r);c(");")}}function S(a,b,c,d){function e(f){var g=l[f];return g?g.contextDep&&d.contextDynamic||g.propDep?g.append(a,c):g.append(a,b):b.def(m,".",f)}function f(){function a(){c(u,".drawElementsInstancedANGLE(",[q,t,C,
+r+"<<(("+C+"-5121)>>1)",v],");")}function b(){c(u,".drawArraysInstancedANGLE(",[q,r,t,v],");")}p?da?a():(c("if(",p,"){"),a(),c("}else{"),b(),c("}")):b()}function g(){function a(){c(k+".drawElements("+[q,t,C,r+"<<(("+C+"-5121)>>1)"]+");")}function b(){c(k+".drawArrays("+[q,r,t]+");")}p?da?a():(c("if(",p,"){"),a(),c("}else{"),b(),c("}")):b()}var h=a.shared,k=h.gl,m=h.draw,l=d.draw,p=function(){var e=l.elements,f=b;if(e){if(e.contextDep&&d.contextDynamic||e.propDep)f=c;e=e.append(a,f)}else e=f.def(m,
+".","elements");e&&f("if("+e+")"+k+".bindBuffer(34963,"+e+".buffer.buffer);");return e}(),q=e("primitive"),r=e("offset"),t=function(){var e=l.count,f=b;if(e){if(e.contextDep&&d.contextDynamic||e.propDep)f=c;e=e.append(a,f)}else e=f.def(m,".","count");return e}();if("number"===typeof t){if(0===t)return}else c("if(",t,"){"),c.exit("}");var v,u;ea&&(v=e("instances"),u=a.instancing);var C=p+".type",da=l.elements&&va(l.elements);ea&&("number"!==typeof v||0<=v)?"string"===typeof v?(c("if(",v,">0){"),f(),
+c("}else if(",v,"<0){"),g(),c("}")):f():g()}function ca(a,b,c,d,e){b=N();e=b.proc("body",e);ea&&(b.instancing=e.def(b.shared.extensions,".angle_instanced_arrays"));a(b,e,c,d);return b.compile().body}function L(a,b,c,d){wa(a,b);U(a,b,c,d.attributes,function(){return!0});W(a,b,c,d.uniforms,function(){return!0});S(a,b,b,c)}function da(a,b){var c=a.proc("draw",1);wa(a,c);ua(a,c,b.context);K(a,c,b.framebuffer);V(a,c,b);Q(a,c,b.state);G(a,c,b,!1,!0);var d=b.shader.progVar.append(a,c);c(a.shared.gl,".useProgram(",
+d,".program);");if(b.shader.program)L(a,c,b,b.shader.program);else{var e=a.global.def("{}"),f=c.def(d,".id"),g=c.def(e,"[",f,"]");c(a.cond(g).then(g,".call(this,a0);")["else"](g,"=",e,"[",f,"]=",a.link(function(c){return ca(L,a,b,c,1)}),"(",d,");",g,".call(this,a0);"))}0<Object.keys(b.state).length&&c(a.shared.current,".dirty=true;")}function oa(a,b,c,d){function e(){return!0}a.batchId="a1";wa(a,b);U(a,b,c,d.attributes,e);W(a,b,c,d.uniforms,e);S(a,b,b,c)}function za(a,b,c,d){function e(a){return a.contextDep&&
+g||a.propDep}function f(a){return!e(a)}wa(a,b);var g=c.contextDep,h=b.def(),k=b.def();a.shared.props=k;a.batchId=h;var m=a.scope(),l=a.scope();b(m.entry,"for(",h,"=0;",h,"<","a1",";++",h,"){",k,"=","a0","[",h,"];",l,"}",m.exit);c.needsContext&&ua(a,l,c.context);c.needsFramebuffer&&K(a,l,c.framebuffer);Q(a,l,c.state,e);c.profile&&e(c.profile)&&G(a,l,c,!1,!0);d?(U(a,m,c,d.attributes,f),U(a,l,c,d.attributes,e),W(a,m,c,d.uniforms,f),W(a,l,c,d.uniforms,e),S(a,m,l,c)):(b=a.global.def("{}"),d=c.shader.progVar.append(a,
+l),k=l.def(d,".id"),m=l.def(b,"[",k,"]"),l(a.shared.gl,".useProgram(",d,".program);","if(!",m,"){",m,"=",b,"[",k,"]=",a.link(function(b){return ca(oa,a,c,b,2)}),"(",d,");}",m,".call(this,a0[",h,"],",h,");"))}function ka(a,b){function c(a){return a.contextDep&&e||a.propDep}var d=a.proc("batch",2);a.batchId="0";wa(a,d);var e=!1,f=!0;Object.keys(b.context).forEach(function(a){e=e||b.context[a].propDep});e||(ua(a,d,b.context),f=!1);var g=b.framebuffer,h=!1;g?(g.propDep?e=h=!0:g.contextDep&&e&&(h=!0),
+h||K(a,d,g)):K(a,d,null);b.state.viewport&&b.state.viewport.propDep&&(e=!0);V(a,d,b);Q(a,d,b.state,function(a){return!c(a)});b.profile&&c(b.profile)||G(a,d,b,!1,"a1");b.contextDep=e;b.needsContext=f;b.needsFramebuffer=h;f=b.shader.progVar;if(f.contextDep&&e||f.propDep)za(a,d,b,null);else if(f=f.append(a,d),d(a.shared.gl,".useProgram(",f,".program);"),b.shader.program)za(a,d,b,b.shader.program);else{var g=a.global.def("{}"),h=d.def(f,".id"),k=d.def(g,"[",h,"]");d(a.cond(k).then(k,".call(this,a0,a1);")["else"](k,
+"=",g,"[",h,"]=",a.link(function(c){return ca(za,a,b,c,2)}),"(",f,");",k,".call(this,a0,a1);"))}0<Object.keys(b.state).length&&d(a.shared.current,".dirty=true;")}function ia(a,c){function d(b){var g=c.shader[b];g&&e.set(f.shader,"."+b,g.append(a,e))}var e=a.proc("scope",3);a.batchId="a2";var f=a.shared,g=f.current;ua(a,e,c.context);c.framebuffer&&c.framebuffer.append(a,e);vb(Object.keys(c.state)).forEach(function(b){var d=c.state[b].append(a,e);pa(d)?d.forEach(function(c,d){e.set(a.next[b],"["+d+
+"]",c)}):e.set(f.next,"."+b,d)});G(a,e,c,!0,!0);["elements","offset","count","instances","primitive"].forEach(function(b){var d=c.draw[b];d&&e.set(f.draw,"."+b,""+d.append(a,e))});Object.keys(c.uniforms).forEach(function(d){e.set(f.uniforms,"["+b.id(d)+"]",c.uniforms[d].append(a,e))});Object.keys(c.attributes).forEach(function(b){var d=c.attributes[b].append(a,e),f=a.scopeAttrib(b);Object.keys(new ya).forEach(function(a){e.set(f,"."+a,d[a])})});d("vert");d("frag");0<Object.keys(c.state).length&&(e(g,
+".dirty=true;"),e.exit(g,".dirty=true;"));e("a1(",a.shared.context,",a0,",a.batchId,");")}function ma(a){if("object"===typeof a&&!pa(a)){for(var b=Object.keys(a),c=0;c<b.length;++c)if(la.isDynamic(a[b[c]]))return!0;return!1}}function ja(a,b,c){function d(a,b){g.forEach(function(c){var d=e[c];la.isDynamic(d)&&(d=a.invoke(b,d),b(l,".",c,"=",d,";"))})}var e=b["static"][c];if(e&&ma(e)){var f=a.global,g=Object.keys(e),h=!1,k=!1,m=!1,l=a.global.def("{}");g.forEach(function(b){var c=e[b];if(la.isDynamic(c))"function"===
+typeof c&&(c=e[b]=la.unbox(c)),b=P(c,null),h=h||b.thisDep,m=m||b.propDep,k=k||b.contextDep;else{f(l,".",b,"=");switch(typeof c){case "number":f(c);break;case "string":f('"',c,'"');break;case "object":Array.isArray(c)&&f("[",c.join(),"]");break;default:f(a.link(c))}f(";")}});b.dynamic[c]=new la.DynamicVariable(4,{thisDep:h,contextDep:k,propDep:m,ref:l,append:d});delete b["static"][c]}}var ya=q.Record,X={add:32774,subtract:32778,"reverse subtract":32779};c.ext_blend_minmax&&(X.min=32775,X.max=32776);
+var ea=c.angle_instanced_arrays,ha=c.webgl_draw_buffers,ra={dirty:!0,profile:h.profile},Fa={},Ka=[],sa={},ta={};u("dither",3024);u("blend.enable",3042);v("blend.color","blendColor",[0,0,0,0]);v("blend.equation","blendEquationSeparate",[32774,32774]);v("blend.func","blendFuncSeparate",[1,0,1,0]);u("depth.enable",2929,!0);v("depth.func","depthFunc",513);v("depth.range","depthRange",[0,1]);v("depth.mask","depthMask",!0);v("colorMask","colorMask",[!0,!0,!0,!0]);u("cull.enable",2884);v("cull.face","cullFace",
+1029);v("frontFace","frontFace",2305);v("lineWidth","lineWidth",1);u("polygonOffset.enable",32823);v("polygonOffset.offset","polygonOffset",[0,0]);u("sample.alpha",32926);u("sample.enable",32928);v("sample.coverage","sampleCoverage",[1,!1]);u("stencil.enable",2960);v("stencil.mask","stencilMask",-1);v("stencil.func","stencilFunc",[519,0,-1]);v("stencil.opFront","stencilOpSeparate",[1028,7680,7680,7680]);v("stencil.opBack","stencilOpSeparate",[1029,7680,7680,7680]);u("scissor.enable",3089);v("scissor.box",
+"scissor",[0,0,a.drawingBufferWidth,a.drawingBufferHeight]);v("viewport","viewport",[0,0,a.drawingBufferWidth,a.drawingBufferHeight]);var na={gl:a,context:C,strings:b,next:Fa,current:ra,draw:m,elements:d,buffer:g,shader:t,attributes:q.state,uniforms:r,framebuffer:f,extensions:c,timer:k,isBufferArgs:Oa},aa={primTypes:Sa,compareFuncs:Xa,blendFuncs:Ga,blendEquations:X,stencilOps:Pa,glTypes:Ra,orientationType:wb};ha&&(aa.backBuffer=[1029],aa.drawBuffer=J(e.maxDrawbuffers,function(a){return 0===a?[0]:
+J(a,function(a){return 36064+a})}));var qa=0;return{next:Fa,current:ra,procs:function(){var a=N(),b=a.proc("poll"),c=a.proc("refresh"),d=a.block();b(d);c(d);var f=a.shared,g=f.gl,h=f.next,k=f.current;d(k,".dirty=false;");K(a,b);K(a,c,null,!0);var m;ea&&(m=a.link(ea));for(var l=0;l<e.maxAttributes;++l){var p=c.def(f.attributes,"[",l,"]"),q=a.cond(p,".buffer");q.then(g,".enableVertexAttribArray(",l,");",g,".bindBuffer(",34962,",",p,".buffer.buffer);",g,".vertexAttribPointer(",l,",",p,".size,",p,".type,",
+p,".normalized,",p,".stride,",p,".offset);")["else"](g,".disableVertexAttribArray(",l,");",g,".vertexAttrib4f(",l,",",p,".x,",p,".y,",p,".z,",p,".w);",p,".buffer=null;");c(q);ea&&c(m,".vertexAttribDivisorANGLE(",l,",",p,".divisor);")}Object.keys(sa).forEach(function(e){var f=sa[e],m=d.def(h,".",e),l=a.block();l("if(",m,"){",g,".enable(",f,")}else{",g,".disable(",f,")}",k,".",e,"=",m,";");c(l);b("if(",m,"!==",k,".",e,"){",l,"}")});Object.keys(ta).forEach(function(e){var f=ta[e],m=ra[e],l,p,q=a.block();
+q(g,".",f,"(");pa(m)?(f=m.length,l=a.global.def(h,".",e),p=a.global.def(k,".",e),q(J(f,function(a){return l+"["+a+"]"}),");",J(f,function(a){return p+"["+a+"]="+l+"["+a+"];"}).join("")),b("if(",J(f,function(a){return l+"["+a+"]!=="+p+"["+a+"]"}).join("||"),"){",q,"}")):(l=d.def(h,".",e),p=d.def(k,".",e),q(l,");",k,".",e,"=",l,";"),b("if(",l,"!==",p,"){",q,"}"));c(q)});return a.compile()}(),compile:function(a,b,c,d,e){var f=N();f.stats=f.link(e);Object.keys(b["static"]).forEach(function(a){ja(f,b,
+a)});Ub.forEach(function(b){ja(f,a,b)});c=A(a,b,c,d,f);da(f,c);ia(f,c);ka(f,c);return f.compile()}}}function yb(a,b){for(var c=0;c<a.length;++c)if(a[c]===b)return c;return-1}var E=function(a,b){for(var c=Object.keys(b),e=0;e<c.length;++e)a[c[e]]=b[c[e]];return a},Ab=0,la={DynamicVariable:aa,define:function(a,b){return new aa(a,Za(b+""))},isDynamic:function(a){return"function"===typeof a&&!a._reglType||a instanceof aa},unbox:function(a,b){return"function"===typeof a?new aa(0,a):a},accessor:Za},Ya=
+{next:"function"===typeof requestAnimationFrame?function(a){return requestAnimationFrame(a)}:function(a){return setTimeout(a,16)},cancel:"function"===typeof cancelAnimationFrame?function(a){return cancelAnimationFrame(a)}:clearTimeout},zb="undefined"!==typeof performance&&performance.now?function(){return performance.now()}:function(){return+new Date},x=cb();x.zero=cb();var Vb=function(a,b){var c=1;b.ext_texture_filter_anisotropic&&(c=a.getParameter(34047));var e=1,g=1;b.webgl_draw_buffers&&(e=a.getParameter(34852),
+g=a.getParameter(36063));var d=!!b.oes_texture_float;if(d){d=a.createTexture();a.bindTexture(3553,d);a.texImage2D(3553,0,6408,1,1,0,6408,5126,null);var p=a.createFramebuffer();a.bindFramebuffer(36160,p);a.framebufferTexture2D(36160,36064,3553,d,0);a.bindTexture(3553,null);if(36053!==a.checkFramebufferStatus(36160))d=!1;else{a.viewport(0,0,1,1);a.clearColor(1,0,0,1);a.clear(16384);var f=x.allocType(5126,4);a.readPixels(0,0,1,1,6408,5126,f);a.getError()?d=!1:(a.deleteFramebuffer(p),a.deleteTexture(d),
+d=1===f[0]);x.freeType(f)}}f=!0;"undefined"!==typeof navigator&&(/MSIE/.test(navigator.userAgent)||/Trident\//.test(navigator.appVersion)||/Edge/.test(navigator.userAgent))||(f=a.createTexture(),p=x.allocType(5121,36),a.activeTexture(33984),a.bindTexture(34067,f),a.texImage2D(34069,0,6408,3,3,0,6408,5121,p),x.freeType(p),a.bindTexture(34067,null),a.deleteTexture(f),f=!a.getError());return{colorBits:[a.getParameter(3410),a.getParameter(3411),a.getParameter(3412),a.getParameter(3413)],depthBits:a.getParameter(3414),
+stencilBits:a.getParameter(3415),subpixelBits:a.getParameter(3408),extensions:Object.keys(b).filter(function(a){return!!b[a]}),maxAnisotropic:c,maxDrawbuffers:e,maxColorAttachments:g,pointSizeDims:a.getParameter(33901),lineWidthDims:a.getParameter(33902),maxViewportDims:a.getParameter(3386),maxCombinedTextureUnits:a.getParameter(35661),maxCubeMapSize:a.getParameter(34076),maxRenderbufferSize:a.getParameter(34024),maxTextureUnits:a.getParameter(34930),maxTextureSize:a.getParameter(3379),maxAttributes:a.getParameter(34921),
+maxVertexUniforms:a.getParameter(36347),maxVertexTextureUnits:a.getParameter(35660),maxVaryingVectors:a.getParameter(36348),maxFragmentUniforms:a.getParameter(36349),glsl:a.getParameter(35724),renderer:a.getParameter(7937),vendor:a.getParameter(7936),version:a.getParameter(7938),readFloat:d,npotTextureCube:f}},M=function(a){return a instanceof Uint8Array||a instanceof Uint16Array||a instanceof Uint32Array||a instanceof Int8Array||a instanceof Int16Array||a instanceof Int32Array||a instanceof Float32Array||
+a instanceof Float64Array||a instanceof Uint8ClampedArray},S=function(a){return Object.keys(a).map(function(b){return a[b]})},Ma={shape:function(a){for(var b=[];a.length;a=a[0])b.push(a.length);return b},flatten:function(a,b,c,e){var g=1;if(b.length)for(var d=0;d<b.length;++d)g*=b[d];else g=0;c=e||x.allocType(c,g);switch(b.length){case 0:break;case 1:e=b[0];for(b=0;b<e;++b)c[b]=a[b];break;case 2:e=b[0];b=b[1];for(d=g=0;d<e;++d)for(var p=a[d],f=0;f<b;++f)c[g++]=p[f];break;case 3:db(a,b[0],b[1],b[2],
+c,0);break;default:eb(a,b,0,c,0)}return c}},Ia={"[object Int8Array]":5120,"[object Int16Array]":5122,"[object Int32Array]":5124,"[object Uint8Array]":5121,"[object Uint8ClampedArray]":5121,"[object Uint16Array]":5123,"[object Uint32Array]":5125,"[object Float32Array]":5126,"[object Float64Array]":5121,"[object ArrayBuffer]":5121},Ra={int8:5120,int16:5122,int32:5124,uint8:5121,uint16:5123,uint32:5125,"float":5126,float32:5126},jb={dynamic:35048,stream:35040,"static":35044},Qa=Ma.flatten,hb=Ma.shape,
+ja=[];ja[5120]=1;ja[5122]=2;ja[5124]=4;ja[5121]=1;ja[5123]=2;ja[5125]=4;ja[5126]=4;var Sa={points:0,point:0,lines:1,line:1,triangles:4,triangle:4,"line loop":2,"line strip":3,"triangle strip":5,"triangle fan":6},lb=new Float32Array(1),Ib=new Uint32Array(lb.buffer),Mb=[9984,9986,9985,9987],La=[0,6409,6410,6407,6408],L={};L[6409]=L[6406]=L[6402]=1;L[34041]=L[6410]=2;L[6407]=L[35904]=3;L[6408]=L[35906]=4;var Ua=Ea("HTMLCanvasElement"),pb=Ea("CanvasRenderingContext2D"),qb=Ea("ImageBitmap"),rb=Ea("HTMLImageElement"),
+sb=Ea("HTMLVideoElement"),Jb=Object.keys(Ia).concat([Ua,pb,qb,rb,sb]),qa=[];qa[5121]=1;qa[5126]=4;qa[36193]=2;qa[5123]=2;qa[5125]=4;var z=[];z[32854]=2;z[32855]=2;z[36194]=2;z[34041]=4;z[33776]=.5;z[33777]=.5;z[33778]=1;z[33779]=1;z[35986]=.5;z[35987]=1;z[34798]=1;z[35840]=.5;z[35841]=.25;z[35842]=.5;z[35843]=.25;z[36196]=.5;var Q=[];Q[32854]=2;Q[32855]=2;Q[36194]=2;Q[33189]=2;Q[36168]=1;Q[34041]=4;Q[35907]=4;Q[34836]=16;Q[34842]=8;Q[34843]=6;var Wb=function(a,b,c,e,g){function d(a){this.id=q++;this.refCount=
+1;this.renderbuffer=a;this.format=32854;this.height=this.width=0;g.profile&&(this.stats={size:0})}function p(b){var c=b.renderbuffer;a.bindRenderbuffer(36161,null);a.deleteRenderbuffer(c);b.renderbuffer=null;b.refCount=0;delete t[b.id];e.renderbufferCount--}var f={rgba4:32854,rgb565:36194,"rgb5 a1":32855,depth:33189,stencil:36168,"depth stencil":34041};b.ext_srgb&&(f.srgba=35907);b.ext_color_buffer_half_float&&(f.rgba16f=34842,f.rgb16f=34843);b.webgl_color_buffer_float&&(f.rgba32f=34836);var r=[];
+Object.keys(f).forEach(function(a){r[f[a]]=a});var q=0,t={};d.prototype.decRef=function(){0>=--this.refCount&&p(this)};g.profile&&(e.getTotalRenderbufferSize=function(){var a=0;Object.keys(t).forEach(function(b){a+=t[b].stats.size});return a});return{create:function(b,c){function k(b,c){var d=0,e=0,m=32854;"object"===typeof b&&b?("shape"in b?(e=b.shape,d=e[0]|0,e=e[1]|0):("radius"in b&&(d=e=b.radius|0),"width"in b&&(d=b.width|0),"height"in b&&(e=b.height|0)),"format"in b&&(m=f[b.format])):"number"===
+typeof b?(d=b|0,e="number"===typeof c?c|0:d):b||(d=e=1);if(d!==h.width||e!==h.height||m!==h.format)return k.width=h.width=d,k.height=h.height=e,h.format=m,a.bindRenderbuffer(36161,h.renderbuffer),a.renderbufferStorage(36161,m,d,e),g.profile&&(h.stats.size=Q[h.format]*h.width*h.height),k.format=r[h.format],k}var h=new d(a.createRenderbuffer());t[h.id]=h;e.renderbufferCount++;k(b,c);k.resize=function(b,c){var d=b|0,e=c|0||d;if(d===h.width&&e===h.height)return k;k.width=h.width=d;k.height=h.height=e;
+a.bindRenderbuffer(36161,h.renderbuffer);a.renderbufferStorage(36161,h.format,d,e);g.profile&&(h.stats.size=Q[h.format]*h.width*h.height);return k};k._reglType="renderbuffer";k._renderbuffer=h;g.profile&&(k.stats=h.stats);k.destroy=function(){h.decRef()};return k},clear:function(){S(t).forEach(p)},restore:function(){S(t).forEach(function(b){b.renderbuffer=a.createRenderbuffer();a.bindRenderbuffer(36161,b.renderbuffer);a.renderbufferStorage(36161,b.format,b.width,b.height)});a.bindRenderbuffer(36161,
+null)}}},Wa=[];Wa[6408]=4;Wa[6407]=3;var Na=[];Na[5121]=1;Na[5126]=4;Na[36193]=2;var Da=["x","y","z","w"],Ub="blend.func blend.equation stencil.func stencil.opFront stencil.opBack sample.coverage viewport scissor.box polygonOffset.offset".split(" "),Ga={0:0,1:1,zero:0,one:1,"src color":768,"one minus src color":769,"src alpha":770,"one minus src alpha":771,"dst color":774,"one minus dst color":775,"dst alpha":772,"one minus dst alpha":773,"constant color":32769,"one minus constant color":32770,"constant alpha":32771,
+"one minus constant alpha":32772,"src alpha saturate":776},Xa={never:512,less:513,"<":513,equal:514,"=":514,"==":514,"===":514,lequal:515,"<=":515,greater:516,">":516,notequal:517,"!=":517,"!==":517,gequal:518,">=":518,always:519},Pa={0:0,zero:0,keep:7680,replace:7681,increment:7682,decrement:7683,"increment wrap":34055,"decrement wrap":34056,invert:5386},wb={cw:2304,ccw:2305},xb=new Z(!1,!1,!1,function(){}),Xb=function(a,b){function c(){this.endQueryIndex=this.startQueryIndex=-1;this.sum=0;this.stats=
+null}function e(a,b,d){var e=p.pop()||new c;e.startQueryIndex=a;e.endQueryIndex=b;e.sum=0;e.stats=d;f.push(e)}if(!b.ext_disjoint_timer_query)return null;var g=[],d=[],p=[],f=[],r=[],q=[];return{beginQuery:function(a){var c=g.pop()||b.ext_disjoint_timer_query.createQueryEXT();b.ext_disjoint_timer_query.beginQueryEXT(35007,c);d.push(c);e(d.length-1,d.length,a)},endQuery:function(){b.ext_disjoint_timer_query.endQueryEXT(35007)},pushScopeStats:e,update:function(){var a,c;a=d.length;if(0!==a){q.length=
+Math.max(q.length,a+1);r.length=Math.max(r.length,a+1);r[0]=0;var e=q[0]=0;for(c=a=0;c<d.length;++c){var k=d[c];b.ext_disjoint_timer_query.getQueryObjectEXT(k,34919)?(e+=b.ext_disjoint_timer_query.getQueryObjectEXT(k,34918),g.push(k)):d[a++]=k;r[c+1]=e;q[c+1]=a}d.length=a;for(c=a=0;c<f.length;++c){var e=f[c],h=e.startQueryIndex,k=e.endQueryIndex;e.sum+=r[k]-r[h];h=q[h];k=q[k];k===h?(e.stats.gpuTime+=e.sum/1E6,p.push(e)):(e.startQueryIndex=h,e.endQueryIndex=k,f[a++]=e)}f.length=a}},getNumPendingQueries:function(){return d.length},
+clear:function(){g.push.apply(g,d);for(var a=0;a<g.length;a++)b.ext_disjoint_timer_query.deleteQueryEXT(g[a]);d.length=0;g.length=0},restore:function(){d.length=0;g.length=0}}};return function(a){function b(){if(0===G.length)B&&B.update(),ca=null;else{ca=Ya.next(b);t();for(var a=G.length-1;0<=a;--a){var c=G[a];c&&c(O,null,0)}k.flush();B&&B.update()}}function c(){!ca&&0<G.length&&(ca=Ya.next(b))}function e(){ca&&(Ya.cancel(b),ca=null)}function g(a){a.preventDefault();e();U.forEach(function(a){a()})}
+function d(a){k.getError();l.restore();Q.restore();F.restore();A.restore();M.restore();K.restore();B&&B.restore();V.procs.refresh();c();W.forEach(function(a){a()})}function p(a){function b(a){var c={},d={};Object.keys(a).forEach(function(b){var e=a[b];la.isDynamic(e)?d[b]=la.unbox(e,b):c[b]=e});return{dynamic:d,"static":c}}function c(a){for(;m.length<a;)m.push(null);return m}var d=b(a.context||{}),e=b(a.uniforms||{}),f=b(a.attributes||{}),g=b(function(a){function b(a){if(a in c){var d=c[a];delete c[a];
+Object.keys(d).forEach(function(b){c[a+"."+b]=d[b]})}}var c=E({},a);delete c.uniforms;delete c.attributes;delete c.context;"stencil"in c&&c.stencil.op&&(c.stencil.opBack=c.stencil.opFront=c.stencil.op,delete c.stencil.op);b("blend");b("depth");b("cull");b("stencil");b("polygonOffset");b("scissor");b("sample");return c}(a));a={gpuTime:0,cpuTime:0,count:0};var d=V.compile(g,f,e,d,a),h=d.draw,k=d.batch,l=d.scope,m=[];return E(function(a,b){var d;if("function"===typeof a)return l.call(this,null,a,0);
+if("function"===typeof b)if("number"===typeof a)for(d=0;d<a;++d)l.call(this,null,b,d);else if(Array.isArray(a))for(d=0;d<a.length;++d)l.call(this,a[d],b,d);else return l.call(this,a,b,0);else if("number"===typeof a){if(0<a)return k.call(this,c(a|0),a|0)}else if(Array.isArray(a)){if(a.length)return k.call(this,a,a.length)}else return h.call(this,a)},{stats:a})}function f(a,b){var c=0;V.procs.poll();var d=b.color;d&&(k.clearColor(+d[0]||0,+d[1]||0,+d[2]||0,+d[3]||0),c|=16384);"depth"in b&&(k.clearDepth(+b.depth),
+c|=256);"stencil"in b&&(k.clearStencil(b.stencil|0),c|=1024);k.clear(c)}function r(a){G.push(a);c();return{cancel:function(){function b(){var a=yb(G,b);G[a]=G[G.length-1];--G.length;0>=G.length&&e()}var c=yb(G,a);G[c]=b}}}function q(){var a=S.viewport,b=S.scissor_box;a[0]=a[1]=b[0]=b[1]=0;O.viewportWidth=O.framebufferWidth=O.drawingBufferWidth=a[2]=b[2]=k.drawingBufferWidth;O.viewportHeight=O.framebufferHeight=O.drawingBufferHeight=a[3]=b[3]=k.drawingBufferHeight}function t(){O.tick+=1;O.time=z();
+q();V.procs.poll()}function m(){q();V.procs.refresh();B&&B.update()}function z(){return(zb()-D)/1E3}a=Eb(a);if(!a)return null;var k=a.gl,h=k.getContextAttributes();k.isContextLost();var l=Fb(k,a);if(!l)return null;var u=Bb(),v={bufferCount:0,elementsCount:0,framebufferCount:0,shaderCount:0,textureCount:0,cubeCount:0,renderbufferCount:0,maxTextureUnits:0},x=l.extensions,B=Xb(k,x),D=zb(),J=k.drawingBufferWidth,P=k.drawingBufferHeight,O={tick:0,time:0,viewportWidth:J,viewportHeight:P,framebufferWidth:J,
+framebufferHeight:P,drawingBufferWidth:J,drawingBufferHeight:P,pixelRatio:a.pixelRatio},R=Vb(k,x),J=Pb(k,x,R,u),F=Gb(k,v,a,J),T=Hb(k,x,F,v),Q=Qb(k,u,v,a),A=Kb(k,x,R,function(){V.procs.poll()},O,v,a),M=Wb(k,x,R,v,a),K=Ob(k,x,R,A,M,v),V=Tb(k,u,x,R,F,T,A,K,{},J,Q,{elements:null,primitive:4,count:-1,offset:0,instances:-1},O,B,a),u=Rb(k,K,V.procs.poll,O,h,x,R),S=V.next,L=k.canvas,G=[],U=[],W=[],Z=[a.onDestroy],ca=null;L&&(L.addEventListener("webglcontextlost",g,!1),L.addEventListener("webglcontextrestored",
+d,!1));var aa=K.setFBO=p({framebuffer:la.define.call(null,1,"framebuffer")});m();h=E(p,{clear:function(a){if("framebuffer"in a)if(a.framebuffer&&"framebufferCube"===a.framebuffer_reglType)for(var b=0;6>b;++b)aa(E({framebuffer:a.framebuffer.faces[b]},a),f);else aa(a,f);else f(null,a)},prop:la.define.bind(null,1),context:la.define.bind(null,2),"this":la.define.bind(null,3),draw:p({}),buffer:function(a){return F.create(a,34962,!1,!1)},elements:function(a){return T.create(a,!1)},texture:A.create2D,cube:A.createCube,
+renderbuffer:M.create,framebuffer:K.create,framebufferCube:K.createCube,attributes:h,frame:r,on:function(a,b){var c;switch(a){case "frame":return r(b);case "lost":c=U;break;case "restore":c=W;break;case "destroy":c=Z}c.push(b);return{cancel:function(){for(var a=0;a<c.length;++a)if(c[a]===b){c[a]=c[c.length-1];c.pop();break}}}},limits:R,hasExtension:function(a){return 0<=R.extensions.indexOf(a.toLowerCase())},read:u,destroy:function(){G.length=0;e();L&&(L.removeEventListener("webglcontextlost",g),
+L.removeEventListener("webglcontextrestored",d));Q.clear();K.clear();M.clear();A.clear();T.clear();F.clear();B&&B.clear();Z.forEach(function(a){a()})},_gl:k,_refresh:m,poll:function(){t();B&&B.update()},now:z,stats:v});a.onDone(null,h);return h}});
+
+},{}],46:[function(require,module,exports){
+var resolve = require('soundcloud-resolve')
+var fonts = require('google-fonts')
+var minstache = require('minstache')
+var insert = require('insert-css')
+var fs = require('fs')
+
+var icons = {
+    black: 'https://developers.soundcloud.com/assets/logo_black.png'
+  , white: 'https://developers.soundcloud.com/assets/logo_white.png'
+}
+
+module.exports = badge
+function noop(err){ if (err) throw err }
+
+var inserted = false
+var gwfadded = false
+var template = null
+
+function badge(options, callback) {
+  if (!inserted) insert(".npm-scb-wrap {\n  font-family: 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;\n  font-weight: 200;\n  position: absolute;\n  top: 0;\n  left: 0;\n  z-index: 999;\n}\n\n.npm-scb-wrap a {\n  text-decoration: none;\n  color: #000;\n}\n.npm-scb-white\n.npm-scb-wrap a {\n  color: #fff;\n}\n\n.npm-scb-inner {\n  position: absolute;\n  top: -120px; left: 0;\n  padding: 8px;\n  width: 100%;\n  height: 150px;\n  z-index: 2;\n  -webkit-transition: width 0.5s cubic-bezier(1, 0, 0, 1), top 0.5s;\n     -moz-transition: width 0.5s cubic-bezier(1, 0, 0, 1), top 0.5s;\n      -ms-transition: width 0.5s cubic-bezier(1, 0, 0, 1), top 0.5s;\n       -o-transition: width 0.5s cubic-bezier(1, 0, 0, 1), top 0.5s;\n          transition: width 0.5s cubic-bezier(1, 0, 0, 1), top 0.5s;\n}\n.npm-scb-wrap:hover\n.npm-scb-inner {\n  top: 0;\n}\n\n.npm-scb-artwork {\n  position: absolute;\n  top: 16px; left: 16px;\n  width: 104px; height: 104px;\n  box-shadow: 0 0 8px -3px #000;\n  outline: 1px solid rgba(0,0,0,0.1);\n  z-index: 2;\n}\n.npm-scb-white\n.npm-scb-artwork {\n  outline: 1px solid rgba(255,255,255,0.1);\n  box-shadow: 0 0 10px -2px rgba(255,255,255,0.9);\n}\n\n.npm-scb-info {\n  position: absolute;\n  top: 16px;\n  left: 120px;\n  width: 300px;\n  z-index: 1;\n}\n\n.npm-scb-info > a {\n  display: block;\n}\n\n.npm-scb-now-playing {\n  font-size: 12px;\n  line-height: 12px;\n  position: absolute;\n  width: 500px;\n  z-index: 1;\n  padding: 15px 0;\n  top: 0; left: 138px;\n  opacity: 1;\n  -webkit-transition: opacity 0.25s;\n     -moz-transition: opacity 0.25s;\n      -ms-transition: opacity 0.25s;\n       -o-transition: opacity 0.25s;\n          transition: opacity 0.25s;\n}\n\n.npm-scb-wrap:hover\n.npm-scb-now-playing {\n  opacity: 0;\n}\n\n.npm-scb-white\n.npm-scb-now-playing {\n  color: #fff;\n}\n.npm-scb-now-playing > a {\n  font-weight: bold;\n}\n\n.npm-scb-info > a > p {\n  margin: 0;\n  padding-bottom: 0.25em;\n  line-height: 1.35em;\n  margin-left: 1em;\n  font-size: 1em;\n}\n\n.npm-scb-title {\n  font-weight: bold;\n}\n\n.npm-scb-icon {\n  position: absolute;\n  top: 120px;\n  padding-top: 0.75em;\n  left: 16px;\n}\n"), inserted = true
+  if (!template) template = minstache.compile("<div class=\"npm-scb-wrap\">\n  <div class=\"npm-scb-inner\">\n    <a target=\"_blank\" href=\"{{!urls.song}}\">\n      <img class=\"npm-scb-icon\" src=\"{{!icon}}\">\n      <img class=\"npm-scb-artwork\" src=\"{{!artwork}}\">\n    </a>\n    <div class=\"npm-scb-info\">\n      <a target=\"_blank\" href=\"{{!urls.song}}\">\n        <p class=\"npm-scb-title\">{{!title}}</p>\n      </a>\n      <a target=\"_blank\" href=\"{{!urls.artist}}\">\n        <p class=\"npm-scb-artist\">{{!artist}}</p>\n      </a>\n    </div>\n  </div>\n  <div class=\"npm-scb-now-playing\">\n    Now Playing:\n    <a href=\"{{!urls.song}}\">{{!title}}</a>\n    by\n    <a href=\"{{!urls.artist}}\">{{!artist}}</a>\n  </div>\n</div>")
+
+  if (!gwfadded && options.getFonts) {
+    fonts.add({ 'Open Sans': [300, 600] })
+    gwfadded = true
+  }
+
+  options = options || {}
+  callback = callback || noop
+
+  var div   = options.el || document.createElement('div')
+  var icon  = !('dark' in options) || options.dark ? 'black' : 'white'
+  var id    = options.client_id
+  var song  = options.song
+
+  resolve(id, song, function(err, json) {
+    if (err) return callback(err)
+    if (json.kind !== 'track') throw new Error(
+      'soundcloud-badge only supports individual tracks at the moment'
+    )
+
+    div.classList[
+      icon === 'black' ? 'remove' : 'add'
+    ]('npm-scb-white')
+
+    div.innerHTML = template({
+        artwork: json.artwork_url || json.user.avatar_url
+      , artist: json.user.username
+      , title: json.title
+      , icon: icons[icon]
+      , urls: {
+          song: json.permalink_url
+        , artist: json.user.permalink_url
+      }
+    })
+
+    document.body.appendChild(div)
+
+    callback(null, json.stream_url + '?client_id=' + id, json, div)
+  })
+
+  return div
+}
+
+},{"fs":8,"google-fonts":17,"insert-css":20,"minstache":21,"soundcloud-resolve":47}],47:[function(require,module,exports){
+var qs  = require('querystring')
+var xhr = require('xhr')
+
+module.exports = resolve
+
+function resolve(id, goal, callback) {
+  var uri = 'https://api.soundcloud.com/resolve.json?' + qs.stringify({
+      url: goal
+    , client_id: id
+  })
+
+  xhr({
+      uri: uri
+    , method: 'GET'
+  }, function(err, res, body) {
+    if (err) return callback(err)
+    try {
+      body = JSON.parse(body)
+    } catch(e) {
+      return callback(e)
+    }
+    if (body.errors) return callback(new Error(
+      body.errors[0].error_message
+    ))
+
+    var stream_url = body.kind === 'track'
+      && body.stream_url + '?client_id=' + id
+
+    return callback(null, body, stream_url)
+  })
+}
+
+},{"querystring":43,"xhr":52}],48:[function(require,module,exports){
+'use strict'
+
+var parseUnit = require('parse-unit')
+
+module.exports = toPX
+
+var PIXELS_PER_INCH = getSizeBrutal('in', document.body) // 96
+
+
+function getPropertyInPX(element, prop) {
+  var parts = parseUnit(getComputedStyle(element).getPropertyValue(prop))
+  return parts[0] * toPX(parts[1], element)
+}
+
+//This brutal hack is needed
+function getSizeBrutal(unit, element) {
+  var testDIV = document.createElement('div')
+  testDIV.style['height'] = '128' + unit
+  element.appendChild(testDIV)
+  var size = getPropertyInPX(testDIV, 'height') / 128
+  element.removeChild(testDIV)
+  return size
+}
+
+function toPX(str, element) {
+  if (!str) return null
+
+  element = element || document.body
+  str = (str + '' || 'px').trim().toLowerCase()
+  if(element === window || element === document) {
+    element = document.body
+  }
+
+  switch(str) {
+    case '%':  //Ambiguous, not sure if we should use width or height
+      return element.clientHeight / 100.0
+    case 'ch':
+    case 'ex':
+      return getSizeBrutal(str, element)
+    case 'em':
+      return getPropertyInPX(element, 'font-size')
+    case 'rem':
+      return getPropertyInPX(document.body, 'font-size')
+    case 'vw':
+      return window.innerWidth/100
+    case 'vh':
+      return window.innerHeight/100
+    case 'vmin':
+      return Math.min(window.innerWidth, window.innerHeight) / 100
+    case 'vmax':
+      return Math.max(window.innerWidth, window.innerHeight) / 100
+    case 'in':
+      return PIXELS_PER_INCH
+    case 'cm':
+      return PIXELS_PER_INCH / 2.54
+    case 'mm':
+      return PIXELS_PER_INCH / 25.4
+    case 'pt':
+      return PIXELS_PER_INCH / 72
+    case 'pc':
+      return PIXELS_PER_INCH / 6
+    case 'px':
+      return 1
+  }
+
+  // detect number of units
+  var parts = parseUnit(str)
+  if (!isNaN(parts[0]) && parts[1]) {
+    var px = toPX(parts[1], element)
+    return typeof px === 'number' ? parts[0] * px : null
+  }
+
+  return null
+}
+
+},{"parse-unit":39}],49:[function(require,module,exports){
 var assert = require('assert')
 var trie = require('./trie')
 
@@ -13458,21 +4383,24 @@ function Wayfarer (dft) {
   var _trie = trie()
 
   emit._trie = _trie
-  emit.emit = emit
   emit.on = on
+  emit.emit = emit
+  emit.match = match
   emit._wayfarer = true
 
   return emit
 
   // define a route
   // (str, fn) -> obj
-  function on (route, cb) {
+  function on (route, fn) {
     assert.equal(typeof route, 'string')
-    assert.equal(typeof cb, 'function')
+    assert.equal(typeof fn, 'function')
 
+    var cb = fn._wayfarer && fn._trie ? fn : proxy
     route = route || '/'
+    cb.route = route
 
-    if (cb && cb._wayfarer && cb._trie) {
+    if (cb._wayfarer && cb._trie) {
       _trie.mount(route, cb._trie.trie)
     } else {
       var node = _trie.create(route)
@@ -13480,34 +4408,46 @@ function Wayfarer (dft) {
     }
 
     return emit
+
+    function proxy () {
+      return fn.apply(this, Array.prototype.slice.call(arguments))
+    }
   }
 
   // match and call a route
   // (str, obj?) -> null
   function emit (route) {
-    assert.notEqual(route, undefined, "'route' must be defined")
+    var matched = match(route)
+
     var args = new Array(arguments.length)
+    args[0] = matched.params
     for (var i = 1; i < args.length; i++) {
       args[i] = arguments[i]
     }
 
-    var node = _trie.match(route)
-    if (node && node.cb) {
-      args[0] = node.params
-      return node.cb.apply(null, args)
-    }
+    return matched.cb.apply(matched.cb, args)
+  }
+
+  function match (route) {
+    assert.notEqual(route, undefined, "'route' must be defined")
+
+    var matched = _trie.match(route)
+    if (matched && matched.cb) return new Route(matched)
 
     var dft = _trie.match(_default)
-    if (dft && dft.cb) {
-      args[0] = dft.params
-      return dft.cb.apply(null, args)
-    }
+    if (dft && dft.cb) return new Route(dft)
 
     throw new Error("route '" + route + "' did not match")
   }
+
+  function Route (matched) {
+    this.cb = matched.cb
+    this.route = matched.cb.route
+    this.params = matched.params
+  }
 }
 
-},{"./trie":48,"assert":2}],48:[function(require,module,exports){
+},{"./trie":50,"assert":2}],50:[function(require,module,exports){
 var mutate = require('xtend/mutable')
 var assert = require('assert')
 var xtend = require('xtend')
@@ -13528,15 +4468,15 @@ Trie.prototype.create = function (route) {
   assert.equal(typeof route, 'string', 'route should be a string')
   // strip leading '/' and split routes
   var routes = route.replace(/^\//, '').split('/')
-  return (function createNode (index, trie) {
-    var thisRoute = routes[index]
 
-    if (thisRoute === undefined) return trie
+  function createNode (index, trie) {
+    var thisRoute = (routes.hasOwnProperty(index) && routes[index])
+    if (thisRoute === false) return trie
 
     var node = null
     if (/^:|^\*/.test(thisRoute)) {
       // if node is a name match, set name and append to ':' node
-      if (!trie.nodes['$$']) {
+      if (!trie.nodes.hasOwnProperty('$$')) {
         node = { nodes: {} }
         trie.nodes['$$'] = node
       } else {
@@ -13548,7 +4488,7 @@ Trie.prototype.create = function (route) {
       }
 
       trie.name = thisRoute.replace(/^:|^\*/, '')
-    } else if (!trie.nodes[thisRoute]) {
+    } else if (!trie.nodes.hasOwnProperty(thisRoute)) {
       node = { nodes: {} }
       trie.nodes[thisRoute] = node
     } else {
@@ -13557,7 +4497,9 @@ Trie.prototype.create = function (route) {
 
     // we must recurse deeper
     return createNode(index + 1, node)
-  })(0, this.trie)
+  }
+
+  return createNode(0, this.trie)
 }
 
 // match a route on the trie
@@ -13569,29 +4511,39 @@ Trie.prototype.match = function (route) {
   var routes = route.replace(/^\//, '').split('/')
   var params = {}
 
-  var node = (function search (index, trie) {
+  function search (index, trie) {
     // either there's no match, or we're done searching
     if (trie === undefined) return undefined
     var thisRoute = routes[index]
     if (thisRoute === undefined) return trie
 
-    if (trie.nodes[thisRoute]) {
+    if (trie.nodes.hasOwnProperty(thisRoute)) {
       // match regular routes first
       return search(index + 1, trie.nodes[thisRoute])
-    } else if (trie.wildcard) {
-      // match wildcards
-      params['wildcard'] = decodeURIComponent(routes.slice(index).join('/'))
-      // return early, or else search may keep recursing through the wildcard
-      return trie.nodes['$$']
     } else if (trie.name) {
       // match named routes
-      params[trie.name] = decodeURIComponent(thisRoute)
+      try {
+        params[trie.name] = decodeURIComponent(thisRoute)
+      } catch (e) {
+        return search(index, undefined)
+      }
       return search(index + 1, trie.nodes['$$'])
+    } else if (trie.wildcard) {
+      // match wildcards
+      try {
+        params['wildcard'] = decodeURIComponent(routes.slice(index).join('/'))
+      } catch (e) {
+        return search(index, undefined)
+      }
+      // return early, or else search may keep recursing through the wildcard
+      return trie.nodes['$$']
     } else {
       // no matches found
       return search(index + 1)
     }
-  })(0, this.trie)
+  }
+
+  var node = search(0, this.trie)
 
   if (!node) return undefined
   node = xtend(node)
@@ -13613,8 +4565,7 @@ Trie.prototype.mount = function (route, trie) {
     key = split[0]
     node = this.create(key)
   } else {
-    var headArr = split.splice(0, split.length - 1)
-    var head = headArr.join('/')
+    var head = split.join('/')
     key = split[0]
     node = this.create(head)
   }
@@ -13634,7 +4585,7 @@ Trie.prototype.mount = function (route, trie) {
   }
 }
 
-},{"assert":2,"xtend":52,"xtend/mutable":53}],49:[function(require,module,exports){
+},{"assert":2,"xtend":54,"xtend/mutable":55}],51:[function(require,module,exports){
 var AudioContext = window.AudioContext || window.webkitAudioContext
 
 module.exports = WebAudioAnalyser
@@ -13714,7 +4665,7 @@ WebAudioAnalyser.prototype.frequencies = function(output, channel) {
   return output
 }
 
-},{}],50:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 var window = require("global/window")
 var once = require("once")
 
@@ -13820,28 +4771,18 @@ function createXHR(options, callback) {
 
 function noop() {}
 
-},{"global/window":15,"once":51}],51:[function(require,module,exports){
-module.exports = once
-
-once.proto = once(function () {
-  Object.defineProperty(Function.prototype, 'once', {
-    value: function () {
-      return once(this)
-    },
-    configurable: true
-  })
-})
-
-function once (fn) {
-  var called = false
-  return function () {
-    if (called) return
-    called = true
-    return fn.apply(this, arguments)
-  }
+},{"global/window":53,"once":38}],53:[function(require,module,exports){
+(function (global){
+if (typeof window !== "undefined") {
+    module.exports = window
+} else if (typeof global !== "undefined") {
+    module.exports = global
+} else {
+    module.exports = {}
 }
 
-},{}],52:[function(require,module,exports){
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{}],54:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -13862,7 +4803,7 @@ function extend() {
     return target
 }
 
-},{}],53:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
