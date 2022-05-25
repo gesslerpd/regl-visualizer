@@ -71,7 +71,7 @@ regl.frame(() => {
   })
 })
 
-var CLIENT_ID = 'f0sxU3Az3dcl0lS1M9wFJ00SqawVL72n'
+var CLIENT_ID = '7g7gIkrcAS05cJVf2FlIsnkOXtg4JdSe'
 var html = require('choo/html')
 var choo = require('choo')
 
